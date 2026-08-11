@@ -1,0 +1,69 @@
+import { GitCompareArrows, Heart, ShoppingCart } from "lucide-react";
+import { useState } from "react";
+
+import { useCartStore } from "@/modules/cart/store";
+import { useCollectionStore } from "@/modules/collections/store";
+import { LeadAction } from "@/modules/leads/components/lead-action";
+import type { Product } from "@/shared/types/api";
+
+export function ProductActions({ product }: { product: Product }) {
+  const add = useCartStore((state) => state.add);
+  const favorites = useCollectionStore((state) => state.favorites);
+  const compare = useCollectionStore((state) => state.compare);
+  const toggleFavorite = useCollectionStore((state) => state.toggleFavorite);
+  const toggleCompare = useCollectionStore((state) => state.toggleCompare);
+  const [quantity, setQuantity] = useState(1);
+
+  return (
+    <div className="product-actions-panel">
+      <label className="product-quantity">
+        <span>Кількість</span>
+        <input
+          aria-label="Кількість товару"
+          inputMode="numeric"
+          max={99}
+          min={1}
+          onChange={(event) => {
+            const value = Number(event.currentTarget.value);
+            setQuantity(
+              Number.isFinite(value) ? Math.max(1, Math.min(99, value)) : 1,
+            );
+          }}
+          type="number"
+          value={quantity}
+        />
+      </label>
+      <button
+        className="button button--primary button--wide"
+        onClick={() => add(product, quantity)}
+        type="button"
+      >
+        <ShoppingCart size={19} /> Додати в кошик
+      </button>
+      <LeadAction
+        className="button button--outline button--wide"
+        label="Купити в один клік"
+        productId={product.id}
+        type="quick_buy"
+      />
+      <div className="product-secondary-actions">
+        <button
+          aria-pressed={favorites.includes(product.id)}
+          onClick={() => toggleFavorite(product.id)}
+          type="button"
+        >
+          <Heart size={18} />
+          {favorites.includes(product.id) ? "В обраному" : "В обране"}
+        </button>
+        <button
+          aria-pressed={compare.includes(product.id)}
+          onClick={() => toggleCompare(product.id)}
+          type="button"
+        >
+          <GitCompareArrows size={18} />
+          {compare.includes(product.id) ? "У порівнянні" : "Порівняти"}
+        </button>
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480" role="img" aria-labelledby="title">
+  <title id="title">Електромонтажне обладнання</title>
+  <defs><linearGradient id="bg" x2="1" y2="1"><stop stop-color="#f8fafc"/><stop offset="1" stop-color="#e1e7ee"/></linearGradient><filter id="s"><feDropShadow dx="0" dy="12" stdDeviation="16" flood-opacity=".18"/></filter></defs>
+  <rect width="640" height="480" rx="36" fill="url(#bg)"/>
+  <g filter="url(#s)"><rect x="122" y="72" width="396" height="336" rx="22" fill="#8a99ad"/><rect x="154" y="104" width="332" height="272" rx="10" fill="#f8fafc"/></g>
+  <path d="M190 158h260M190 240h260M190 322h260" stroke="#cbd5e1" stroke-width="16" stroke-linecap="round"/>
+  <g fill="#26364e"><rect x="212" y="130" width="54" height="68" rx="8"/><rect x="280" y="130" width="54" height="68" rx="8"/><rect x="348" y="130" width="54" height="68" rx="8"/></g>
+  <g fill="#a93313"><rect x="212" y="212" width="80" height="68" rx="8"/><rect x="306" y="212" width="96" height="68" rx="8"/></g>
+  <g fill="#82b52b"><circle cx="239" cy="344" r="10"/><circle cx="273" cy="344" r="10"/><circle cx="307" cy="344" r="10"/></g>
+</svg>

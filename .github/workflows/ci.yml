@@ -1,0 +1,222 @@
+name: CI
+
+on:
+  push:
+    branches: [dev, stage, main]
+  pull_request:
+    branches: [dev, stage, main]
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      APP__ENV: local
+      APP__API__PORT: "8000"
+      APP__JWT__SECRET_KEY: ci-secret-key-with-at-least-32-characters
+      APP__POSTGRES__USER: postgres
+      APP__POSTGRES__PASSWORD: postgres
+      APP__POSTGRES__HOST: localhost
+      APP__POSTGRES__PORT: "5432"
+      APP__POSTGRES__DB: izihata_ci
+      APP__REDIS__HOST: localhost
+      APP__REDIS__PORT: "6379"
+      APP__REDIS__DB: "0"
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: izihata_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d izihata_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:8-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --locked --dev
+
+      - name: Run static checks
+        run: |
+          uv run ruff check .
+          uv run ruff format --check .
+          uv run mypy src/app
+
+      - name: Run tests with coverage
+        run: uv run pytest src/tests/ -n auto --cov=src/app --cov-report=xml --cov-report=term --cov-fail-under=80
+
+      - name: Verify migrations and PostgreSQL concurrency
+        run: |
+          uv run cli bootstrap
+          uv run alembic check
+          uv run pytest src/integration_tests -q
+
+      - name: Build production image
+        run: docker build -t izihata-api:ci .
+
+      - name: Smoke-test Taskiq worker
+        run: |
+          cleanup_worker() {
+            docker stop --time 2 izihata-worker-smoke >/dev/null 2>&1 || true
+          }
+          trap cleanup_worker EXIT
+          docker run --rm -d \
+            --name izihata-worker-smoke \
+            --network host \
+            -e APP__ENV \
+            -e APP__API__PORT \
+            -e APP__JWT__SECRET_KEY \
+            -e APP__POSTGRES__USER \
+            -e APP__POSTGRES__PASSWORD \
+            -e APP__POSTGRES__HOST \
+            -e APP__POSTGRES__PORT \
+            -e APP__POSTGRES__DB \
+            -e APP__REDIS__HOST \
+            -e APP__REDIS__PORT \
+            -e APP__REDIS__DB \
+            izihata-api:ci \
+            taskiq worker app.tiq:broker -w 1 app.tasks
+          sleep 7
+          worker_logs="$(docker logs izihata-worker-smoke 2>&1)"
+          printf '%s\n' "$worker_logs"
+          test "$(docker inspect -f '{{.State.Running}}' izihata-worker-smoke)" = true
+          grep -q "Listening started" <<<"$worker_logs"
+          if grep -q "is dead" <<<"$worker_logs"; then
+            exit 1
+          fi
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-xml
+          path: backend/coverage.xml
+
+  frontend:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run static checks and unit tests
+        run: |
+          npm run format:check
+          npm run lint
+          npm run typecheck
+          npm run test:coverage
+
+      - name: Build production application
+        run: npm run build
+
+      - name: Build production image
+        run: docker build -t izihata-frontend:ci .
+
+  e2e:
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      ADMIN_USERNAME: ci_admin
+      ADMIN_PASSWORD: CI-admin-password-2026
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install browser test dependencies
+        run: |
+          npm ci --prefix frontend
+          npx --prefix frontend playwright install --with-deps chromium
+
+      - name: Start full stack
+        run: |
+          cp backend/.env.sample .env
+          docker compose up --build --detach
+          stack_ready=false
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent http://127.0.0.1:18000/ready >/dev/null && \
+               curl --fail --silent http://127.0.0.1:3000/ >/dev/null; then
+              stack_ready=true
+              break
+            fi
+            sleep 2
+          done
+          test "$stack_ready" = true
+          docker compose exec -T app cli create-user \
+            --username "$ADMIN_USERNAME" \
+            --password "$ADMIN_PASSWORD"
+
+      - name: Run desktop and mobile end-to-end tests
+        run: npm --prefix frontend run test:e2e
+
+      - name: Upload browser failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-failure-artifacts
+          path: |
+            frontend/playwright-report
+            frontend/test-results
+          if-no-files-found: ignore
+
+      - name: Show service logs on failure
+        if: failure()
+        run: docker compose logs --no-color
+
+      - name: Stop full stack
+        if: always()
+        run: docker compose down --volumes --remove-orphans

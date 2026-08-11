@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480" role="img" aria-labelledby="title">
+  <title id="title">Розетка та вимикач</title>
+  <defs><linearGradient id="bg" x2="1" y2="1"><stop stop-color="#f8fafc"/><stop offset="1" stop-color="#dbe4f0"/></linearGradient><filter id="s"><feDropShadow dx="0" dy="12" stdDeviation="16" flood-opacity=".16"/></filter></defs>
+  <rect width="640" height="480" rx="36" fill="url(#bg)"/>
+  <g filter="url(#s)"><rect x="112" y="104" width="192" height="250" rx="30" fill="#fff" stroke="#cbd5e1" stroke-width="4"/><rect x="336" y="104" width="192" height="250" rx="30" fill="#fff" stroke="#cbd5e1" stroke-width="4"/></g>
+  <circle cx="208" cy="228" r="68" fill="#eef2f7" stroke="#8a99ad" stroke-width="5"/>
+  <circle cx="183" cy="218" r="10" fill="#26364e"/><circle cx="233" cy="218" r="10" fill="#26364e"/><path d="M208 254v20" stroke="#82b52b" stroke-width="8" stroke-linecap="round"/>
+  <rect x="374" y="142" width="116" height="174" rx="18" fill="#eef2f7" stroke="#8a99ad" stroke-width="4"/><path d="M386 154h92v76h-92z" fill="#fff"/><circle cx="432" cy="278" r="8" fill="#a93313"/>
+</svg>

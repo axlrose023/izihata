@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480" role="img" aria-labelledby="title">
+  <title id="title">Світлодіодне освітлення</title>
+  <defs><radialGradient id="bg"><stop stop-color="#fff8d8"/><stop offset="1" stop-color="#e6ebf2"/></radialGradient><filter id="g"><feGaussianBlur stdDeviation="20"/></filter><filter id="s"><feDropShadow dx="0" dy="10" stdDeviation="12" flood-opacity=".16"/></filter></defs>
+  <rect width="640" height="480" rx="36" fill="url(#bg)"/>
+  <circle cx="320" cy="206" r="124" fill="#ffd84a" opacity=".28" filter="url(#g)"/>
+  <g filter="url(#s)"><path d="M222 210a98 98 0 1 1 196 0c0 48-32 75-54 102H276c-22-27-54-54-54-102z" fill="#fff" stroke="#aebac9" stroke-width="5"/><path d="M278 314h84v36c0 30-18 50-42 50s-42-20-42-50z" fill="#26364e"/></g>
+  <path d="M260 210c16-54 104-54 120 0" fill="none" stroke="#f0a019" stroke-width="12" stroke-linecap="round"/><path d="M294 342h52M296 366h48" stroke="#d7e0eb" stroke-width="7" stroke-linecap="round"/>
+  <g stroke="#f0a019" stroke-width="8" stroke-linecap="round"><path d="M320 48V24M164 210h-28M504 210h-28M202 92l-20-20M438 92l20-20"/></g>
+</svg>
