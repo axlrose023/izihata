@@ -29,7 +29,8 @@ The current backend implements only flows present in the reference product:
 | `POST` | `/api/v1/orders` | Idempotent guest checkout |
 | `POST` | `/api/v1/leads` | Callback, quick-buy, or wholesale lead |
 | `GET` | `/api/v1/admin/dashboard` | Real operational aggregates |
-| `PATCH` | `/api/v1/admin/catalog/products/{id}` | Price and availability update |
+| `POST` | `/api/v1/admin/catalog/products` | Validated product creation |
+| `PATCH` | `/api/v1/admin/catalog/products/{id}` | Validated product details and availability update |
 | `GET` | `/api/v1/admin/orders` | Paginated order management list |
 | `PATCH` | `/api/v1/admin/orders/{id}/status` | Validated order status transition |
 | `GET` | `/api/v1/admin/leads` | Paginated and filtered lead queue |

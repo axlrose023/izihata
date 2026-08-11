@@ -40,7 +40,7 @@ export function AdminProductsPage() {
       <PageHeader
         eyebrow="Каталог"
         title="Товари"
-        description="Редагування ціни та доступності без дублювання бізнес-логіки."
+        description="Створення та редагування товарів, цін і доступності."
       />
       <ProductsView />
     </div>

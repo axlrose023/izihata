@@ -66,12 +66,20 @@ const localizedMessages: Record<string, string> = {
   method_not_allowed: "Ця дія не підтримується.",
   network_error: "Немає зв’язку із сервером. Перевірте інтернет і повторіть.",
   not_found: "Запитувані дані не знайдено.",
+  category_not_found: "Обрану категорію більше не знайдено. Оновіть форму.",
+  product_identity_exists: "Товар із таким SKU вже існує.",
+  product_sku_exists: "Товар із таким SKU вже існує.",
+  product_slug_exists: "Товар із такою адресою вже існує. Змініть SKU.",
   products_unavailable:
     "Один або кілька товарів уже недоступні. Оновіть кошик.",
   promotion_invalid: "Промокод недійсний або термін його дії минув.",
   rate_limit_exceeded: "Забагато запитів. Зачекайте хвилину й повторіть.",
   request_timeout: "Сервер відповідає надто довго. Спробуйте ще раз.",
   service_unavailable: "Сервіс тимчасово недоступний. Спробуйте пізніше.",
+  subcategory_category_mismatch:
+    "Підкатегорія не належить до обраної категорії. Оберіть її ще раз.",
+  subcategory_not_found:
+    "Обрану підкатегорію більше не знайдено. Оновіть форму.",
   unauthorized: "Потрібна повторна авторизація.",
   validation_error: "Перевірте правильність заповнених даних.",
 };

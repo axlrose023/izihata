@@ -85,6 +85,14 @@ specification facets, and the applicable price range. A separate endpoint per
 filter would add round trips and duplicate query semantics, so facets are part
 of the catalogue result.
 
+Staff product creation is a separate `POST /admin/catalog/products` command.
+The backend normalises SKU, derives the stable public slug, validates the
+category/subcategory relationship, and creates normalised specification rows in
+one transaction. Duplicate identities return `409`; malformed or inconsistent
+catalogue data returns a controlled `4xx` response. Product images remain URL
+references so storage/CDN integration can be selected at deployment without
+coupling catalogue business logic to a specific vendor.
+
 ## 5. Pricing and order creation
 
 ```text

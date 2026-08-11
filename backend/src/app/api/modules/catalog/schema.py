@@ -5,9 +5,14 @@ from uuid import UUID
 from pydantic import ConfigDict, Field, field_validator, model_validator
 
 from app.api.common.schema import PaginationParams, StrictSchema
-from app.api.common.utils import normalize_optional_text
+from app.api.common.utils import normalize_optional_text, normalize_text
 from app.api.modules.catalog.enums import ProductBadge, ProductSort, StockStatus
 from app.api.modules.catalog.models import Product, ProductReview
+from app.api.modules.catalog.utils import (
+    normalize_image_url,
+    normalize_product_specs,
+    normalize_sku,
+)
 
 
 class CatalogReference(StrictSchema):
@@ -190,7 +195,58 @@ class ProductListResponse(StrictSchema):
     facets: ProductFacets
 
 
+class CreateProductRequest(StrictSchema):
+    category_id: UUID
+    subcategory_id: UUID | None = None
+    sku: str = Field(min_length=1, max_length=64)
+    name: str = Field(min_length=2, max_length=240)
+    brand: str = Field(min_length=1, max_length=120)
+    image_url: str | None = Field(default=None, max_length=500)
+    price: Decimal = Field(gt=0, max_digits=12, decimal_places=2)
+    old_price: Decimal | None = Field(
+        default=None,
+        gt=0,
+        max_digits=12,
+        decimal_places=2,
+    )
+    badge: ProductBadge | None = None
+    stock_status: StockStatus = StockStatus.IN_STOCK
+    specs: dict[str, str] = Field(default_factory=dict, max_length=30)
+
+    @field_validator("sku", mode="before")
+    @classmethod
+    def validate_sku(cls, value: object) -> str:
+        return normalize_sku(value)
+
+    @field_validator("name", "brand", mode="before")
+    @classmethod
+    def normalize_required_text(cls, value: object) -> str:
+        return normalize_text(value)
+
+    @field_validator("image_url", mode="before")
+    @classmethod
+    def validate_image_url(cls, value: object | None) -> str | None:
+        return normalize_image_url(value)
+
+    @field_validator("specs", mode="before")
+    @classmethod
+    def validate_specs(cls, value: object) -> dict[str, str]:
+        return normalize_product_specs(value)
+
+    @model_validator(mode="after")
+    def validate_old_price(self) -> "CreateProductRequest":
+        if self.old_price is not None and self.old_price < self.price:
+            raise ValueError("old_price cannot be lower than price")
+        return self
+
+
 class UpdateProductRequest(StrictSchema):
+    category_id: UUID | None = None
+    subcategory_id: UUID | None = None
+    sku: str | None = Field(default=None, min_length=1, max_length=64)
+    name: str | None = Field(default=None, min_length=2, max_length=240)
+    brand: str | None = Field(default=None, min_length=1, max_length=120)
+    image_url: str | None = Field(default=None, max_length=500)
     price: Decimal | None = Field(default=None, gt=0, max_digits=12, decimal_places=2)
     old_price: Decimal | None = Field(
         default=None,
@@ -198,16 +254,46 @@ class UpdateProductRequest(StrictSchema):
         max_digits=12,
         decimal_places=2,
     )
+    badge: ProductBadge | None = None
     stock_status: StockStatus | None = None
+    specs: dict[str, str] | None = Field(default=None, max_length=30)
+
+    @field_validator("sku", mode="before")
+    @classmethod
+    def validate_sku(cls, value: object | None) -> str | None:
+        return normalize_sku(value) if value is not None else None
+
+    @field_validator("name", "brand", mode="before")
+    @classmethod
+    def normalize_required_text(cls, value: object | None) -> str | None:
+        return normalize_text(value) if value is not None else None
+
+    @field_validator("image_url", mode="before")
+    @classmethod
+    def validate_image_url(cls, value: object | None) -> str | None:
+        return normalize_image_url(value)
+
+    @field_validator("specs", mode="before")
+    @classmethod
+    def validate_specs(cls, value: object | None) -> dict[str, str] | None:
+        return normalize_product_specs(value) if value is not None else None
 
     @model_validator(mode="after")
     def require_update(self) -> "UpdateProductRequest":
         if not self.model_fields_set:
             raise ValueError("At least one field must be provided")
-        if "price" in self.model_fields_set and self.price is None:
-            raise ValueError("price cannot be null")
-        if "stock_status" in self.model_fields_set and self.stock_status is None:
-            raise ValueError("stock_status cannot be null")
+        required_fields = {
+            "category_id": self.category_id,
+            "sku": self.sku,
+            "name": self.name,
+            "brand": self.brand,
+            "price": self.price,
+            "stock_status": self.stock_status,
+            "specs": self.specs,
+        }
+        for field, value in required_fields.items():
+            if field in self.model_fields_set and value is None:
+                raise ValueError(f"{field} cannot be null")
         if (
             self.price is not None
             and self.old_price is not None

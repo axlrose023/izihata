@@ -55,6 +55,19 @@ describe("toApiError", () => {
     ).toBe("Повторіть");
   });
 
+  it("shows a specific duplicate SKU message", () => {
+    const error = new ApiError(
+      409,
+      "Product sku already exists",
+      undefined,
+      "product_sku_exists",
+    );
+
+    expect(getUserErrorMessage(error, "Fallback")).toBe(
+      "Товар із таким SKU вже існує.",
+    );
+  });
+
   it.each([
     [401, "Потрібна повторна авторизація."],
     [403, "Недостатньо прав для цієї дії."],

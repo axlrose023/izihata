@@ -4,11 +4,13 @@ import { useEffect, useRef } from "react";
 export function Modal({
   open,
   title,
+  size = "default",
   onClose,
   children,
 }: {
   open: boolean;
   title: string;
+  size?: "default" | "wide";
   onClose: () => void;
   children: React.ReactNode;
 }) {
@@ -26,7 +28,7 @@ export function Modal({
   return (
     <dialog
       aria-labelledby="modal-title"
-      className="modal"
+      className={`modal${size === "wide" ? " modal--wide" : ""}`}
       onCancel={onClose}
       onClick={(event) => {
         if (event.target === event.currentTarget) onClose();

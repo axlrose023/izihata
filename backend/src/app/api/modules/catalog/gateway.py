@@ -34,6 +34,23 @@ class CategoryGateway:
         result = await self._session.execute(stmt)
         return result.scalars().unique().all()
 
+    async def get_active_by_id(self, category_id: UUID) -> Category | None:
+        stmt = select(Category).where(
+            Category.id == category_id,
+            Category.is_active.is_(True),
+        )
+        return (await self._session.execute(stmt)).scalar_one_or_none()
+
+    async def get_active_subcategory_by_id(
+        self,
+        subcategory_id: UUID,
+    ) -> Subcategory | None:
+        stmt = select(Subcategory).where(
+            Subcategory.id == subcategory_id,
+            Subcategory.is_active.is_(True),
+        )
+        return (await self._session.execute(stmt)).scalar_one_or_none()
+
     async def product_counts(self) -> dict[UUID, int]:
         stmt = (
             select(Product.category_id, func.count(Product.id))
@@ -200,6 +217,33 @@ class ProductGateway:
             .with_for_update(of=Product)
         )
         return (await self._session.execute(stmt)).scalar_one_or_none()
+
+    async def identity_conflict(
+        self,
+        sku: str,
+        slug: str,
+        *,
+        exclude_product_id: UUID | None = None,
+    ) -> str | None:
+        conditions = [or_(Product.sku == sku, Product.slug == slug)]
+        if exclude_product_id is not None:
+            conditions.append(Product.id != exclude_product_id)
+        stmt = select(Product.sku, Product.slug).where(*conditions)
+        for existing_sku, existing_slug in (await self._session.execute(stmt)).all():
+            if existing_sku == sku:
+                return "sku"
+            if existing_slug == slug:
+                return "slug"
+        return None
+
+    async def next_position(self) -> int:
+        stmt = select(func.coalesce(func.max(Product.position), -1) + 1)
+        return int((await self._session.execute(stmt)).scalar_one())
+
+    async def create(self, product: Product) -> Product:
+        self._session.add(product)
+        await self._session.flush()
+        return product
 
     async def get_by_slug(self, slug: str) -> Product | None:
         stmt = (
