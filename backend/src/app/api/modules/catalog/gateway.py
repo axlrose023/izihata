@@ -14,6 +14,7 @@ from app.api.modules.catalog.models import (
     Category,
     Product,
     ProductAttribute,
+    ProductReview,
     Subcategory,
 )
 from app.api.modules.catalog.schema import ProductListParams
@@ -208,9 +209,24 @@ class ProductGateway:
                 joinedload(Product.category),
                 joinedload(Product.subcategory),
                 selectinload(Product.attributes),
+                selectinload(Product.reviews),
             )
         )
         return (await self._session.execute(stmt)).scalar_one_or_none()
+
+    async def list_featured_reviews(self, limit: int = 3) -> Sequence[ProductReview]:
+        stmt = (
+            select(ProductReview)
+            .join(Product, Product.id == ProductReview.product_id)
+            .where(
+                ProductReview.is_published.is_(True),
+                ProductReview.is_featured.is_(True),
+                Product.is_active.is_(True),
+            )
+            .order_by(ProductReview.created_at.desc(), ProductReview.id)
+            .limit(limit)
+        )
+        return (await self._session.execute(stmt)).scalars().all()
 
     async def get_many(self, product_ids: set[UUID]) -> Sequence[Product]:
         if not product_ids:

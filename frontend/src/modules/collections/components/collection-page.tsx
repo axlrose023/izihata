@@ -64,6 +64,17 @@ export function CollectionPage({ mode }: { mode: "favorites" | "compare" }) {
     );
   }
 
+  if (products.length < 2) {
+    return (
+      <EmptyState
+        actionHref="/catalog"
+        actionLabel="Додати ще товар"
+        description="Для змістовного порівняння потрібні щонайменше два товари."
+        title="Додайте ще один товар"
+      />
+    );
+  }
+
   const specNames = [
     ...new Set(products.flatMap((product) => Object.keys(product.specs))),
   ];

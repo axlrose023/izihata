@@ -1,4 +1,10 @@
-import { GitCompareArrows, Heart, ShoppingCart } from "lucide-react";
+import {
+  GitCompareArrows,
+  Heart,
+  Minus,
+  Plus,
+  ShoppingCart,
+} from "lucide-react";
 import { useState } from "react";
 
 import { useCartStore } from "@/modules/cart/store";
@@ -13,25 +19,43 @@ export function ProductActions({ product }: { product: Product }) {
   const toggleFavorite = useCollectionStore((state) => state.toggleFavorite);
   const toggleCompare = useCollectionStore((state) => state.toggleCompare);
   const [quantity, setQuantity] = useState(1);
+  const changeQuantity = (value: number) =>
+    setQuantity(Math.max(1, Math.min(99, value)));
 
   return (
     <div className="product-actions-panel">
       <label className="product-quantity">
         <span>Кількість</span>
-        <input
-          aria-label="Кількість товару"
-          inputMode="numeric"
-          max={99}
-          min={1}
-          onChange={(event) => {
-            const value = Number(event.currentTarget.value);
-            setQuantity(
-              Number.isFinite(value) ? Math.max(1, Math.min(99, value)) : 1,
-            );
-          }}
-          type="number"
-          value={quantity}
-        />
+        <span className="product-quantity__control">
+          <button
+            aria-label="Зменшити кількість товару"
+            disabled={quantity === 1}
+            onClick={() => changeQuantity(quantity - 1)}
+            type="button"
+          >
+            <Minus size={15} />
+          </button>
+          <input
+            aria-label="Кількість товару"
+            inputMode="numeric"
+            max={99}
+            min={1}
+            onChange={(event) => {
+              const value = Number(event.currentTarget.value);
+              changeQuantity(Number.isFinite(value) ? value : 1);
+            }}
+            type="number"
+            value={quantity}
+          />
+          <button
+            aria-label="Збільшити кількість товару"
+            disabled={quantity === 99}
+            onClick={() => changeQuantity(quantity + 1)}
+            type="button"
+          >
+            <Plus size={15} />
+          </button>
+        </span>
       </label>
       <button
         className="button button--primary button--wide"

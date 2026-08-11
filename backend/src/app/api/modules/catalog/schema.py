@@ -1,3 +1,4 @@
+from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
 
@@ -6,7 +7,7 @@ from pydantic import ConfigDict, Field, field_validator, model_validator
 from app.api.common.schema import PaginationParams, StrictSchema
 from app.api.common.utils import normalize_optional_text
 from app.api.modules.catalog.enums import ProductBadge, ProductSort, StockStatus
-from app.api.modules.catalog.models import Product
+from app.api.modules.catalog.models import Product, ProductReview
 
 
 class CatalogReference(StrictSchema):
@@ -67,6 +68,36 @@ class ProductResponse(StrictSchema):
         )
 
     model_config = ConfigDict(extra="forbid", from_attributes=True)
+
+
+class ProductReviewResponse(StrictSchema):
+    id: UUID
+    author: str
+    rating: int
+    text: str
+    created_at: datetime
+
+    @classmethod
+    def from_review(cls, review: ProductReview) -> "ProductReviewResponse":
+        return cls.model_validate(review)
+
+    model_config = ConfigDict(extra="forbid", from_attributes=True)
+
+
+class ProductDetailResponse(ProductResponse):
+    reviews: list[ProductReviewResponse]
+
+    @classmethod
+    def from_product(cls, product: Product) -> "ProductDetailResponse":
+        summary = ProductResponse.from_product(product)
+        return cls(
+            **summary.model_dump(),
+            reviews=[
+                ProductReviewResponse.from_review(review)
+                for review in product.reviews
+                if review.is_published
+            ],
+        )
 
 
 class FacetOption(StrictSchema):

@@ -12,17 +12,20 @@ import { ProductCard } from "@/modules/catalog/components/product-card";
 import {
   categoriesQuery,
   productsQuery,
+  featuredReviewsQuery,
 } from "@/modules/catalog/api/catalog-queries";
 import { LeadAction } from "@/modules/leads/components/lead-action";
 import { useDocumentTitle } from "@/shared/lib/use-document-title";
 import { CategoryIcon } from "@/shared/ui/category-icon";
+import { TestimonialsSection } from "@/modules/reviews/components/testimonials-section";
 
 export function HomePage() {
   useDocumentTitle();
-  const [categoriesResult, productsResult] = useQueries({
+  const [categoriesResult, productsResult, reviewsResult] = useQueries({
     queries: [
       categoriesQuery(),
       productsQuery({ page_size: 8, sort: "popular" }),
+      featuredReviewsQuery(),
     ],
   });
   const categories = categoriesResult.data ?? [];
@@ -219,6 +222,8 @@ export function HomePage() {
           </div>
         </div>
       </section>
+
+      <TestimonialsSection reviews={reviewsResult.data ?? []} />
 
       <section className="container business-banner">
         <div>

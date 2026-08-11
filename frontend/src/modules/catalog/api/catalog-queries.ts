@@ -2,11 +2,17 @@ import { queryOptions } from "@tanstack/react-query";
 
 import type { QueryValue } from "@/shared/api/query";
 
-import { fetchCategories, fetchProduct, fetchProducts } from "./catalog-api";
+import {
+  fetchCategories,
+  fetchFeaturedReviews,
+  fetchProduct,
+  fetchProducts,
+} from "./catalog-api";
 
 export const catalogKeys = {
   all: ["catalog"] as const,
   categories: () => [...catalogKeys.all, "categories"] as const,
+  featuredReviews: () => [...catalogKeys.all, "featured-reviews"] as const,
   products: (params: Record<string, QueryValue | QueryValue[]>) =>
     [...catalogKeys.all, "products", params] as const,
   product: (slug: string) => [...catalogKeys.all, "product", slug] as const,
@@ -16,6 +22,13 @@ export const categoriesQuery = () =>
   queryOptions({
     queryKey: catalogKeys.categories(),
     queryFn: fetchCategories,
+    staleTime: 5 * 60_000,
+  });
+
+export const featuredReviewsQuery = () =>
+  queryOptions({
+    queryKey: catalogKeys.featuredReviews(),
+    queryFn: fetchFeaturedReviews,
     staleTime: 5 * 60_000,
   });
 

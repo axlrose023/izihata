@@ -1,6 +1,11 @@
 import { apiClient } from "@/shared/api/client";
 import { buildQuery, type QueryValue } from "@/shared/api/query";
-import type { Category, Product, ProductList } from "@/shared/types/api";
+import type {
+  Category,
+  ProductDetail,
+  ProductList,
+  ProductReview,
+} from "@/shared/types/api";
 
 export function fetchCategories(): Promise<Category[]> {
   return apiClient("/catalog/categories");
@@ -12,6 +17,10 @@ export function fetchProducts(
   return apiClient(`/catalog/products${buildQuery(params)}`);
 }
 
-export function fetchProduct(slug: string): Promise<Product> {
+export function fetchProduct(slug: string): Promise<ProductDetail> {
   return apiClient(`/catalog/products/${encodeURIComponent(slug)}`);
+}
+
+export function fetchFeaturedReviews(): Promise<ProductReview[]> {
+  return apiClient("/catalog/reviews/featured");
 }

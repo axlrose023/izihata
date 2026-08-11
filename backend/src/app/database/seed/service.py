@@ -11,6 +11,7 @@ from app.api.modules.catalog.models import (
     Category,
     Product,
     ProductAttribute,
+    ProductReview,
     Subcategory,
 )
 from app.api.modules.checkout.models import Promotion
@@ -68,6 +69,10 @@ async def seed_database(session: AsyncSession) -> None:
         product.sku: product
         for product in (await session.execute(select(Product))).scalars().all()
     }
+    reviewed_product_ids = set(
+        (await session.execute(select(ProductReview.product_id))).scalars().all()
+    )
+    review_templates = data["reviewTemplates"]
     for position, raw_product in enumerate(data["products"]):
         category_data = next(
             item for item in data["categories"] if item["id"] == raw_product["cat"]
@@ -76,40 +81,59 @@ async def seed_database(session: AsyncSession) -> None:
         existing_product = products_by_sku.get(raw_product["sku"])
         if existing_product is not None:
             existing_product.image_url = image_url
-            continue
-        category = categories[raw_product["cat"]]
-        subcategory = subcategories[(category.id, raw_product["sub"])]
-        product = Product(
-            category_id=category.id,
-            subcategory_id=subcategory.id,
-            sku=raw_product["sku"],
-            slug=raw_product["sku"].lower(),
-            name=raw_product["name"],
-            brand=raw_product["brand"],
-            image_url=image_url,
-            price=Decimal(str(raw_product["price"])),
-            old_price=(
-                Decimal(str(raw_product["oldPrice"]))
-                if raw_product["oldPrice"] is not None
-                else None
-            ),
-            badge=(
-                ProductBadge(raw_product["badge"]) if raw_product["badge"] else None
-            ),
-            stock_status=(
-                StockStatus.IN_STOCK
-                if raw_product["stock"] == "in"
-                else StockStatus.PREORDER
-            ),
-            rating=Decimal(str(raw_product["rating"])),
-            reviews_count=raw_product["reviews"],
-            position=position,
-            attributes=[
-                ProductAttribute(key=key, value=value)
-                for key, value in raw_product["specs"].items()
-            ],
-        )
-        session.add(product)
+            product = existing_product
+        else:
+            category = categories[raw_product["cat"]]
+            subcategory = subcategories[(category.id, raw_product["sub"])]
+            product = Product(
+                category_id=category.id,
+                subcategory_id=subcategory.id,
+                sku=raw_product["sku"],
+                slug=raw_product["sku"].lower(),
+                name=raw_product["name"],
+                brand=raw_product["brand"],
+                image_url=image_url,
+                price=Decimal(str(raw_product["price"])),
+                old_price=(
+                    Decimal(str(raw_product["oldPrice"]))
+                    if raw_product["oldPrice"] is not None
+                    else None
+                ),
+                badge=(
+                    ProductBadge(raw_product["badge"]) if raw_product["badge"] else None
+                ),
+                stock_status=(
+                    StockStatus.IN_STOCK
+                    if raw_product["stock"] == "in"
+                    else StockStatus.PREORDER
+                ),
+                rating=Decimal(str(raw_product["rating"])),
+                reviews_count=raw_product["reviews"],
+                position=position,
+                attributes=[
+                    ProductAttribute(key=key, value=value)
+                    for key, value in raw_product["specs"].items()
+                ],
+            )
+            session.add(product)
+            await session.flush()
+            products_by_sku[product.sku] = product
+
+        if product.id not in reviewed_product_ids:
+            first_index = position % len(review_templates)
+            selected_reviews = (
+                review_templates[first_index],
+                review_templates[(first_index + 1) % len(review_templates)],
+            )
+            session.add_all(
+                ProductReview(
+                    product_id=product.id,
+                    is_featured=position < 3 and review_index == 0,
+                    **review,
+                )
+                for review_index, review in enumerate(selected_reviews)
+            )
+            reviewed_product_ids.add(product.id)
 
     promotion = (
         await session.execute(select(Promotion).where(Promotion.code == "ZNIZKA10"))

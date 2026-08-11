@@ -4,17 +4,22 @@ import {
   House,
   LayoutGrid,
   Menu,
+  MessageCircle,
+  Phone,
   ShoppingCart,
   X,
 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 
 import { cartCount, useCartStore } from "@/modules/cart/store";
 import { ProductSearch } from "@/modules/catalog/components/product-search";
+import { categoriesQuery } from "@/modules/catalog/api/catalog-queries";
 import { useCollectionStore } from "@/modules/collections/store";
 import { LeadAction } from "@/modules/leads/components/lead-action";
 import { Logo } from "@/shared/ui/logo";
+import { storeInfo } from "@/shared/config/store-info";
 
 export function SiteHeader() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -22,13 +27,21 @@ export function SiteHeader() {
   const openCart = useCartStore((state) => state.open);
   const favoriteCount = useCollectionStore((state) => state.favorites.length);
   const compareCount = useCollectionStore((state) => state.compare.length);
+  const categories = useQuery(categoriesQuery()).data ?? [];
 
   return (
     <header className="site-header">
       <div className="top-strip">
         <div className="container top-strip__inner">
-          <span>Електротовари для дому, монтажу й бізнесу</span>
-          <span>Актуальна наявність і прозорий розрахунок</span>
+          <div>
+            <a href={storeInfo.phone.href}>
+              <Phone size={13} /> {storeInfo.phone.label} — безкоштовно
+            </a>
+            <span>
+              <MessageCircle size={13} /> {storeInfo.messengers}
+            </span>
+          </div>
+          <span>{storeInfo.schedule}</span>
         </div>
       </div>
       <div className="container header-main">
@@ -87,6 +100,17 @@ export function SiteHeader() {
           />
         </div>
       </nav>
+      {categories.length ? (
+        <nav aria-label="Категорії товарів" className="category-quick-nav">
+          <div className="container">
+            {categories.map((category) => (
+              <Link key={category.id} to={`/catalog/${category.slug}`}>
+                {category.name}
+              </Link>
+            ))}
+          </div>
+        </nav>
+      ) : null}
       <nav aria-label="Мобільна навігація" className="mobile-bottom-nav">
         <Link to="/">
           <House size={20} />

@@ -9,6 +9,9 @@ test("public routes render and product navigation works", async ({ page }) => {
   await expect(
     page.getByRole("heading", { name: "Бренди в каталозі" }),
   ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Що кажуть покупці" }),
+  ).toBeVisible();
   const searchResponse = page.waitForResponse(
     (response) =>
       response.url().includes("/api/v1/catalog/products?") &&
@@ -35,6 +38,7 @@ test("public routes render and product navigation works", async ({ page }) => {
   const productBody = (await productResponse.json()) as {
     image_url: string;
     name: string;
+    reviews: Array<{ author: string; text: string }>;
   };
   expect(new URL(productResponse.url()).origin).toBe(
     new URL(page.url()).origin,
@@ -45,6 +49,11 @@ test("public routes render and product navigation works", async ({ page }) => {
   await expect(page.getByRole("img", { name: productBody.name })).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Схожі товари" }),
+  ).toBeVisible();
+  expect(productBody.reviews).toHaveLength(2);
+  await expect(page.getByRole("heading", { name: "Відгуки" })).toBeVisible();
+  await expect(
+    page.getByText("Офіційна гарантія та повернення протягом 14 днів"),
   ).toBeVisible();
   const specificationHeading = page.getByRole("heading", {
     name: "Характеристики",
@@ -138,6 +147,17 @@ test("favourites and comparison survive route navigation", async ({ page }) => {
     .first()
     .click();
 
+  await page.goto("/compare");
+  await expect(
+    page.getByRole("heading", { name: "Додайте ще один товар" }),
+  ).toBeVisible();
+
+  await page.goto("/catalog");
+  await page
+    .getByRole("button", { name: "Додати до порівняння" })
+    .nth(1)
+    .click();
+
   await page.goto("/favorites");
   await expect(page.locator(".product-card")).toHaveCount(1);
   await page.goto("/compare");
@@ -167,7 +187,15 @@ test("callback validation and submission work", async ({ page }) => {
 test("product quantity is added as one cart operation", async ({ page }) => {
   await page.goto("/catalog");
   await page.locator(".product-card__name").first().click();
-  await page.getByLabel("Кількість товару").fill("3");
+  await page
+    .getByRole("button", { name: "Збільшити кількість товару" })
+    .click();
+  await page
+    .getByRole("button", { name: "Збільшити кількість товару" })
+    .click();
+  await expect(
+    page.getByRole("spinbutton", { name: "Кількість товару", exact: true }),
+  ).toHaveValue("3");
   await page
     .locator(".product-actions-panel")
     .getByRole("button", { name: "Додати в кошик" })

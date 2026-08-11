@@ -45,6 +45,18 @@ export interface Product {
   specs: Record<string, string>;
 }
 
+export interface ProductReview {
+  id: string;
+  author: string;
+  rating: number;
+  text: string;
+  created_at: string;
+}
+
+export interface ProductDetail extends Product {
+  reviews: ProductReview[];
+}
+
 export interface FacetOption {
   value: string;
   count: number;

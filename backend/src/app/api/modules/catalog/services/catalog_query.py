@@ -3,10 +3,12 @@ from app.api.modules.catalog.schema import (
     CategoryResponse,
     FacetOption,
     PriceFacet,
+    ProductDetailResponse,
     ProductFacets,
     ProductListParams,
     ProductListResponse,
     ProductResponse,
+    ProductReviewResponse,
     SubcategoryResponse,
 )
 from app.database.uow import UnitOfWork
@@ -72,8 +74,12 @@ class CatalogQueryService:
             ),
         )
 
-    async def get_product(self, product_slug: str) -> ProductResponse:
+    async def get_product(self, product_slug: str) -> ProductDetailResponse:
         product = await self._uow.products.get_by_slug(product_slug)
         if product is None:
             raise NotFoundError("Product not found")
-        return ProductResponse.from_product(product)
+        return ProductDetailResponse.from_product(product)
+
+    async def get_featured_reviews(self) -> list[ProductReviewResponse]:
+        reviews = await self._uow.products.list_featured_reviews()
+        return [ProductReviewResponse.from_review(review) for review in reviews]

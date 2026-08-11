@@ -19,6 +19,7 @@ class TestGetProducts:
         assert body["total_pages"] == 8
         assert body["facets"]["brands"]
         assert body["facets"]["specs"]
+        assert "reviews" not in body["items"][0]
 
     async def test_filters_by_category_brand_stock_and_spec(
         self,

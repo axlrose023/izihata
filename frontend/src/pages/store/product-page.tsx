@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { CreditCard, ShieldCheck, Truck } from "lucide-react";
+import { CreditCard, RotateCcw, ShieldCheck, Truck } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 
 import {
@@ -15,6 +15,7 @@ import { useDocumentTitle } from "@/shared/lib/use-document-title";
 import { ProductRating } from "@/shared/ui/product-rating";
 import { ErrorNotice } from "@/shared/ui/error-notice";
 import { StatusBadge } from "@/shared/ui/status-badge";
+import { ProductReviews } from "@/modules/reviews/components/product-reviews";
 
 export function ProductPage() {
   const { slug = "" } = useParams<{ slug: string }>();
@@ -113,6 +114,9 @@ export function ProductPage() {
             <span>
               <CreditCard /> Картка, післяплата або рахунок для компанії
             </span>
+            <span>
+              <RotateCcw /> Офіційна гарантія та повернення протягом 14 днів
+            </span>
           </div>
         </div>
       </div>
@@ -148,6 +152,7 @@ export function ProductPage() {
           </div>
         </section>
       ) : null}
+      <ProductReviews reviews={product.reviews} />
     </div>
   );
 }

@@ -1,7 +1,9 @@
 import { Link } from "react-router-dom";
+import { MapPin, MessageCircle, Phone } from "lucide-react";
 
 import { LeadAction } from "@/modules/leads/components/lead-action";
 import { Logo } from "@/shared/ui/logo";
+import { storeInfo } from "@/shared/config/store-info";
 
 export function SiteFooter() {
   return (
@@ -20,6 +22,13 @@ export function SiteFooter() {
           />
         </div>
         <div>
+          <h3>Про компанію</h3>
+          <span>Про нас</span>
+          <span>Постачальникам</span>
+          <span>Гарантія та повернення</span>
+          <span>Доставка і оплата</span>
+        </div>
+        <div>
           <h3>Каталог</h3>
           <Link to="/catalog">Усі товари</Link>
           <Link to="/catalog?sort=popular">Популярне</Link>
@@ -33,7 +42,15 @@ export function SiteFooter() {
         </div>
         <div>
           <h3>Зв’язок</h3>
-          <span>Залиште номер, і менеджер зв’яжеться з вами.</span>
+          <a href={storeInfo.phone.href}>
+            <Phone size={14} /> {storeInfo.phone.label}
+          </a>
+          <span>
+            <MessageCircle size={14} /> {storeInfo.messengers}
+          </span>
+          <span>
+            <MapPin size={14} /> {storeInfo.address}
+          </span>
           <LeadAction label="Замовити дзвінок" type="callback" />
         </div>
       </div>

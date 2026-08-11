@@ -10,6 +10,7 @@ from sqlalchemy import (
     Integer,
     Numeric,
     String,
+    Text,
     UniqueConstraint,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -112,6 +113,12 @@ class Product(Base, UUIDIDMixin, DateTimeMixin):
         order_by="ProductAttribute.key",
         lazy="raise",
     )
+    reviews: Mapped[list["ProductReview"]] = relationship(
+        back_populates="product",
+        cascade="all, delete-orphan",
+        order_by="ProductReview.created_at.desc()",
+        lazy="raise",
+    )
 
 
 class ProductAttribute(Base, UUIDIDMixin):
@@ -133,3 +140,22 @@ class ProductAttribute(Base, UUIDIDMixin):
     value: Mapped[str] = mapped_column(String(160), index=True)
 
     product: Mapped[Product] = relationship(back_populates="attributes")
+
+
+class ProductReview(Base, UUIDIDMixin, DateTimeMixin):
+    __tablename__ = "product_reviews"
+    __table_args__ = (
+        CheckConstraint("rating >= 1 AND rating <= 5", name="review_rating_range"),
+    )
+
+    product_id: Mapped[UUID] = mapped_column(
+        ForeignKey("products.id", ondelete="CASCADE"),
+        index=True,
+    )
+    author: Mapped[str] = mapped_column(String(120))
+    rating: Mapped[int] = mapped_column(Integer)
+    text: Mapped[str] = mapped_column(Text)
+    is_published: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
+    is_featured: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+
+    product: Mapped[Product] = relationship(back_populates="reviews")
