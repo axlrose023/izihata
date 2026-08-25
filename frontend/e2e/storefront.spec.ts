@@ -77,6 +77,21 @@ test("public routes render and product navigation works", async ({ page }) => {
   );
 });
 
+test("guest storefront does not restore a customer session", async ({
+  page,
+}) => {
+  const customerRefreshRequests: string[] = [];
+  page.on("request", (request) => {
+    if (request.url().includes("/api/v1/customer-auth/refresh")) {
+      customerRefreshRequests.push(request.url());
+    }
+  });
+
+  await page.goto("/");
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  expect(customerRefreshRequests).toHaveLength(0);
+});
+
 test("section hubs and customer tools use the versioned API", async ({
   page,
 }) => {

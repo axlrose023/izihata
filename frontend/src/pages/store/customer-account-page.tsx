@@ -1,5 +1,6 @@
 import { useQueries } from "@tanstack/react-query";
 import { Building2, LogOut, ReceiptText, UserRound } from "lucide-react";
+import { useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import {
@@ -14,7 +15,7 @@ import { ErrorNotice } from "@/shared/ui/error-notice";
 import { StatusBadge } from "@/shared/ui/status-badge";
 
 export function CustomerAccountPage() {
-  const { logout, status } = useCustomerAuth();
+  const { logout, restore, status } = useCustomerAuth();
   const navigate = useNavigate();
   const [profileResult, ordersResult] = useQueries({
     queries: [
@@ -24,8 +25,22 @@ export function CustomerAccountPage() {
   });
   useDocumentTitle("Особистий кабінет");
 
-  if (status === "loading") {
+  useEffect(() => {
+    void restore();
+  }, [restore]);
+
+  if (status === "idle" || status === "loading") {
     return <div className="page-loader">Відкриваємо кабінет…</div>;
+  }
+  if (status === "unavailable") {
+    return (
+      <ErrorNotice
+        className="container service-notice"
+        error={null}
+        fallback="Не вдалося перевірити сесію. Спробуйте ще раз."
+        onRetry={() => void restore()}
+      />
+    );
   }
   if (status === "guest") {
     return (

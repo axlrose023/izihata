@@ -12,6 +12,7 @@ export interface CustomerAuthContextValue {
     phone?: string;
   }) => Promise<void>;
   logout: () => Promise<void>;
+  restore: () => Promise<string | null>;
 }
 
 export const CustomerAuthContext =

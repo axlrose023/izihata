@@ -13,6 +13,7 @@ export function CustomerAuthProvider({
   const session = useRefreshableSession(
     "/customer-auth",
     setCustomerAccessToken,
+    false,
   );
   const login = useCallback(
     (email: string, password: string) => session.login({ email, password }),
@@ -34,8 +35,9 @@ export function CustomerAuthProvider({
       login,
       register,
       logout: session.logout,
+      restore: session.refresh,
     }),
-    [login, register, session.logout, session.status],
+    [login, register, session.logout, session.refresh, session.status],
   );
 
   return (

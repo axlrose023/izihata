@@ -12,6 +12,7 @@ import { useEffect } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 
 import { useAuth } from "@/modules/auth/auth-provider";
+import { ErrorNotice } from "@/shared/ui/error-notice";
 import { Logo } from "@/shared/ui/logo";
 
 const navigation = [
@@ -34,6 +35,14 @@ export function AdminShell() {
   }, [navigate, status]);
 
   if (status !== "authenticated") {
+    if (status === "unavailable") {
+      return (
+        <ErrorNotice
+          error={null}
+          fallback="Не вдалося перевірити сесію. Оновіть сторінку."
+        />
+      );
+    }
     return <div className="admin-loader">Перевіряємо сесію…</div>;
   }
 

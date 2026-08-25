@@ -4,7 +4,8 @@ import { apiFetch } from "@/shared/api/client";
 import { ApiError, toApiError } from "@/shared/api/errors";
 import type { TokenResponse } from "@/shared/types/api";
 
-export type SessionStatus = "loading" | "authenticated" | "guest";
+export type SessionStatus =
+  "idle" | "loading" | "authenticated" | "guest" | "unavailable";
 
 async function readToken(response: Response): Promise<string> {
   if (!response.ok) throw await toApiError(response);
@@ -14,10 +15,14 @@ async function readToken(response: Response): Promise<string> {
 export function useRefreshableSession(
   prefix: string,
   onTokenChange?: (token: string | null) => void,
+  refreshOnMount = true,
 ) {
-  const [status, setStatus] = useState<SessionStatus>("loading");
+  const [status, setStatus] = useState<SessionStatus>(
+    refreshOnMount ? "loading" : "idle",
+  );
   const tokenRef = useRef<string | null>(null);
   const refreshRef = useRef<Promise<string | null> | null>(null);
+  const sessionRevisionRef = useRef(0);
 
   const updateToken = useCallback(
     (token: string | null) => {
@@ -35,6 +40,7 @@ export function useRefreshableSession(
 
   const refresh = useCallback(async (): Promise<string | null> => {
     if (refreshRef.current) return refreshRef.current;
+    const revision = sessionRevisionRef.current;
 
     refreshRef.current = sessionRequest("/refresh", { method: "POST" })
       .then(async (response) => {
@@ -42,13 +48,19 @@ export function useRefreshableSession(
         return readToken(response);
       })
       .then((token) => {
+        if (revision !== sessionRevisionRef.current) return tokenRef.current;
         updateToken(token);
         setStatus(token ? "authenticated" : "guest");
         return token;
       })
-      .catch(() => {
-        updateToken(null);
-        setStatus("guest");
+      .catch((error) => {
+        if (revision !== sessionRevisionRef.current) return tokenRef.current;
+        if (error instanceof ApiError && error.status === 401) {
+          updateToken(null);
+          setStatus("guest");
+        } else {
+          setStatus("unavailable");
+        }
         return null;
       })
       .finally(() => {
@@ -59,17 +71,24 @@ export function useRefreshableSession(
   }, [sessionRequest, updateToken]);
 
   useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    if (refreshOnMount) void refresh();
+  }, [refresh, refreshOnMount]);
 
   const authenticate = useCallback(
     async (path: "/login" | "/register", payload: object): Promise<void> => {
-      const response = await apiFetch(`${prefix}${path}`, {
-        method: "POST",
-        body: JSON.stringify(payload),
-      });
-      updateToken(await readToken(response));
-      setStatus("authenticated");
+      await refreshRef.current;
+      sessionRevisionRef.current += 1;
+      try {
+        const response = await apiFetch(`${prefix}${path}`, {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
+        updateToken(await readToken(response));
+        setStatus("authenticated");
+      } catch (error) {
+        setStatus("guest");
+        throw error;
+      }
     },
     [prefix, updateToken],
   );
@@ -79,6 +98,7 @@ export function useRefreshableSession(
   );
 
   const logout = useCallback(async (): Promise<void> => {
+    sessionRevisionRef.current += 1;
     updateToken(null);
     setStatus("guest");
     await sessionRequest("/logout", { method: "POST" }).catch(() => undefined);
@@ -111,5 +131,5 @@ export function useRefreshableSession(
     [refresh, updateToken],
   );
 
-  return { status, login, authenticate, logout, request };
+  return { status, login, authenticate, logout, refresh, request };
 }

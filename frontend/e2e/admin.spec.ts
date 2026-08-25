@@ -23,7 +23,7 @@ async function createProduct(page: Page, testInfo: TestInfo) {
   const dialog = page.getByRole("dialog", { name: "Додати товар" });
   await expect(dialog).toBeVisible();
   await dialog.getByLabel("SKU").fill(sku);
-  await dialog.getByLabel("Бренд").fill("E2E Electric");
+  await dialog.getByLabel("Бренд", { exact: true }).fill("E2E Electric");
   await dialog.getByLabel("Назва").fill(name);
   await dialog
     .getByRole("combobox", { name: /^Категорія/ })
@@ -109,6 +109,9 @@ test("staff can manage modules and create and edit a product", async ({
     ["/admin/products", "Товари"],
     ["/admin/orders", "Замовлення"],
     ["/admin/leads", "Звернення"],
+    ["/admin/reviews", "Відгуки"],
+    ["/admin/companies", "Компанії"],
+    ["/admin/custom-boards", "Щити на замовлення"],
   ] as const) {
     await page.goto(path);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(heading);

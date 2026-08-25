@@ -181,7 +181,7 @@ export function ProductFormDialog({
             {errors.name ? <small>{errors.name.message}</small> : null}
           </label>
           <label className="field">
-            <span>Країна бренду</span>
+            <span>Країна реєстрації</span>
             <input
               placeholder="Наприклад, Німеччина"
               {...register("brand_country")}
