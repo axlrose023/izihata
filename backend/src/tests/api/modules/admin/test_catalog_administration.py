@@ -166,6 +166,7 @@ class TestCatalogAdministration:
         public = await client.get(f"/api/v1/catalog/products/{source.json()['slug']}")
         assert public.status_code == 200, public.text
         assert public.json()["brand_country"] == "Франція"
+        assert public.json()["wholesale_min_quantity"] == 10
         assert public.json()["media"][0]["alt"].startswith("Автоматичний")
         assert public.json()["documents"][0]["kind"] == "certificate"
         assert public.json()["alternatives"][0]["id"] == str(product.id)

@@ -6,8 +6,8 @@ work, Dishka dependency injection, Alembic, Taskiq, Docker, and monitoring
 structure.
 
 The reference React prototype was used only to derive the domain and API. Its
-18 categories, complete subcategory tree, and expanded initial product catalog
-are available as an idempotent database seed.
+18 categories, complete subcategory tree, section hubs, and expanded initial
+product catalog are available as an idempotent database seed.
 
 ## Scope
 
@@ -21,8 +21,18 @@ The current backend implements only flows present in the reference product:
 | `POST` | `/api/v1/auth/refresh` | Refresh staff token pair |
 | `POST` | `/api/v1/auth/logout` | Revoke a staff refresh session |
 | `GET` | `/api/v1/catalog/categories` | Category tree with product counts |
+| `GET` | `/api/v1/catalog/sections` | Three catalog section hubs |
 | `GET` | `/api/v1/catalog/products` | Paginated search, filters, sorting, and facets |
 | `GET` | `/api/v1/catalog/products/{slug}` | Product details |
+| `POST` | `/api/v1/catalog/products/{slug}/reviews` | Submit a moderated review |
+| `POST` | `/api/v1/catalog/products/{slug}/stock-subscriptions` | Subscribe to a restock notification |
+| `POST` | `/api/v1/customer-auth/register` | Customer account registration |
+| `POST` | `/api/v1/customer-auth/login` | Customer account login |
+| `GET` | `/api/v1/customer/me` | Current customer and B2B company profile |
+| `POST` | `/api/v1/customer/company` | Register FOP or legal entity for review |
+| `GET` | `/api/v1/customer/orders` | Customer order history |
+| `POST` | `/api/v1/advisors/*` | Cable, breaker, LED, and autonomy calculators |
+| `GET`, `POST` | `/api/v1/custom-boards/*` | Board portfolio, estimate, and request flows |
 | `GET` | `/api/v1/delivery/cities` | Nova Poshta settlement suggestions |
 | `GET` | `/api/v1/delivery/points` | Nova Poshta branch or locker suggestions |
 | `POST` | `/api/v1/checkout/quote` | Authoritative cart and promotion calculation |
@@ -31,6 +41,9 @@ The current backend implements only flows present in the reference product:
 | `GET` | `/api/v1/admin/dashboard` | Real operational aggregates |
 | `POST` | `/api/v1/admin/catalog/products` | Validated product creation |
 | `PATCH` | `/api/v1/admin/catalog/products/{id}` | Validated product details and availability update |
+| `GET`, `PATCH` | `/api/v1/admin/catalog/reviews*` | Review moderation |
+| `GET`, `PATCH` | `/api/v1/admin/customers/companies*` | B2B company review |
+| `GET`, `PATCH` | `/api/v1/admin/custom-boards/requests*` | Board-request management |
 | `GET` | `/api/v1/admin/orders` | Paginated order management list |
 | `PATCH` | `/api/v1/admin/orders/{id}/status` | Validated order status transition |
 | `GET` | `/api/v1/admin/leads` | Paginated and filtered lead queue |
@@ -38,9 +51,10 @@ The current backend implements only flows present in the reference product:
 
 Swagger UI is available at `/docs`; the OpenAPI document is at `/openapi.json`.
 
-Cart, favourites, and comparison remain client-side because the prototype has
-no customer account flow. Public registration, generic CRUD endpoints, fake
-reviews, and fake payment integrations are intentionally absent.
+Cart, favourites, and comparison remain anonymous browser state. Customer
+identity and wholesale eligibility are server-side. There are no generic CRUD
+or fake payment endpoints: card and invoice payments require a real provider
+adapter and webhook before funds can be accepted.
 
 ## Local setup
 

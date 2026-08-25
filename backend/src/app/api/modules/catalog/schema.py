@@ -141,6 +141,7 @@ class ProductResponse(StrictSchema):
     stock_status: StockStatus
     availability: ProductAvailabilityResponse
     sale_unit: SaleUnit
+    wholesale_min_quantity: int | None
     rating: Decimal
     reviews_count: int
     category: CatalogReference
@@ -171,6 +172,7 @@ class ProductResponse(StrictSchema):
                 ),
             ),
             sale_unit=product.sale_unit,
+            wholesale_min_quantity=product.wholesale_min_quantity,
             rating=product.rating,
             reviews_count=product.reviews_count,
             category=CatalogReference.model_validate(product.category),
@@ -439,14 +441,12 @@ class ProductRelationInput(StrictSchema):
 
 class AdminProductResponse(ProductResponse):
     wholesale_price: Decimal | None
-    wholesale_min_quantity: int | None
 
     @classmethod
     def from_product(cls, product: Product) -> "AdminProductResponse":
         return cls(
             **ProductResponse.from_product(product).model_dump(),
             wholesale_price=product.wholesale_price,
-            wholesale_min_quantity=product.wholesale_min_quantity,
         )
 
 
