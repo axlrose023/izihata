@@ -1,9 +1,7 @@
-import asyncio
 from uuid import uuid4
 
-import bcrypt
-
 from app.api.common.exceptions import UnauthorizedError
+from app.api.common.security import password_matches
 from app.api.modules.auth.models import AuthSession
 from app.api.modules.auth.schema import LoginRequest, TokenPairResponse
 from app.api.modules.auth.services.jwt import JwtService
@@ -20,16 +18,7 @@ class LoginService:
         if user is None or not user.is_active:
             raise UnauthorizedError("Incorrect username or password")
 
-        try:
-            password_matches = await asyncio.to_thread(
-                bcrypt.checkpw,
-                request.password.encode("utf-8"),
-                user.password_hash.encode("utf-8"),
-            )
-        except ValueError:
-            password_matches = False
-
-        if not password_matches:
+        if not await password_matches(request.password, user.password_hash):
             raise UnauthorizedError("Incorrect username or password")
 
         refresh_expires_at = self._jwt_service.get_refresh_expiration()

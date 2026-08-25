@@ -2,9 +2,10 @@ from datetime import UTC, datetime
 from uuid import uuid4
 
 from app.api.common.exceptions import UnauthorizedError
+from app.api.common.security import is_expired
 from app.api.modules.auth.schema import TokenPairResponse
 from app.api.modules.auth.services.jwt import JwtService
-from app.api.modules.auth.utils import is_expired, parse_refresh_token_identity
+from app.api.modules.auth.utils import parse_refresh_token_identity
 from app.database.uow import UnitOfWork
 
 

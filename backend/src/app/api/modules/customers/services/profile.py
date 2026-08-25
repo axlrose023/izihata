@@ -1,5 +1,3 @@
-from uuid import UUID
-
 from sqlalchemy.exc import IntegrityError
 
 from app.api.common.exceptions import ConflictError
@@ -50,6 +48,3 @@ class CustomerProfileService:
                 code="customer_company_edrpou_exists",
             ) from exc
         return CustomerCompanyResponse.from_company(company)
-
-    async def has_approved_company(self, customer_id: UUID) -> bool:
-        return await self._uow.customers.has_approved_company(customer_id)

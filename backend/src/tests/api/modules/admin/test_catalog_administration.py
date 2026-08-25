@@ -243,3 +243,62 @@ class TestCatalogAdministration:
             headers=headers(authenticated_user),
         )
         assert response.status_code == 422
+
+    async def test_rejects_category_change_when_current_specs_are_incompatible(
+        self,
+        client: AsyncClient,
+        authenticated_user: dict,
+        product,
+    ):
+        token_headers = headers(authenticated_user)
+        other_category = next(
+            category
+            for category in (await client.get("/api/v1/catalog/categories")).json()
+            if category["id"] != str(product.category_id)
+        )
+        attribute = await client.post(
+            "/api/v1/admin/catalog/attributes",
+            json={
+                "code": f"required_qa_{uuid.uuid4().hex[:8]}",
+                "name": "Обов'язкова тестова характеристика",
+                "value_type": "text",
+            },
+            headers=token_headers,
+        )
+        assert attribute.status_code == 201, attribute.text
+        configured = await client.put(
+            f"/api/v1/admin/catalog/categories/{other_category['id']}/attributes",
+            json={
+                "attributes": [
+                    {
+                        "attribute_id": attribute.json()["id"],
+                        "is_required": True,
+                    }
+                ]
+            },
+            headers=token_headers,
+        )
+        assert configured.status_code == 200, configured.text
+
+        update = await client.patch(
+            f"/api/v1/admin/catalog/products/{product.id}",
+            json={
+                "category_id": other_category["id"],
+                "subcategory_id": None,
+            },
+            headers=token_headers,
+        )
+        assert update.status_code == 422, update.text
+        assert update.json()["code"] in {
+            "unknown_product_attribute",
+            "required_product_attribute_missing",
+        }
+
+        current = await client.get(f"/api/v1/catalog/products/{product.slug}")
+        assert current.json()["category"]["id"] == str(product.category_id)
+        reset = await client.put(
+            f"/api/v1/admin/catalog/categories/{other_category['id']}/attributes",
+            json={"attributes": []},
+            headers=token_headers,
+        )
+        assert reset.status_code == 200, reset.text

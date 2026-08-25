@@ -1,5 +1,7 @@
 from uuid import UUID
 
+from sqlalchemy.exc import IntegrityError
+
 from app.api.common.exceptions import ConflictError, NotFoundError
 from app.api.modules.catalog.enums import ReviewStatus
 from app.api.modules.catalog.models import (
@@ -28,6 +30,18 @@ class CatalogAdministrationService:
     def __init__(self, uow: UnitOfWork):
         self._uow = uow
 
+    async def _commit_unique_value(
+        self,
+        *,
+        detail: str,
+        code: str,
+    ) -> None:
+        try:
+            await self._uow.commit()
+        except IntegrityError as exc:
+            await self._uow.rollback()
+            raise ConflictError(detail, code=code) from exc
+
     async def create_section(
         self,
         request: CreateCatalogSectionRequest,
@@ -39,7 +53,10 @@ class CatalogAdministrationService:
             )
         section = CatalogSection(**request.model_dump())
         await self._uow.categories.create_section(section)
-        await self._uow.commit()
+        await self._commit_unique_value(
+            detail="Catalog section slug already exists",
+            code="catalog_section_slug_exists",
+        )
         return AdminCatalogSectionResponse.model_validate(section)
 
     async def update_section(
@@ -97,7 +114,10 @@ class CatalogAdministrationService:
             )
         attribute = CatalogAttribute(**request.model_dump())
         await self._uow.categories.create_attribute(attribute)
-        await self._uow.commit()
+        await self._commit_unique_value(
+            detail="Catalog attribute code already exists",
+            code="catalog_attribute_code_exists",
+        )
         return CatalogAttributeResponse.from_attribute(attribute)
 
     async def replace_category_attributes(

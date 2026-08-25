@@ -4,6 +4,7 @@ from uuid import uuid4
 from sqlalchemy.exc import IntegrityError
 
 from app.api.common.exceptions import ConflictError, UnauthorizedError
+from app.api.common.security import hash_password, is_expired, password_matches
 from app.api.modules.auth.schema import TokenPairResponse
 from app.api.modules.auth.service import JwtService
 from app.api.modules.customers.models import Customer, CustomerAuthSession
@@ -12,10 +13,7 @@ from app.api.modules.customers.schema import (
     CustomerRegistrationRequest,
 )
 from app.api.modules.customers.utils import (
-    hash_password,
-    is_expired,
     parse_customer_refresh_identity,
-    password_matches,
 )
 from app.database.uow import UnitOfWork
 

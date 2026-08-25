@@ -1,6 +1,5 @@
 from collections.abc import Mapping
 from dataclasses import dataclass
-from datetime import UTC, datetime
 from uuid import UUID
 
 from fastapi import Response
@@ -73,9 +72,3 @@ def parse_refresh_token_identity(
         )
     except (KeyError, TypeError, ValueError) as exc:
         raise UnauthorizedError("Invalid refresh token payload") from exc
-
-
-def is_expired(expires_at: datetime, now: datetime) -> bool:
-    if expires_at.tzinfo is None:
-        expires_at = expires_at.replace(tzinfo=UTC)
-    return expires_at <= now

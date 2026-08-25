@@ -1,10 +1,7 @@
-import asyncio
 from collections.abc import Mapping
 from dataclasses import dataclass
-from datetime import UTC, datetime
 from uuid import UUID
 
-import bcrypt
 from fastapi import Response
 
 from app.api.common.exceptions import UnauthorizedError
@@ -13,24 +10,6 @@ from app.settings import Config
 
 CUSTOMER_REFRESH_COOKIE_NAME = "izihata_customer_refresh"
 CUSTOMER_REFRESH_COOKIE_PATH = "/api/v1/customer-auth"
-
-
-async def hash_password(password: str) -> str:
-    encoded = password.encode("utf-8")
-    return (
-        await asyncio.to_thread(bcrypt.hashpw, encoded, bcrypt.gensalt(rounds=12))
-    ).decode()
-
-
-async def password_matches(password: str, password_hash: str) -> bool:
-    try:
-        return await asyncio.to_thread(
-            bcrypt.checkpw,
-            password.encode("utf-8"),
-            password_hash.encode("utf-8"),
-        )
-    except ValueError:
-        return False
 
 
 def expose_access_token(tokens: TokenPairResponse) -> AccessTokenResponse:
@@ -93,9 +72,3 @@ def parse_customer_refresh_identity(
         )
     except (KeyError, TypeError, ValueError) as exc:
         raise UnauthorizedError("Invalid refresh token payload") from exc
-
-
-def is_expired(expires_at: datetime, now: datetime) -> bool:
-    if expires_at.tzinfo is None:
-        expires_at = expires_at.replace(tzinfo=UTC)
-    return expires_at <= now

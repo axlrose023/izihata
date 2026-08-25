@@ -35,9 +35,15 @@ class ProductManagementService:
     def __init__(self, uow: UnitOfWork):
         self._uow = uow
 
-    async def _replace_specs(self, product: Product, specs: dict[str, str]) -> None:
+    async def _replace_specs(
+        self,
+        product: Product,
+        specs: dict[str, str],
+        *,
+        category_id: UUID | None = None,
+    ) -> None:
         assignments = await self._uow.categories.list_category_attributes(
-            product.category_id
+            category_id or product.category_id
         )
         definitions_by_name = {
             definition.name: definition for _, definition in assignments
@@ -119,6 +125,27 @@ class ProductManagementService:
     def _is_available(status: StockStatus) -> bool:
         return status in {StockStatus.IN_STOCK_TODAY, StockStatus.IN_STOCK}
 
+    @staticmethod
+    def _validate_price_configuration(
+        *,
+        price: Decimal,
+        old_price: Decimal | None,
+        wholesale_price: Decimal | None,
+        wholesale_min_quantity: int | None,
+    ) -> None:
+        if old_price is not None and old_price < price:
+            raise UnprocessableError("old_price cannot be lower than price")
+        if (wholesale_price is None) != (wholesale_min_quantity is None):
+            raise UnprocessableError(
+                "Wholesale price and minimum quantity must be provided together",
+                code="invalid_wholesale_price",
+            )
+        if wholesale_price is not None and wholesale_price >= price:
+            raise UnprocessableError(
+                "Wholesale price must be lower than retail price",
+                code="invalid_wholesale_price",
+            )
+
     async def _get_references(
         self,
         category_id: UUID,
@@ -199,7 +226,7 @@ class ProductManagementService:
                 for item in request.documents
             ],
         )
-        await self._replace_specs(product, request.specs)
+        await self._replace_specs(product, request.specs, category_id=category.id)
         if request.media:
             product.image_url = request.media[0].url
         try:
@@ -227,6 +254,7 @@ class ProductManagementService:
         data = request.model_dump(exclude_unset=True)
         category_id = data.pop("category_id", product.category_id)
         subcategory_id = data.pop("subcategory_id", product.subcategory_id)
+        category_changed = category_id != product.category_id
         if {"category_id", "subcategory_id"} & request.model_fields_set:
             category, subcategory = await self._get_references(
                 category_id,
@@ -271,27 +299,22 @@ class ProductManagementService:
             "wholesale_min_quantity",
             product.wholesale_min_quantity,
         )
-        if resulting_old_price is not None and resulting_old_price < resulting_price:
-            raise UnprocessableError("old_price cannot be lower than price")
-        if (resulting_wholesale_price is None) != (
-            resulting_wholesale_min_quantity is None
-        ):
-            raise UnprocessableError(
-                "Wholesale price and minimum quantity must be provided together",
-                code="invalid_wholesale_price",
-            )
-        if (
-            resulting_wholesale_price is not None
-            and resulting_wholesale_price >= resulting_price
-        ):
-            raise UnprocessableError(
-                "Wholesale price must be lower than retail price",
-                code="invalid_wholesale_price",
-            )
+        self._validate_price_configuration(
+            price=resulting_price,
+            old_price=resulting_old_price,
+            wholesale_price=resulting_wholesale_price,
+            wholesale_min_quantity=resulting_wholesale_min_quantity,
+        )
         for field, value in data.items():
             setattr(product, field, value)
         if specs is not None:
-            await self._replace_specs(product, specs)
+            await self._replace_specs(product, specs, category_id=category_id)
+        elif category_changed:
+            await self._replace_specs(
+                product,
+                {attribute.key: attribute.value for attribute in product.attributes},
+                category_id=category_id,
+            )
         if media is not None:
             self._replace_media(product, media)
         if documents is not None:
