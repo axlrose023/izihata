@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from sqlalchemy.exc import IntegrityError
 
 from app.api.common.exceptions import ConflictError
@@ -18,13 +20,14 @@ class OrderCreationService:
         self,
         request: CreateOrderRequest,
         idempotency_key: str,
+        customer_id: UUID | None = None,
     ) -> OrderResponse:
         digest = request_digest(request)
         existing = await self._uow.orders.get_by_idempotency_key(idempotency_key)
         if existing:
             return self._resolve_existing(existing, digest)
 
-        quote = await self._pricing.quote(request)
+        quote = await self._pricing.quote(request, customer_id=customer_id)
         payment_status = (
             PaymentStatus.NOT_REQUIRED
             if request.payment_method == PaymentMethod.CASH_ON_DELIVERY
@@ -36,6 +39,7 @@ class OrderCreationService:
             number=new_order_number(),
             idempotency_key=idempotency_key,
             request_hash=digest,
+            customer_id=customer_id,
             customer_name=request.customer_name,
             phone=request.phone,
             company_name=company_name,

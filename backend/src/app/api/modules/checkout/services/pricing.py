@@ -1,7 +1,11 @@
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from decimal import Decimal
+from uuid import UUID
 
 from app.api.common.exceptions import UnprocessableError
+from app.api.modules.catalog.models import Product
+from app.api.modules.checkout.enums import QuotePriceType
 from app.api.modules.checkout.schema import (
     AppliedPromotion,
     QuoteItemResponse,
@@ -12,11 +16,21 @@ from app.api.modules.checkout.utils import round_money
 from app.database.uow import UnitOfWork
 
 
+@dataclass(frozen=True, slots=True)
+class PriceContext:
+    company_verified: bool = False
+
+
 class PricingService:
     def __init__(self, uow: UnitOfWork):
         self._uow = uow
 
-    async def quote(self, request: QuoteRequest) -> QuoteResponse:
+    async def quote(
+        self,
+        request: QuoteRequest,
+        *,
+        customer_id: UUID | None = None,
+    ) -> QuoteResponse:
         product_ids = [item.product_id for item in request.items]
         if len(product_ids) != len(set(product_ids)):
             raise UnprocessableError(
@@ -33,10 +47,22 @@ class PricingService:
                 code="products_unavailable",
             )
 
+        context = PriceContext(
+            company_verified=(
+                await self._uow.customers.has_approved_company(customer_id)
+                if customer_id is not None
+                else False
+            )
+        )
         quote_items: list[QuoteItemResponse] = []
         for item in request.items:
             product = products_by_id[item.product_id]
-            line_total = round_money(product.price * item.quantity)
+            unit_price, price_type = self._resolve_unit_price(
+                product,
+                item.quantity,
+                context,
+            )
+            line_total = round_money(unit_price * item.quantity)
             quote_items.append(
                 QuoteItemResponse(
                     product_id=product.id,
@@ -44,8 +70,9 @@ class PricingService:
                     name=product.name,
                     stock_status=product.stock_status,
                     quantity=item.quantity,
-                    unit_price=round_money(product.price),
+                    unit_price=unit_price,
                     total=line_total,
+                    price_type=price_type,
                 )
             )
 
@@ -75,3 +102,19 @@ class PricingService:
             total=round_money(subtotal - discount),
             promotion=promotion,
         )
+
+    @staticmethod
+    def _resolve_unit_price(
+        product: Product,
+        quantity: int,
+        context: PriceContext,
+    ) -> tuple[Decimal, QuotePriceType]:
+        wholesale_price = product.wholesale_price
+        wholesale_min_quantity = product.wholesale_min_quantity
+        if (
+            wholesale_price is not None
+            and wholesale_min_quantity is not None
+            and (context.company_verified or quantity >= wholesale_min_quantity)
+        ):
+            return round_money(wholesale_price), QuotePriceType.WHOLESALE
+        return round_money(product.price), QuotePriceType.RETAIL

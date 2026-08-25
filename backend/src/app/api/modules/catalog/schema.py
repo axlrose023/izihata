@@ -96,6 +96,7 @@ class CatalogSectionResponse(CatalogReference):
 class ProductAvailabilityResponse(StrictSchema):
     status: StockStatus
     lead_time_days: int | None
+    dispatch_cutoff_hour: int | None
 
 
 class ProductMediaResponse(StrictSchema):
@@ -165,6 +166,9 @@ class ProductResponse(StrictSchema):
             availability=ProductAvailabilityResponse(
                 status=product.stock_status,
                 lead_time_days=product.availability_days,
+                dispatch_cutoff_hour=(
+                    14 if product.stock_status == StockStatus.IN_STOCK_TODAY else None
+                ),
             ),
             sale_unit=product.sale_unit,
             rating=product.rating,
@@ -524,7 +528,9 @@ class CategoryAttributeInput(StrictSchema):
 
 
 class ReplaceCategoryAttributesRequest(StrictSchema):
-    attributes: list[CategoryAttributeInput] = Field(min_length=1, max_length=50)
+    attributes: list[CategoryAttributeInput] = Field(
+        default_factory=list, max_length=50
+    )
 
     @model_validator(mode="after")
     def validate_unique_attributes(self) -> "ReplaceCategoryAttributesRequest":

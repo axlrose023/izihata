@@ -27,6 +27,11 @@ from app.api.modules.custom_boards.service import (
     CustomBoardManagementService,
     CustomBoardPublicQueryService,
 )
+from app.api.modules.customers.service import (
+    CompanyManagementService,
+    CustomerAuthenticationService,
+    CustomerProfileService,
+)
 from app.api.modules.delivery.service import DeliveryLocationService
 from app.api.modules.leads.service import (
     LeadCreationService,
@@ -34,6 +39,7 @@ from app.api.modules.leads.service import (
     LeadStatusTransitionService,
 )
 from app.api.modules.orders.service import (
+    CustomerOrderHistoryService,
     OrderCreationService,
     OrderManagementService,
     OrderStatusTransitionService,
@@ -115,6 +121,24 @@ class ServicesProvider(Provider):
     @provide(scope=Scope.REQUEST)
     def get_board_estimation_service(self) -> BoardEstimationService:
         return BoardEstimationService()
+
+    @provide(scope=Scope.REQUEST)
+    def get_customer_authentication_service(
+        self,
+        uow: UnitOfWork,
+        jwt_service: JwtService,
+    ) -> CustomerAuthenticationService:
+        return CustomerAuthenticationService(uow, jwt_service)
+
+    @provide(scope=Scope.REQUEST)
+    def get_customer_profile_service(self, uow: UnitOfWork) -> CustomerProfileService:
+        return CustomerProfileService(uow)
+
+    @provide(scope=Scope.REQUEST)
+    def get_company_management_service(
+        self, uow: UnitOfWork
+    ) -> CompanyManagementService:
+        return CompanyManagementService(uow)
 
     @provide(scope=Scope.REQUEST)
     def get_custom_board_creation_service(
@@ -212,6 +236,13 @@ class ServicesProvider(Provider):
     @provide(scope=Scope.REQUEST)
     def get_order_status_transition_service(self) -> OrderStatusTransitionService:
         return OrderStatusTransitionService()
+
+    @provide(scope=Scope.REQUEST)
+    def get_customer_order_history_service(
+        self,
+        uow: UnitOfWork,
+    ) -> CustomerOrderHistoryService:
+        return CustomerOrderHistoryService(uow)
 
     @provide(scope=Scope.REQUEST)
     def get_order_management_service(

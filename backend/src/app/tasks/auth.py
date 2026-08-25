@@ -8,5 +8,7 @@ from app.tiq import broker
 @broker.task(schedule=[{"cron": "15 3 * * *"}])
 async def cleanup_auth_sessions() -> None:
     async with SessionFactory() as session, UnitOfWork(session) as uow:
-        await uow.auth_sessions.delete_expired(datetime.now(UTC))
+        now = datetime.now(UTC)
+        await uow.auth_sessions.delete_expired(now)
+        await uow.customers.delete_expired_sessions(now)
         await uow.commit()

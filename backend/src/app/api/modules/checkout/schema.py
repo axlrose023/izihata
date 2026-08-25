@@ -5,6 +5,7 @@ from pydantic import Field, field_validator
 
 from app.api.common.schema import StrictSchema
 from app.api.modules.catalog.enums import StockStatus
+from app.api.modules.checkout.enums import QuotePriceType
 
 
 class QuoteItemRequest(StrictSchema):
@@ -34,6 +35,7 @@ class QuoteItemResponse(StrictSchema):
     quantity: int
     unit_price: Decimal
     total: Decimal
+    price_type: QuotePriceType
 
 
 class AppliedPromotion(StrictSchema):

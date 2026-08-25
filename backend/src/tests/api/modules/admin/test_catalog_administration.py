@@ -53,6 +53,13 @@ class TestCatalogAdministration:
         assignment = replacement.json()[0]
         assert assignment["attribute"]["id"] == attribute.json()["id"]
         assert assignment["is_primary_filter"] is True
+        reset = await client.put(
+            f"/api/v1/admin/catalog/categories/{product.category_id}/attributes",
+            json={"attributes": []},
+            headers=token_headers,
+        )
+        assert reset.status_code == 200, reset.text
+        assert reset.json() == []
 
     async def test_manages_sections_and_category_assignment(
         self,
@@ -175,6 +182,8 @@ class TestCatalogAdministration:
         product,
         uow: UnitOfWork,
     ):
+        original_rating = product.rating
+        original_reviews_count = product.reviews_count
         created = await client.post(
             f"/api/v1/catalog/products/{product.slug}/reviews",
             json={
@@ -211,6 +220,8 @@ class TestCatalogAdministration:
         await uow.session.execute(
             delete(ProductReview).where(ProductReview.id == UUID(review["id"]))
         )
+        product.rating = original_rating
+        product.reviews_count = original_reviews_count
         await uow.commit()
 
     async def test_product_creation_rejects_missing_wholesale_pair(

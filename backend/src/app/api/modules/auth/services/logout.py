@@ -12,6 +12,8 @@ class LogoutSessionService:
 
     async def logout(self, refresh_token: str) -> None:
         payload = self._jwt_service.validate_refresh_token(refresh_token)
+        if payload.get("actor") not in {None, "staff"}:
+            return
         identity = parse_refresh_token_identity(payload)
         auth_session = await self._uow.auth_sessions.get_for_update(identity.session_id)
 

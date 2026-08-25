@@ -100,6 +100,7 @@ class TestCatalogExtensions:
             headers=headers,
         )
         assert restocked.status_code == 200, restocked.text
+        assert restocked.json()["availability"]["dispatch_cutoff_hour"] == 14
 
         subscription = await uow.session.get(
             ProductStockSubscription,

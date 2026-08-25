@@ -8,6 +8,7 @@ from app.api.modules.auth.gateway import AuthSessionGateway
 from app.api.modules.catalog.gateway import CategoryGateway, ProductGateway
 from app.api.modules.checkout.gateway import PromotionGateway
 from app.api.modules.custom_boards.gateway import CustomBoardGateway
+from app.api.modules.customers.gateway import CustomerGateway
 from app.api.modules.leads.gateway import LeadGateway
 from app.api.modules.orders.gateway import OrderGateway
 from app.api.modules.outbox.gateway import OutboxGateway
@@ -25,6 +26,7 @@ class UnitOfWork:
     leads: LeadGateway
     outbox: OutboxGateway
     custom_boards: CustomBoardGateway
+    customers: CustomerGateway
 
     def __init__(self, session: AsyncSession):
         self.session = session
@@ -38,6 +40,7 @@ class UnitOfWork:
         self.leads = LeadGateway(session)
         self.outbox = OutboxGateway(session)
         self.custom_boards = CustomBoardGateway(session)
+        self.customers = CustomerGateway(session)
 
     async def __aenter__(self) -> Self:
         return self

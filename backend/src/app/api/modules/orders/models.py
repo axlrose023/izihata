@@ -33,6 +33,10 @@ class Order(Base, UUIDIDMixin, DateTimeMixin):
     number: Mapped[str] = mapped_column(String(40), unique=True, index=True)
     idempotency_key: Mapped[str] = mapped_column(String(128), unique=True)
     request_hash: Mapped[str] = mapped_column(String(64))
+    customer_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("customers.id", ondelete="SET NULL"),
+        index=True,
+    )
     customer_name: Mapped[str] = mapped_column(String(120))
     phone: Mapped[str] = mapped_column(String(24), index=True)
     company_name: Mapped[str | None] = mapped_column(String(180))

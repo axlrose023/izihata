@@ -499,6 +499,25 @@ class ProductGateway:
         stmt = select(func.count(ProductReview.id))
         return int((await self._session.execute(stmt)).scalar_one())
 
+    async def refresh_review_summary(self, product_id: UUID) -> None:
+        product = (
+            await self._session.execute(
+                select(Product).where(Product.id == product_id).with_for_update()
+            )
+        ).scalar_one_or_none()
+        if product is None:
+            return
+        summary = await self._session.execute(
+            select(func.count(ProductReview.id), func.avg(ProductReview.rating)).where(
+                ProductReview.product_id == product_id,
+                ProductReview.is_published.is_(True),
+            )
+        )
+        count, rating = summary.one()
+        product.reviews_count = int(count)
+        product.rating = Decimal(str(rating or 0)).quantize(Decimal("0.1"))
+        await self._session.flush()
+
     async def replace_relations(
         self,
         source_product_id: UUID,

@@ -27,12 +27,34 @@ class JwtService:
         refresh_jti: UUID,
         refresh_expires_at: datetime,
     ) -> TokenPairResponse:
-        access_token, access_expires = self._create_access_token(user, session_id)
+        return self.create_token_pair_for_subject(
+            subject_id=user.id,
+            session_id=session_id,
+            refresh_jti=refresh_jti,
+            refresh_expires_at=refresh_expires_at,
+            actor="staff",
+        )
+
+    def create_token_pair_for_subject(
+        self,
+        *,
+        subject_id: UUID,
+        session_id: UUID,
+        refresh_jti: UUID,
+        refresh_expires_at: datetime,
+        actor: str,
+    ) -> TokenPairResponse:
+        access_token, access_expires = self._create_access_token(
+            subject_id,
+            session_id,
+            actor,
+        )
         refresh_token, refresh_expires = self._create_refresh_token(
-            user,
+            subject_id,
             session_id,
             refresh_jti,
             refresh_expires_at,
+            actor,
         )
         return TokenPairResponse(
             access_token=access_token,
@@ -73,25 +95,37 @@ class JwtService:
 
         return payload
 
-    def _create_access_token(self, user: User, session_id: UUID) -> tuple[str, int]:
+    def _create_access_token(
+        self,
+        subject_id: UUID,
+        session_id: UUID,
+        actor: str,
+    ) -> tuple[str, int]:
         token = self._create_token(
-            {"sub": str(user.id), "sid": str(session_id), "type": "access"},
+            {
+                "sub": str(subject_id),
+                "sid": str(session_id),
+                "actor": actor,
+                "type": "access",
+            },
             datetime.now(UTC) + self._access_expires_delta,
         )
         return token, int(self._access_expires_delta.total_seconds())
 
     def _create_refresh_token(
         self,
-        user: User,
+        subject_id: UUID,
         session_id: UUID,
         refresh_jti: UUID,
         expires_at: datetime,
+        actor: str,
     ) -> tuple[str, int]:
         token = self._create_token(
             {
-                "sub": str(user.id),
+                "sub": str(subject_id),
                 "sid": str(session_id),
                 "jti": str(refresh_jti),
+                "actor": actor,
                 "type": "refresh",
             },
             expires_at,

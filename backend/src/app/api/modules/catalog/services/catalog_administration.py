@@ -181,6 +181,7 @@ class CatalogAdministrationService:
         review.status = request.status
         review.is_published = request.status == ReviewStatus.PUBLISHED
         review.is_featured = request.is_featured
+        await self._uow.products.refresh_review_summary(review.product_id)
         await self._uow.outbox.add(
             "catalog.review_moderated",
             {"review_id": str(review.id), "status": review.status.value},

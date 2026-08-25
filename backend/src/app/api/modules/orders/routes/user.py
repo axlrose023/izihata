@@ -5,6 +5,8 @@ from dishka.integrations.fastapi import DishkaRoute
 from fastapi import APIRouter, Depends, Header
 
 from app.api.common.rate_limit import ORDER_RATE_LIMIT, RateLimit
+from app.api.modules.customers.models import Customer
+from app.api.modules.customers.service import OptionalAuthenticateCustomer
 from app.api.modules.orders.schema import CreateOrderRequest, OrderResponse
 from app.api.modules.orders.service import OrderCreationService
 
@@ -29,5 +31,10 @@ async def create_order(
             pattern=r"^[A-Za-z0-9._:-]+$",
         ),
     ],
+    customer: Customer | None = Depends(OptionalAuthenticateCustomer()),
 ) -> OrderResponse:
-    return await service.create_order(request, idempotency_key)
+    return await service.create_order(
+        request,
+        idempotency_key,
+        customer_id=customer.id if customer is not None else None,
+    )

@@ -15,6 +15,8 @@ class RefreshSessionService:
 
     async def refresh(self, refresh_token: str) -> TokenPairResponse:
         payload = self._jwt_service.validate_refresh_token(refresh_token)
+        if payload.get("actor") not in {None, "staff"}:
+            raise UnauthorizedError("Invalid refresh token audience")
         identity = parse_refresh_token_identity(payload)
 
         auth_session = await self._uow.auth_sessions.get_for_update(identity.session_id)

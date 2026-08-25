@@ -1,0 +1,87 @@
+import datetime
+from decimal import Decimal
+from uuid import UUID
+
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    DateTime,
+    Enum,
+    ForeignKey,
+    Index,
+    Numeric,
+    String,
+)
+from sqlalchemy.orm import Mapped, mapped_column
+
+from app.api.modules.customers.enums import CompanyKind, CompanyStatus
+from app.database.base import Base, DateTimeMixin, UUIDIDMixin
+
+
+class Customer(Base, UUIDIDMixin, DateTimeMixin):
+    __tablename__ = "customers"
+
+    email: Mapped[str] = mapped_column(String(254), unique=True, index=True)
+    password_hash: Mapped[str] = mapped_column(String(128))
+    full_name: Mapped[str] = mapped_column(String(120))
+    phone: Mapped[str | None] = mapped_column(String(24))
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+
+
+class CustomerAuthSession(Base, UUIDIDMixin, DateTimeMixin):
+    __tablename__ = "customer_auth_sessions"
+    __table_args__ = (
+        Index(
+            "customer_auth_sessions_customer_active_idx",
+            "customer_id",
+            "revoked_at",
+            "expires_at",
+        ),
+    )
+
+    customer_id: Mapped[UUID] = mapped_column(
+        ForeignKey("customers.id", ondelete="CASCADE"),
+        index=True,
+    )
+    refresh_jti: Mapped[UUID] = mapped_column(unique=True)
+    expires_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime(timezone=True),
+        index=True,
+    )
+    revoked_at: Mapped[datetime.datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        index=True,
+    )
+
+
+class CustomerCompany(Base, UUIDIDMixin, DateTimeMixin):
+    __tablename__ = "customer_companies"
+    __table_args__ = (
+        CheckConstraint(
+            "cumulative_discount_rate >= 0 AND cumulative_discount_rate < 1",
+            name="customer_company_cumulative_discount_range",
+        ),
+    )
+
+    customer_id: Mapped[UUID] = mapped_column(
+        ForeignKey("customers.id", ondelete="CASCADE"),
+        unique=True,
+        index=True,
+    )
+    kind: Mapped[CompanyKind] = mapped_column(
+        Enum(CompanyKind, native_enum=False, length=16),
+        nullable=False,
+    )
+    name: Mapped[str] = mapped_column(String(180))
+    edrpou: Mapped[str] = mapped_column(String(10), unique=True, index=True)
+    status: Mapped[CompanyStatus] = mapped_column(
+        Enum(CompanyStatus, native_enum=False, length=16),
+        default=CompanyStatus.PENDING,
+        index=True,
+    )
+    manager_name: Mapped[str | None] = mapped_column(String(120))
+    cumulative_discount_rate: Mapped[Decimal] = mapped_column(
+        Numeric(5, 4),
+        default=Decimal("0"),
+        nullable=False,
+    )

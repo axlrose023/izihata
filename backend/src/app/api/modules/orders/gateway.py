@@ -52,3 +52,26 @@ class OrderGateway:
     async def count(self, params: OrderListParams) -> int:
         stmt = select(func.count(Order.id)).where(*self._conditions(params))
         return int((await self._session.execute(stmt)).scalar_one())
+
+    async def list_for_customer(
+        self,
+        customer_id: UUID,
+        params: OrderListParams,
+    ) -> Sequence[Order]:
+        stmt = (
+            select(Order)
+            .where(Order.customer_id == customer_id, *self._conditions(params))
+            .order_by(Order.created_at.desc(), Order.id.desc())
+            .offset(params.offset)
+            .limit(params.page_size)
+        )
+        return (await self._session.execute(stmt)).scalars().unique().all()
+
+    async def count_for_customer(
+        self, customer_id: UUID, params: OrderListParams
+    ) -> int:
+        stmt = select(func.count(Order.id)).where(
+            Order.customer_id == customer_id,
+            *self._conditions(params),
+        )
+        return int((await self._session.execute(stmt)).scalar_one())

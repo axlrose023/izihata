@@ -1,10 +1,16 @@
+from decimal import Decimal, InvalidOperation
 from uuid import UUID
 
 from sqlalchemy.exc import IntegrityError
 
 from app.api.common.exceptions import ConflictError, NotFoundError, UnprocessableError
-from app.api.modules.catalog.enums import StockStatus, StockSubscriptionStatus
+from app.api.modules.catalog.enums import (
+    AttributeValueType,
+    StockStatus,
+    StockSubscriptionStatus,
+)
 from app.api.modules.catalog.models import (
+    CatalogAttribute,
     Category,
     Product,
     ProductAttribute,
@@ -29,18 +35,61 @@ class ProductManagementService:
     def __init__(self, uow: UnitOfWork):
         self._uow = uow
 
-    @staticmethod
-    def _replace_specs(product: Product, specs: dict[str, str]) -> None:
+    async def _replace_specs(self, product: Product, specs: dict[str, str]) -> None:
+        assignments = await self._uow.categories.list_category_attributes(
+            product.category_id
+        )
+        definitions_by_name = {
+            definition.name: definition for _, definition in assignments
+        }
+        if assignments:
+            unknown_names = set(specs) - definitions_by_name.keys()
+            if unknown_names:
+                raise UnprocessableError(
+                    "Product contains attributes not configured for its category",
+                    code="unknown_product_attribute",
+                )
+            required_names = {
+                definition.name
+                for assignment, definition in assignments
+                if assignment.is_required
+            }
+            missing_required_names = required_names - specs.keys()
+            if missing_required_names:
+                raise UnprocessableError(
+                    "Product is missing required category attributes",
+                    code="required_product_attribute_missing",
+                )
+
         existing = {attribute.key: attribute for attribute in product.attributes}
         attributes: list[ProductAttribute] = []
         for key, value in specs.items():
+            definition = definitions_by_name.get(key)
             attribute = existing.get(key)
             if attribute is None:
                 attribute = ProductAttribute(key=key, value=value)
             else:
                 attribute.value = value
+            attribute.attribute_id = definition.id if definition is not None else None
+            attribute.numeric_value = self._numeric_attribute_value(value, definition)
             attributes.append(attribute)
         product.attributes = attributes
+
+    @staticmethod
+    def _numeric_attribute_value(
+        value: str,
+        definition: CatalogAttribute | None,
+    ) -> Decimal | None:
+        if definition is None or definition.value_type != AttributeValueType.NUMBER:
+            return None
+        normalized = value.replace(",", ".").split()[0]
+        try:
+            return Decimal(normalized)
+        except InvalidOperation as exc:
+            raise UnprocessableError(
+                f"Attribute '{definition.name}' must be numeric",
+                code="invalid_numeric_product_attribute",
+            ) from exc
 
     @staticmethod
     def _replace_media(product: Product, media: list[ProductMediaInput]) -> None:
@@ -135,10 +184,7 @@ class ProductManagementService:
             wholesale_price=request.wholesale_price,
             wholesale_min_quantity=request.wholesale_min_quantity,
             position=await self._uow.products.next_position(),
-            attributes=[
-                ProductAttribute(key=key, value=value)
-                for key, value in request.specs.items()
-            ],
+            attributes=[],
             media=[
                 ProductMedia(url=item.url, alt=item.alt, position=item.position)
                 for item in request.media
@@ -153,6 +199,7 @@ class ProductManagementService:
                 for item in request.documents
             ],
         )
+        await self._replace_specs(product, request.specs)
         if request.media:
             product.image_url = request.media[0].url
         try:
@@ -244,7 +291,7 @@ class ProductManagementService:
         for field, value in data.items():
             setattr(product, field, value)
         if specs is not None:
-            self._replace_specs(product, specs)
+            await self._replace_specs(product, specs)
         if media is not None:
             self._replace_media(product, media)
         if documents is not None:
