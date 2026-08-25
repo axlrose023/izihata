@@ -550,6 +550,60 @@ class ProductGateway:
         )
         return (await self._session.execute(stmt)).scalars().all()
 
+    async def list_by_attribute(
+        self,
+        *,
+        category_slug: str,
+        key: str,
+        values: set[str],
+        limit: int = 8,
+    ) -> Sequence[Product]:
+        if not values:
+            return []
+        stmt = (
+            select(Product)
+            .where(
+                Product.is_active.is_(True),
+                Product.category.has(Category.slug == category_slug),
+                Product.attributes.any(
+                    and_(
+                        ProductAttribute.key == key,
+                        ProductAttribute.value.in_(values),
+                    )
+                ),
+            )
+            .options(
+                joinedload(Product.category),
+                joinedload(Product.subcategory),
+                selectinload(Product.attributes),
+            )
+            .order_by(Product.position, Product.id)
+            .limit(limit)
+        )
+        return (await self._session.execute(stmt)).scalars().unique().all()
+
+    async def list_by_category(
+        self,
+        category_slug: str,
+        *,
+        limit: int = 8,
+    ) -> Sequence[Product]:
+        stmt = (
+            select(Product)
+            .where(
+                Product.is_active.is_(True),
+                Product.category.has(Category.slug == category_slug),
+            )
+            .options(
+                joinedload(Product.category),
+                joinedload(Product.subcategory),
+                selectinload(Product.attributes),
+            )
+            .order_by(Product.position, Product.id)
+            .limit(limit)
+        )
+        return (await self._session.execute(stmt)).scalars().unique().all()
+
     async def exists_active(self, product_id: UUID) -> bool:
         stmt = select(Product.id).where(
             Product.id == product_id,

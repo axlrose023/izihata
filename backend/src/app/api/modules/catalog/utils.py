@@ -1,15 +1,16 @@
 import re
-from urllib.parse import urlsplit
 
-from app.api.common.utils import normalize_text
+from app.api.common.utils import (
+    normalize_email as normalize_standard_email,
+)
+from app.api.common.utils import (
+    normalize_resource_url,
+    normalize_text,
+)
 
 _SKU_PATTERN = re.compile(r"[A-Z0-9][A-Z0-9._/-]*")
 _SLUG_SEPARATORS = re.compile(r"[._/]+")
 _REPEATED_DASHES = re.compile(r"-+")
-_EMAIL_PATTERN = re.compile(
-    r"(?=.{3,254}$)[A-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?(?:\.[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?)+$",
-    re.IGNORECASE,
-)
 
 
 def normalize_sku(value: object) -> str:
@@ -27,27 +28,11 @@ def product_slug_from_sku(sku: str) -> str:
 
 
 def normalize_image_url(value: object | None) -> str | None:
-    if value is None:
-        return None
-    image_url = normalize_text(value)
-    if any(character.isspace() for character in image_url) or "\\" in image_url:
-        raise ValueError("Image URL cannot contain spaces or backslashes")
-    if image_url.startswith("/") and not image_url.startswith("//"):
-        return image_url
-
-    parsed = urlsplit(image_url)
-    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
-        raise ValueError(
-            "Image URL must be an absolute HTTP(S) URL or an absolute path"
-        )
-    return image_url
+    return normalize_resource_url(value)
 
 
 def normalize_email(value: object) -> str:
-    email = normalize_text(value).lower()
-    if _EMAIL_PATTERN.fullmatch(email) is None:
-        raise ValueError("Email address is invalid")
-    return email
+    return normalize_standard_email(value)
 
 
 def normalize_product_specs(value: object) -> dict[str, str]:

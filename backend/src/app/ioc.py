@@ -5,6 +5,7 @@ from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.modules.admin.service import DashboardService
+from app.api.modules.advisors.service import ElectricalAdvisorService
 from app.api.modules.auth.service import (
     JwtService,
     LoginService,
@@ -19,6 +20,13 @@ from app.api.modules.catalog.service import (
     StockSubscriptionService,
 )
 from app.api.modules.checkout.service import PricingService
+from app.api.modules.custom_boards.service import (
+    BoardEstimationService,
+    BoardStatusTransitionService,
+    CustomBoardCreationService,
+    CustomBoardManagementService,
+    CustomBoardPublicQueryService,
+)
 from app.api.modules.delivery.service import DeliveryLocationService
 from app.api.modules.leads.service import (
     LeadCreationService,
@@ -96,6 +104,44 @@ class ServicesProvider(Provider):
         client: NovaPoshtaClient,
     ) -> DeliveryLocationService:
         return DeliveryLocationService(client)
+
+    @provide(scope=Scope.REQUEST)
+    def get_electrical_advisor_service(
+        self,
+        uow: UnitOfWork,
+    ) -> ElectricalAdvisorService:
+        return ElectricalAdvisorService(uow)
+
+    @provide(scope=Scope.REQUEST)
+    def get_board_estimation_service(self) -> BoardEstimationService:
+        return BoardEstimationService()
+
+    @provide(scope=Scope.REQUEST)
+    def get_custom_board_creation_service(
+        self,
+        uow: UnitOfWork,
+        estimator: BoardEstimationService,
+    ) -> CustomBoardCreationService:
+        return CustomBoardCreationService(uow, estimator)
+
+    @provide(scope=Scope.REQUEST)
+    def get_board_status_transition_service(self) -> BoardStatusTransitionService:
+        return BoardStatusTransitionService()
+
+    @provide(scope=Scope.REQUEST)
+    def get_custom_board_management_service(
+        self,
+        uow: UnitOfWork,
+        transitions: BoardStatusTransitionService,
+    ) -> CustomBoardManagementService:
+        return CustomBoardManagementService(uow, transitions)
+
+    @provide(scope=Scope.REQUEST)
+    def get_custom_board_public_query_service(
+        self,
+        uow: UnitOfWork,
+    ) -> CustomBoardPublicQueryService:
+        return CustomBoardPublicQueryService(uow)
 
     @provide(scope=Scope.REQUEST)
     def get_login_service(

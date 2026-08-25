@@ -9,6 +9,10 @@ def test_openapi_contains_only_confirmed_business_routes(app: FastAPI):
         if method != "parameters"
     }
     assert actual == {
+        ("POST", "/api/v1/advisors/autonomy"),
+        ("POST", "/api/v1/advisors/breaker"),
+        ("POST", "/api/v1/advisors/cable-size"),
+        ("POST", "/api/v1/advisors/led-power-supply"),
         ("POST", "/api/v1/auth/login"),
         ("POST", "/api/v1/auth/logout"),
         ("POST", "/api/v1/auth/refresh"),
@@ -25,9 +29,16 @@ def test_openapi_contains_only_confirmed_business_routes(app: FastAPI):
         ("POST", "/api/v1/checkout/quote"),
         ("GET", "/api/v1/delivery/cities"),
         ("GET", "/api/v1/delivery/points"),
+        ("GET", "/api/v1/custom-boards/portfolio"),
+        ("POST", "/api/v1/custom-boards/estimate"),
+        ("POST", "/api/v1/custom-boards/requests"),
         ("POST", "/api/v1/orders"),
         ("POST", "/api/v1/leads"),
         ("GET", "/api/v1/admin/dashboard"),
+        ("GET", "/api/v1/admin/custom-boards/requests"),
+        ("PATCH", "/api/v1/admin/custom-boards/requests/{request_id}"),
+        ("POST", "/api/v1/admin/custom-boards/portfolio"),
+        ("PATCH", "/api/v1/admin/custom-boards/portfolio/{item_id}"),
         ("GET", "/api/v1/admin/catalog/attributes"),
         ("POST", "/api/v1/admin/catalog/attributes"),
         ("GET", "/api/v1/admin/catalog/categories/{category_id}/attributes"),
