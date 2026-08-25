@@ -1,6 +1,13 @@
 const labels: Record<string, string> = {
+  in_stock_today: "Відправимо сьогодні",
   in_stock: "В наявності",
   preorder: "Під замовлення",
+  out_of_stock: "Немає в наявності",
+  approved: "Підтверджено",
+  rejected: "Відхилено",
+  published: "Опубліковано",
+  in_review: "На розгляді",
+  quoted: "Кошторис надіслано",
   new: "Новий",
   confirmed: "Підтверджено",
   processing: "В роботі",

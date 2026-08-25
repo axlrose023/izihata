@@ -6,9 +6,12 @@ import {
   categoriesQuery,
   productsQuery,
 } from "@/modules/catalog/api/catalog-queries";
+import { CatalogEducation } from "@/modules/catalog/components/catalog-education";
 import { ProductCard } from "@/modules/catalog/components/product-card";
+import { ProductPriceList } from "@/modules/catalog/components/product-price-list";
 import type { ProductSort } from "@/shared/types/api";
 import { useDocumentTitle } from "@/shared/lib/use-document-title";
+import { usePageMeta } from "@/shared/lib/use-page-meta";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { ErrorNotice } from "@/shared/ui/error-notice";
 
@@ -17,7 +20,22 @@ const sorts: Array<{ value: ProductSort; label: string }> = [
   { value: "newest", label: "Новинки" },
   { value: "price_asc", label: "Від дешевих" },
   { value: "price_desc", label: "Від дорогих" },
+  { value: "reviews", label: "За відгуками" },
+  { value: "availability", label: "За наявністю" },
 ];
+
+const availabilityLabels = {
+  in_stock_today: "Відправимо сьогодні",
+  in_stock: "В наявності",
+  preorder: "Під замовлення",
+  out_of_stock: "Немає в наявності",
+} as const;
+
+const saleUnitLabels = {
+  piece: "Поштучно",
+  meter: "За метр",
+  coil: "Бухтами",
+} as const;
 
 function pageHref(params: URLSearchParams, page: number, category?: string) {
   const next = new URLSearchParams(params);
@@ -28,7 +46,7 @@ function pageHref(params: URLSearchParams, page: number, category?: string) {
 
 function viewHref(
   params: URLSearchParams,
-  view: "grid" | "list",
+  view: "grid" | "list" | "price",
   category?: string,
 ) {
   const next = new URLSearchParams(params);
@@ -42,13 +60,20 @@ function viewHref(
 export function CatalogPage() {
   const { category } = useParams<{ category?: string }>();
   const [searchParams] = useSearchParams();
-  const view = searchParams.get("view") === "list" ? "list" : "grid";
+  const requestedView = searchParams.get("view");
+  const view =
+    requestedView === "list" || requestedView === "price"
+      ? requestedView
+      : "grid";
   const query = {
     search: searchParams.get("search") ?? undefined,
     category: category ?? searchParams.get("category") ?? undefined,
     subcategory: searchParams.get("subcategory") ?? undefined,
+    section: searchParams.get("section") ?? undefined,
     brand: searchParams.getAll("brand"),
     in_stock: searchParams.get("in_stock") ?? undefined,
+    availability: searchParams.getAll("availability"),
+    sale_unit: searchParams.getAll("sale_unit"),
     min_price: searchParams.get("min_price") ?? undefined,
     max_price: searchParams.get("max_price") ?? undefined,
     spec: searchParams.getAll("spec"),
@@ -59,10 +84,16 @@ export function CatalogPage() {
   const [categoriesResult, productsResult] = useQueries({
     queries: [categoriesQuery(), productsQuery(query)],
   });
-  useDocumentTitle(
-    categoriesResult.data?.find((item) => item.slug === query.category)?.name ??
-      "Каталог",
+  const initialActiveCategory = categoriesResult.data?.find(
+    (item) => item.slug === query.category,
   );
+  useDocumentTitle(initialActiveCategory?.name ?? "Каталог");
+  usePageMeta({
+    title: initialActiveCategory?.name ?? "Каталог",
+    description: initialActiveCategory
+      ? `Купити ${initialActiveCategory.name.toLocaleLowerCase("uk-UA")} в IZI HATA: технічні параметри, ціни та наявність.`
+      : "Каталог електротоварів IZI HATA: перевіряйте характеристики, ціни та наявність.",
+  });
 
   if (categoriesResult.isPending || productsResult.isPending) {
     return <div className="page-loader">Завантажуємо каталог…</div>;
@@ -88,6 +119,8 @@ export function CatalogPage() {
   );
   const activeBrands = new Set(query.brand);
   const activeSpecs = new Set(query.spec);
+  const activeAvailability = new Set(query.availability);
+  const activeSaleUnits = new Set(query.sale_unit);
   const basePath = category ? `/catalog/${category}` : "/catalog";
 
   return (
@@ -221,7 +254,58 @@ export function CatalogPage() {
                 </div>
               </fieldset>
             ) : null}
+            {products.facets.availability.length ? (
+              <fieldset>
+                <legend>Наявність</legend>
+                <div className="filter-options">
+                  {products.facets.availability.map((option) => (
+                    <label key={option.value}>
+                      <input
+                        defaultChecked={activeAvailability.has(option.value)}
+                        name="availability"
+                        type="checkbox"
+                        value={option.value}
+                      />
+                      <span>
+                        {availabilityLabels[
+                          option.value as keyof typeof availabilityLabels
+                        ] ?? option.value}
+                      </span>
+                      <small>{option.count}</small>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+            ) : null}
+            {products.facets.sale_units.length ? (
+              <fieldset>
+                <legend>Одиниця продажу</legend>
+                <div className="filter-options">
+                  {products.facets.sale_units.map((option) => (
+                    <label key={option.value}>
+                      <input
+                        defaultChecked={activeSaleUnits.has(option.value)}
+                        name="sale_unit"
+                        type="checkbox"
+                        value={option.value}
+                      />
+                      <span>
+                        {saleUnitLabels[
+                          option.value as keyof typeof saleUnitLabels
+                        ] ?? option.value}
+                      </span>
+                      <small>{option.count}</small>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+            ) : null}
             {Object.entries(products.facets.specs)
+              .filter(
+                ([key]) =>
+                  key.toLocaleLowerCase("uk") !== "серія" ||
+                  activeBrands.size > 0,
+              )
               .slice(0, 4)
               .map(([key, options]) => (
                 <fieldset key={key}>
@@ -308,17 +392,32 @@ export function CatalogPage() {
               >
                 <List size={18} />
               </Link>
+              <Link
+                aria-label="Показати прайс-листом"
+                aria-current={view === "price" ? "true" : undefined}
+                to={viewHref(searchParams, "price", category)}
+              >
+                ₴
+              </Link>
             </div>
           </Form>
           {products.items.length ? (
-            <div
-              className="product-grid product-grid--catalog"
-              data-view={view}
-            >
-              {products.items.map((product) => (
-                <ProductCard key={product.id} layout={view} product={product} />
-              ))}
-            </div>
+            view === "price" ? (
+              <ProductPriceList products={products.items} />
+            ) : (
+              <div
+                className="product-grid product-grid--catalog"
+                data-view={view}
+              >
+                {products.items.map((product) => (
+                  <ProductCard
+                    key={product.id}
+                    layout={view}
+                    product={product}
+                  />
+                ))}
+              </div>
+            )
           ) : (
             <EmptyState
               actionHref={basePath}
@@ -346,6 +445,7 @@ export function CatalogPage() {
           ) : null}
         </section>
       </div>
+      <CatalogEducation category={activeCategory} />
     </div>
   );
 }

@@ -10,6 +10,12 @@ The applications share only the versioned HTTP contract under `/api/v1`.
 Business rules and authoritative pricing remain in the backend; the frontend
 owns presentation and anonymous browser state.
 
+The storefront includes public catalog section hubs, structured filtering,
+product media/documents/reviews, an availability subscription, direct customer
+accounts with B2B pricing, electrical calculators, and custom-board requests.
+The staff panel moderates reviews, B2B companies, catalog items, orders, leads,
+and board requests.
+
 ## Local development
 
 Backend:
@@ -32,6 +38,9 @@ npm run dev
 
 The storefront is available at `http://localhost:3000`; Vite forwards its
 same-origin `/api/v1` requests to `http://localhost:8000` by default.
+
+Run frontend checks with `npm run check`; end-to-end tests expect the full
+stack at `http://localhost:3000` and are run with `npm run test:e2e`.
 
 See `backend/README.md` and `frontend/README.md` for application-specific
 commands and architecture.

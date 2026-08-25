@@ -1,17 +1,22 @@
 import { useQuery } from "@tanstack/react-query";
-import { CreditCard, RotateCcw, ShieldCheck, Truck } from "lucide-react";
+import {
+  CreditCard,
+  ExternalLink,
+  FileCheck2,
+  RotateCcw,
+  ShieldCheck,
+  Truck,
+} from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 
-import {
-  productQuery,
-  productsQuery,
-} from "@/modules/catalog/api/catalog-queries";
+import { productQuery } from "@/modules/catalog/api/catalog-queries";
 import { ProductActions } from "@/modules/catalog/components/product-actions";
 import { ProductCard } from "@/modules/catalog/components/product-card";
-import { ProductVisual } from "@/modules/catalog/components/product-visual";
+import { ProductMediaGallery } from "@/modules/catalog/components/product-media-gallery";
 import { ApiError } from "@/shared/api/errors";
 import { formatMoney } from "@/shared/lib/format";
 import { useDocumentTitle } from "@/shared/lib/use-document-title";
+import { usePageMeta } from "@/shared/lib/use-page-meta";
 import { ProductRating } from "@/shared/ui/product-rating";
 import { ErrorNotice } from "@/shared/ui/error-notice";
 import { StatusBadge } from "@/shared/ui/status-badge";
@@ -21,15 +26,15 @@ export function ProductPage() {
   const { slug = "" } = useParams<{ slug: string }>();
   const productResult = useQuery(productQuery(slug));
   const product = productResult.data;
-  const relatedResult = useQuery({
-    ...productsQuery({
-      category: product?.category.slug,
-      page_size: 5,
-      sort: "popular",
-    }),
-    enabled: Boolean(product),
-  });
   useDocumentTitle(product?.name ?? "Товар");
+  usePageMeta({
+    title: product?.name ?? "Товар",
+    description:
+      product?.short_description ??
+      product?.description ??
+      "Технічні характеристики, наявність та ціна в IZI HATA.",
+    structuredData: product ? productStructuredData(product) : undefined,
+  });
 
   if (productResult.isPending)
     return <div className="page-loader">Завантажуємо товар…</div>;
@@ -50,11 +55,8 @@ export function ProductPage() {
     );
   }
 
-  const relatedProducts = (relatedResult.data?.items ?? [])
-    .filter((item) => item.id !== product.id)
-    .slice(0, 4);
   const quickSpecs = Object.entries(product.specs).slice(0, 4);
-
+  const availabilityText = getAvailabilityText(product);
   return (
     <div className="container product-page">
       <nav aria-label="Навігаційний ланцюжок" className="breadcrumbs">
@@ -69,12 +71,7 @@ export function ProductPage() {
         <span>{product.name}</span>
       </nav>
       <div className="product-detail">
-        <div className="product-detail__visual">
-          {product.badge ? (
-            <span data-badge={product.badge}>{product.badge}</span>
-          ) : null}
-          <ProductVisual iconSize={170} product={product} />
-        </div>
+        <ProductMediaGallery product={product} />
         <div className="product-detail__content">
           <span className="eyebrow">
             {product.brand} · SKU {product.sku}
@@ -82,6 +79,9 @@ export function ProductPage() {
           <h1>{product.name}</h1>
           <div className="product-detail__meta">
             <StatusBadge status={product.stock_status} />
+            <span className="product-availability-text">
+              {availabilityText}
+            </span>
             <ProductRating
               rating={product.rating}
               reviews={product.reviews_count}
@@ -93,6 +93,17 @@ export function ProductPage() {
               <del>{formatMoney(product.old_price)}</del>
             ) : null}
           </div>
+          <p className="product-sale-unit">
+            Ціна за {saleUnitLabel(product.sale_unit)}.{" "}
+            {product.wholesale_min_quantity
+              ? `Гуртові умови — від ${product.wholesale_min_quantity} од.`
+              : "Гуртові умови доступні компаніям після підтвердження."}
+          </p>
+          {product.short_description ? (
+            <p className="product-detail__description">
+              {product.short_description}
+            </p>
+          ) : null}
           {quickSpecs.length ? (
             <dl className="product-quick-specs">
               {quickSpecs.map(([key, value]) => (
@@ -120,6 +131,12 @@ export function ProductPage() {
           </div>
         </div>
       </div>
+      {product.description ? (
+        <section className="product-description-section">
+          <span className="eyebrow">Про товар</span>
+          <p>{product.description}</p>
+        </section>
+      ) : null}
       <section className="specification-section">
         <div>
           <span className="eyebrow">Технічні дані</span>
@@ -134,27 +151,130 @@ export function ProductPage() {
           ))}
         </dl>
       </section>
-      {relatedProducts.length ? (
-        <section className="related-products">
-          <div className="section-heading">
-            <div>
-              <span className="eyebrow">Той самий напрям</span>
-              <h2>Схожі товари</h2>
-            </div>
-            <Link to={`/catalog/${product.category.slug}`}>
-              Усі в категорії →
-            </Link>
+      <section className="product-origin-section">
+        <div>
+          <span>Бренд зареєстровано</span>
+          <strong>{product.brand_country ?? "Не вказано"}</strong>
+        </div>
+        <div>
+          <span>Країна виробництва</span>
+          <strong>{product.production_country ?? "Не вказано"}</strong>
+        </div>
+      </section>
+      {product.documents.length ? (
+        <section className="product-documents">
+          <div>
+            <span className="eyebrow">Документи</span>
+            <h2>Сертифікати та інструкції</h2>
           </div>
-          <div className="product-grid">
-            {relatedProducts.map((item) => (
-              <ProductCard key={item.id} product={item} />
+          <ul>
+            {product.documents.map((document) => (
+              <li key={document.id}>
+                <FileCheck2 aria-hidden="true" size={19} />
+                <a href={document.url} rel="noreferrer" target="_blank">
+                  {document.title} <ExternalLink aria-hidden="true" size={14} />
+                </a>
+              </li>
             ))}
-          </div>
+          </ul>
         </section>
       ) : null}
-      <ProductReviews reviews={product.reviews} />
+      <ProductRelationSection
+        eyebrow="Той самий напрям"
+        products={product.related}
+        title="Схожі товари"
+      />
+      <ProductRelationSection
+        eyebrow="Альтернатива"
+        products={product.alternatives}
+        title="Аналоги"
+      />
+      <ProductRelationSection
+        eyebrow="Доповнюють товар"
+        products={product.bought_together}
+        title="З цим купують"
+      />
+      <ProductReviews productSlug={product.slug} reviews={product.reviews} />
     </div>
   );
+}
+
+function ProductRelationSection({
+  eyebrow,
+  title,
+  products,
+}: {
+  eyebrow: string;
+  title: string;
+  products: import("@/shared/types/api").Product[];
+}) {
+  if (!products.length) return null;
+  return (
+    <section className="related-products">
+      <div className="section-heading">
+        <div>
+          <span className="eyebrow">{eyebrow}</span>
+          <h2>{title}</h2>
+        </div>
+      </div>
+      <div className="product-grid">
+        {products.map((item) => (
+          <ProductCard key={item.id} product={item} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function getAvailabilityText(
+  product: import("@/shared/types/api").ProductDetail,
+) {
+  if (product.availability.dispatch_cutoff_hour) {
+    return `Замовте до ${product.availability.dispatch_cutoff_hour}:00 — відправимо сьогодні`;
+  }
+  if (product.availability.lead_time_days) {
+    return `Орієнтовний строк: ${product.availability.lead_time_days} дн.`;
+  }
+  return product.stock_status === "in_stock"
+    ? "Готовий до відвантаження"
+    : "Уточніть строк у менеджера";
+}
+
+function saleUnitLabel(unit: import("@/shared/types/api").SaleUnit): string {
+  return { piece: "одиницю", meter: "метр", coil: "бухту" }[unit];
+}
+
+function productStructuredData(
+  product: import("@/shared/types/api").ProductDetail,
+) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.name,
+    sku: product.sku,
+    brand: { "@type": "Brand", name: product.brand },
+    image: [product.image_url, ...product.media.map((item) => item.url)].filter(
+      Boolean,
+    ),
+    description: product.short_description ?? product.description ?? undefined,
+    aggregateRating:
+      product.reviews_count > 0
+        ? {
+            "@type": "AggregateRating",
+            ratingValue: product.rating,
+            reviewCount: product.reviews_count,
+          }
+        : undefined,
+    offers: {
+      "@type": "Offer",
+      priceCurrency: "UAH",
+      price: product.price,
+      availability:
+        product.stock_status === "out_of_stock"
+          ? "https://schema.org/OutOfStock"
+          : "https://schema.org/InStock",
+    },
+  };
 }
 
 function ProductNotFound() {

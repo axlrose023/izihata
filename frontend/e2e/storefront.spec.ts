@@ -39,6 +39,7 @@ test("public routes render and product navigation works", async ({ page }) => {
     image_url: string;
     name: string;
     reviews: Array<{ author: string; text: string }>;
+    related: Array<{ id: string }>;
   };
   expect(new URL(productResponse.url()).origin).toBe(
     new URL(page.url()).origin,
@@ -47,9 +48,15 @@ test("public routes render and product navigation works", async ({ page }) => {
   await expect(page).toHaveURL(/\/products\//);
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   await expect(page.getByRole("img", { name: productBody.name })).toBeVisible();
-  await expect(
-    page.getByRole("heading", { name: "Схожі товари" }),
-  ).toBeVisible();
+  if (productBody.related.length) {
+    await expect(
+      page.getByRole("heading", { name: "Схожі товари" }),
+    ).toBeVisible();
+  } else {
+    await expect(
+      page.getByRole("heading", { name: "Схожі товари" }),
+    ).toHaveCount(0);
+  }
   expect(productBody.reviews).toHaveLength(2);
   await expect(page.getByRole("heading", { name: "Відгуки" })).toBeVisible();
   await expect(
@@ -68,6 +75,34 @@ test("public routes render and product navigation works", async ({ page }) => {
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     "Сторінку не знайдено",
   );
+});
+
+test("section hubs and customer tools use the versioned API", async ({
+  page,
+}) => {
+  await page.goto("/sections/home-repair");
+  await expect(
+    page.getByRole("heading", { name: "Дім і ремонт" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Усі товари розділу" }),
+  ).toBeVisible();
+
+  await page.goto("/advisors");
+  await page.getByRole("button", { name: "Розрахувати" }).first().click();
+  await expect(page.getByText("Розрахунковий струм").first()).toBeVisible();
+  await expect(page.getByText("Рекомендований переріз")).toBeVisible();
+
+  await page.goto("/custom-boards");
+  await page.getByRole("button", { name: "Оцінити комплектацію" }).click();
+  await expect(page.locator(".custom-board-estimate")).toBeVisible();
+
+  await page.goto("/account");
+  await expect(
+    page.getByRole("heading", {
+      name: "Керуйте замовленнями та бізнес-умовами",
+    }),
+  ).toBeVisible();
 });
 
 test("cart receives an authoritative quote and creates an order", async ({

@@ -7,6 +7,7 @@ import {
   MessageCircle,
   Phone,
   ShoppingCart,
+  UserRound,
   X,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
@@ -18,6 +19,7 @@ import { ProductSearch } from "@/modules/catalog/components/product-search";
 import { categoriesQuery } from "@/modules/catalog/api/catalog-queries";
 import { useCollectionStore } from "@/modules/collections/store";
 import { LeadAction } from "@/modules/leads/components/lead-action";
+import { useCustomerAuth } from "@/modules/customers/customer-auth-context";
 import { Logo } from "@/shared/ui/logo";
 import { storeInfo } from "@/shared/config/store-info";
 
@@ -28,6 +30,7 @@ export function SiteHeader() {
   const favoriteCount = useCollectionStore((state) => state.favorites.length);
   const compareCount = useCollectionStore((state) => state.compare.length);
   const categories = useQuery(categoriesQuery()).data ?? [];
+  const { status: customerStatus } = useCustomerAuth();
 
   return (
     <header className="site-header">
@@ -57,6 +60,14 @@ export function SiteHeader() {
         <Logo />
         <ProductSearch />
         <div className="header-actions">
+          <Link
+            aria-label="Особистий кабінет"
+            className="header-actions__account"
+            to="/account"
+          >
+            <UserRound />
+            {customerStatus === "authenticated" ? <b>Кабінет</b> : null}
+          </Link>
           <Link aria-label={`Обране: ${favoriteCount}`} to="/favorites">
             <Heart />
             {favoriteCount ? <b>{favoriteCount}</b> : null}
@@ -93,6 +104,12 @@ export function SiteHeader() {
           <Link to="/catalog?in_stock=true" onClick={() => setMenuOpen(false)}>
             В наявності
           </Link>
+          <Link to="/advisors" onClick={() => setMenuOpen(false)}>
+            Підбір товарів
+          </Link>
+          <Link to="/account" onClick={() => setMenuOpen(false)}>
+            Для бізнесу
+          </Link>
           <LeadAction
             className="nav-callback"
             label="Замовити дзвінок"
@@ -124,6 +141,10 @@ export function SiteHeader() {
           <Heart size={20} />
           <span>Обране</span>
           {favoriteCount ? <b>{favoriteCount}</b> : null}
+        </Link>
+        <Link to="/account">
+          <UserRound size={20} />
+          <span>Кабінет</span>
         </Link>
         <button
           aria-label={`Кошик: ${cartCount(lines)}`}

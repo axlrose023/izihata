@@ -46,9 +46,42 @@ export const router = createBrowserRouter([
         }),
       },
       {
+        path: "sections/:section",
+        lazy: async () => ({
+          Component: (await import("@/pages/store/section-page")).SectionPage,
+        }),
+      },
+      {
         path: "products/:slug",
         lazy: async () => ({
           Component: (await import("@/pages/store/product-page")).ProductPage,
+        }),
+      },
+      {
+        path: "account/login",
+        lazy: async () => ({
+          Component: (await import("@/pages/store/customer-auth-page"))
+            .CustomerAuthPage,
+        }),
+      },
+      {
+        path: "account",
+        lazy: async () => ({
+          Component: (await import("@/pages/store/customer-account-page"))
+            .CustomerAccountPage,
+        }),
+      },
+      {
+        path: "advisors",
+        lazy: async () => ({
+          Component: (await import("@/pages/store/advisors-page")).AdvisorsPage,
+        }),
+      },
+      {
+        path: "custom-boards",
+        lazy: async () => ({
+          Component: (await import("@/pages/store/custom-boards-page"))
+            .CustomBoardsPage,
         }),
       },
       {
@@ -121,6 +154,27 @@ export const router = createBrowserRouter([
             lazy: async () => ({
               Component: (await import("@/pages/admin/admin-pages"))
                 .AdminLeadsPage,
+            }),
+          },
+          {
+            path: "reviews",
+            lazy: async () => ({
+              Component: (await import("@/pages/admin/admin-pages"))
+                .AdminReviewsPage,
+            }),
+          },
+          {
+            path: "companies",
+            lazy: async () => ({
+              Component: (await import("@/pages/admin/admin-pages"))
+                .AdminCompaniesPage,
+            }),
+          },
+          {
+            path: "custom-boards",
+            lazy: async () => ({
+              Component: (await import("@/pages/admin/admin-pages"))
+                .AdminCustomBoardsPage,
             }),
           },
         ],

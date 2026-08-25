@@ -22,6 +22,10 @@ export const productFormSchema = z
       ),
     name: z.string().trim().min(2, "Вкажіть назву").max(240),
     brand: z.string().trim().min(1, "Вкажіть бренд").max(120),
+    brand_country: z.string().trim().max(120),
+    production_country: z.string().trim().max(120),
+    short_description: z.string().trim().max(500),
+    description: z.string().trim().max(12000),
     image_url: z
       .string()
       .trim()
@@ -49,8 +53,34 @@ export const productFormSchema = z
         (value) => !value || Number(value) > 0,
         "Стара ціна має бути більшою за нуль",
       ),
-    badge: z.enum(["", "top", "new", "sale"]),
-    stock_status: z.enum(["in_stock", "preorder"]),
+    badge: z.enum([
+      "",
+      "top",
+      "new",
+      "sale",
+      "promotion",
+      "clearance",
+      "recommended",
+    ]),
+    stock_status: z.enum([
+      "in_stock_today",
+      "in_stock",
+      "preorder",
+      "out_of_stock",
+    ]),
+    availability_days: z.string().trim().regex(/^\d*$/, "Вкажіть ціле число"),
+    sale_unit: z.enum(["piece", "meter", "coil"]),
+    wholesale_price: z
+      .string()
+      .trim()
+      .refine(
+        (value) => !value || moneyPattern.test(value),
+        "Вкажіть коректну гуртову ціну",
+      ),
+    wholesale_min_quantity: z
+      .string()
+      .trim()
+      .regex(/^\d*$/, "Вкажіть ціле число"),
     specs: z.array(productSpecSchema).max(30),
   })
   .superRefine((values, context) => {
@@ -59,6 +89,25 @@ export const productFormSchema = z
         code: "custom",
         path: ["old_price"],
         message: "Стара ціна не може бути нижчою за поточну",
+      });
+    }
+    if (
+      Boolean(values.wholesale_price) !== Boolean(values.wholesale_min_quantity)
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["wholesale_price"],
+        message: "Вкажіть і гуртову ціну, і мінімальну кількість",
+      });
+    }
+    if (
+      values.wholesale_price &&
+      Number(values.wholesale_price) >= Number(values.price)
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["wholesale_price"],
+        message: "Гуртова ціна має бути нижча за роздрібну",
       });
     }
 
@@ -82,10 +131,18 @@ export const productFormDefaults: ProductFormValues = {
   sku: "",
   name: "",
   brand: "",
+  brand_country: "",
+  production_country: "",
+  short_description: "",
+  description: "",
   image_url: "",
   price: "",
   old_price: "",
   badge: "",
   stock_status: "in_stock",
+  availability_days: "",
+  sale_unit: "piece",
+  wholesale_price: "",
+  wholesale_min_quantity: "",
   specs: [],
 };

@@ -9,10 +9,12 @@ import {
 import { Link } from "react-router-dom";
 
 import { ProductCard } from "@/modules/catalog/components/product-card";
+import { SectionCards } from "@/modules/catalog/components/section-cards";
 import {
   categoriesQuery,
   productsQuery,
   featuredReviewsQuery,
+  sectionsQuery,
 } from "@/modules/catalog/api/catalog-queries";
 import { LeadAction } from "@/modules/leads/components/lead-action";
 import { useDocumentTitle } from "@/shared/lib/use-document-title";
@@ -21,16 +23,22 @@ import { TestimonialsSection } from "@/modules/reviews/components/testimonials-s
 
 export function HomePage() {
   useDocumentTitle();
-  const [categoriesResult, productsResult, reviewsResult] = useQueries({
-    queries: [
-      categoriesQuery(),
-      productsQuery({ page_size: 8, sort: "popular" }),
-      featuredReviewsQuery(),
-    ],
-  });
+  const [sectionsResult, categoriesResult, productsResult, reviewsResult] =
+    useQueries({
+      queries: [
+        sectionsQuery(),
+        categoriesQuery(),
+        productsQuery({ page_size: 8, sort: "popular" }),
+        featuredReviewsQuery(),
+      ],
+    });
+  const sections = sectionsResult.data ?? [];
   const categories = categoriesResult.data ?? [];
   const products = productsResult.data;
-  const unavailable = categoriesResult.isError || productsResult.isError;
+  const unavailable =
+    sectionsResult.isError ||
+    categoriesResult.isError ||
+    productsResult.isError;
 
   return (
     <>
@@ -100,7 +108,18 @@ export function HomePage() {
         <div className="section-heading">
           <div>
             <span className="eyebrow">Оберіть напрям</span>
-            <h2>Категорії товарів</h2>
+            <h2>За чим підбираємо рішення</h2>
+          </div>
+          <Link to="/catalog">Дивитися все →</Link>
+        </div>
+        <SectionCards sections={sections} />
+      </section>
+
+      <section className="section container">
+        <div className="section-heading">
+          <div>
+            <span className="eyebrow">Усі категорії</span>
+            <h2>Каталог товарів</h2>
           </div>
           <Link to="/catalog">Дивитися все →</Link>
         </div>
@@ -120,7 +139,7 @@ export function HomePage() {
         </div>
         <div className="all-categories">
           <div className="all-categories__heading">
-            <strong>Усі категорії</strong>
+            <strong>Усі напрями каталогу</strong>
             <span>{categories.length} напрямів</span>
           </div>
           <div className="all-categories__grid">

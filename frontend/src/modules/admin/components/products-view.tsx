@@ -79,7 +79,9 @@ function ProductRow({
           value={stockStatus}
         >
           <option value="in_stock">В наявності</option>
+          <option value="in_stock_today">Відправимо сьогодні</option>
           <option value="preorder">Під замовлення</option>
+          <option value="out_of_stock">Немає в наявності</option>
         </select>
       </td>
       <td className="table-action">

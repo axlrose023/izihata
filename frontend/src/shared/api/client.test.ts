@@ -1,10 +1,13 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { ApiError } from "./errors";
-import { apiClient } from "./client";
+import { apiClient, setCustomerAccessToken } from "./client";
 
 describe("apiClient", () => {
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => {
+    setCustomerAccessToken(null);
+    vi.unstubAllGlobals();
+  });
 
   it("uses the versioned same-origin API and JSON headers", async () => {
     const fetchMock = vi.fn().mockResolvedValue(Response.json({ ok: true }));
@@ -16,15 +19,25 @@ describe("apiClient", () => {
         body: JSON.stringify({ type: "callback" }),
       }),
     ).resolves.toEqual({ ok: true });
-    expect(fetchMock).toHaveBeenCalledWith(
-      "/api/v1/leads",
-      expect.objectContaining({
-        method: "POST",
-        headers: expect.objectContaining({
-          Accept: "application/json",
-          "Content-Type": "application/json",
-        }),
-      }),
+    const [url, request] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("/api/v1/leads");
+    expect(request.method).toBe("POST");
+    expect(new Headers(request.headers).get("Accept")).toBe("application/json");
+    expect(new Headers(request.headers).get("Content-Type")).toBe(
+      "application/json",
+    );
+  });
+
+  it("attaches the active customer token to customer-priced requests", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(Response.json({ ok: true }));
+    vi.stubGlobal("fetch", fetchMock);
+    setCustomerAccessToken("customer-token");
+
+    await apiClient("/checkout/quote", { method: "POST", body: "{}" });
+
+    const request = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    expect(new Headers(request.headers).get("Authorization")).toBe(
+      "Bearer customer-token",
     );
   });
 

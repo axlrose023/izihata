@@ -8,11 +8,19 @@ export interface CreateProductPayload {
   sku: string;
   name: string;
   brand: string;
+  brand_country?: string;
+  production_country?: string;
+  short_description?: string;
+  description?: string;
   image_url: string | null;
   price: string;
   old_price: string | null;
   badge: ProductBadge | null;
   stock_status: StockStatus;
+  availability_days?: number;
+  sale_unit: "piece" | "meter" | "coil";
+  wholesale_price?: string;
+  wholesale_min_quantity?: number;
   specs: Record<string, string>;
 }
 

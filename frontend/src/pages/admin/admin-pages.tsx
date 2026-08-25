@@ -2,6 +2,9 @@ import { DashboardView } from "@/modules/admin/components/dashboard-view";
 import { LeadsView } from "@/modules/admin/components/leads-view";
 import { OrdersView } from "@/modules/admin/components/orders-view";
 import { ProductsView } from "@/modules/admin/components/products-view";
+import { AdminReviewsView } from "@/modules/catalog/components/admin-reviews-view";
+import { AdminBoardRequestsView } from "@/modules/custom-boards/components/admin-board-requests-view";
+import { AdminCompaniesView } from "@/modules/customers/components/admin-companies-view";
 import { useDocumentTitle } from "@/shared/lib/use-document-title";
 
 function PageHeader({
@@ -69,6 +72,45 @@ export function AdminLeadsPage() {
         description="Дзвінки, швидкі покупки та гуртові запити."
       />
       <LeadsView />
+    </div>
+  );
+}
+
+export function AdminReviewsPage() {
+  return (
+    <div className="admin-page">
+      <PageHeader
+        eyebrow="Контент"
+        title="Відгуки"
+        description="Публікуйте перевірені відгуки або відхиляйте некоректні."
+      />
+      <AdminReviewsView />
+    </div>
+  );
+}
+
+export function AdminCompaniesPage() {
+  return (
+    <div className="admin-page">
+      <PageHeader
+        eyebrow="B2B"
+        title="Компанії"
+        description="Перевіряйте реквізити клієнтів перед доступом до гуртових умов."
+      />
+      <AdminCompaniesView />
+    </div>
+  );
+}
+
+export function AdminCustomBoardsPage() {
+  return (
+    <div className="admin-page">
+      <PageHeader
+        eyebrow="Індивідуальні проєкти"
+        title="Щити на замовлення"
+        description="Керуйте запитами на розрахунок та збирання щитів."
+      />
+      <AdminBoardRequestsView />
     </div>
   );
 }

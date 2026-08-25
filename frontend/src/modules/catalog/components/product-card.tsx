@@ -11,7 +11,14 @@ import { StatusBadge } from "@/shared/ui/status-badge";
 
 import { ProductVisual } from "./product-visual";
 
-const badgeLabels = { top: "Хіт", new: "Новинка", sale: "Акція" };
+const badgeLabels: Record<NonNullable<Product["badge"]>, string> = {
+  top: "Хіт",
+  new: "Новинка",
+  sale: "Акція",
+  promotion: "Промо",
+  clearance: "Уцінка",
+  recommended: "Рекомендуємо",
+};
 
 export function ProductCard({
   product,
@@ -28,6 +35,7 @@ export function ProductCard({
   const isFavorite = favorites.includes(product.id);
   const isCompared = compare.includes(product.id);
   const specs = Object.entries(product.specs).slice(0, 2);
+  const unavailable = product.stock_status === "out_of_stock";
 
   return (
     <article className="product-card" data-layout={layout}>
@@ -93,21 +101,32 @@ export function ProductCard({
             ) : null}
           </div>
           <div className="product-card__buy-actions">
-            <button
-              aria-label="Додати в кошик"
-              className="cart-add"
-              onClick={() => add(product)}
-              type="button"
-            >
-              <ShoppingCart size={19} />
-              <span>В кошик</span>
-            </button>
-            <LeadAction
-              className="quick-buy-button"
-              label="1 клік"
-              productId={product.id}
-              type="quick_buy"
-            />
+            {!unavailable ? (
+              <>
+                <button
+                  aria-label="Додати в кошик"
+                  className="cart-add"
+                  onClick={() => add(product)}
+                  type="button"
+                >
+                  <ShoppingCart size={19} />
+                  <span>В кошик</span>
+                </button>
+                <LeadAction
+                  className="quick-buy-button"
+                  label="1 клік"
+                  productId={product.id}
+                  type="quick_buy"
+                />
+              </>
+            ) : (
+              <Link
+                className="quick-buy-button"
+                to={`/products/${product.slug}`}
+              >
+                Повідомити
+              </Link>
+            )}
           </div>
         </div>
       </div>

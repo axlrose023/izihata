@@ -1,9 +1,12 @@
 import {
   ClipboardList,
+  Building2,
+  MessageSquareText,
   LayoutDashboard,
   LogOut,
   PackageSearch,
   PhoneCall,
+  PanelsTopLeft,
 } from "lucide-react";
 import { useEffect } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
@@ -16,6 +19,9 @@ const navigation = [
   { href: "/admin/products", label: "Товари", icon: PackageSearch },
   { href: "/admin/orders", label: "Замовлення", icon: ClipboardList },
   { href: "/admin/leads", label: "Звернення", icon: PhoneCall },
+  { href: "/admin/reviews", label: "Відгуки", icon: MessageSquareText },
+  { href: "/admin/companies", label: "Компанії", icon: Building2 },
+  { href: "/admin/custom-boards", label: "Щити", icon: PanelsTopLeft },
 ];
 
 export function AdminShell() {

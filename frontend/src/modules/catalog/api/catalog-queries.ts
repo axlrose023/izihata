@@ -3,6 +3,7 @@ import { queryOptions } from "@tanstack/react-query";
 import type { QueryValue } from "@/shared/api/query";
 
 import {
+  fetchSections,
   fetchCategories,
   fetchFeaturedReviews,
   fetchProduct,
@@ -12,6 +13,7 @@ import {
 export const catalogKeys = {
   all: ["catalog"] as const,
   categories: () => [...catalogKeys.all, "categories"] as const,
+  sections: () => [...catalogKeys.all, "sections"] as const,
   featuredReviews: () => [...catalogKeys.all, "featured-reviews"] as const,
   products: (params: Record<string, QueryValue | QueryValue[]>) =>
     [...catalogKeys.all, "products", params] as const,
@@ -22,6 +24,13 @@ export const categoriesQuery = () =>
   queryOptions({
     queryKey: catalogKeys.categories(),
     queryFn: fetchCategories,
+    staleTime: 5 * 60_000,
+  });
+
+export const sectionsQuery = () =>
+  queryOptions({
+    queryKey: catalogKeys.sections(),
+    queryFn: fetchSections,
     staleTime: 5 * 60_000,
   });
 

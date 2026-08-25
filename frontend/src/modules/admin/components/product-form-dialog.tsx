@@ -30,11 +30,19 @@ function productValues(product: Product | null): ProductFormValues {
     sku: product.sku,
     name: product.name,
     brand: product.brand,
+    brand_country: product.brand_country ?? "",
+    production_country: product.production_country ?? "",
+    short_description: product.short_description ?? "",
+    description: "",
     image_url: product.image_url ?? "",
     price: product.price,
     old_price: product.old_price ?? "",
     badge: product.badge ?? "",
     stock_status: product.stock_status,
+    availability_days: product.availability.lead_time_days?.toString() ?? "",
+    sale_unit: product.sale_unit,
+    wholesale_price: "",
+    wholesale_min_quantity: "",
     specs: Object.entries(product.specs).map(([key, value]) => ({
       key,
       value,
@@ -94,11 +102,33 @@ export function ProductFormDialog({
         sku: values.sku.trim().toUpperCase(),
         name: values.name.trim(),
         brand: values.brand.trim(),
+        ...(values.brand_country.trim()
+          ? { brand_country: values.brand_country.trim() }
+          : {}),
+        ...(values.production_country.trim()
+          ? { production_country: values.production_country.trim() }
+          : {}),
+        ...(values.short_description.trim()
+          ? { short_description: values.short_description.trim() }
+          : {}),
+        ...(values.description.trim()
+          ? { description: values.description.trim() }
+          : {}),
         image_url: values.image_url.trim() || null,
         price: values.price,
         old_price: values.old_price || null,
         badge: values.badge || null,
         stock_status: values.stock_status,
+        ...(values.availability_days
+          ? { availability_days: Number(values.availability_days) }
+          : {}),
+        sale_unit: values.sale_unit,
+        ...(values.wholesale_price && values.wholesale_min_quantity
+          ? {
+              wholesale_price: values.wholesale_price,
+              wholesale_min_quantity: Number(values.wholesale_min_quantity),
+            }
+          : {}),
         specs: Object.fromEntries(
           values.specs.map(({ key, value }) => [key.trim(), value.trim()]),
         ),
@@ -149,6 +179,20 @@ export function ProductFormDialog({
             <span>Назва</span>
             <input autoComplete="off" {...register("name")} />
             {errors.name ? <small>{errors.name.message}</small> : null}
+          </label>
+          <label className="field">
+            <span>Країна бренду</span>
+            <input
+              placeholder="Наприклад, Німеччина"
+              {...register("brand_country")}
+            />
+          </label>
+          <label className="field">
+            <span>Країна виробництва</span>
+            <input
+              placeholder="Наприклад, Польща"
+              {...register("production_country")}
+            />
           </label>
           <label className="field">
             <span>Категорія</span>
@@ -219,14 +263,73 @@ export function ProductFormDialog({
               <option value="new">Новинка</option>
               <option value="sale">Акція</option>
               <option value="top">Топ продажів</option>
+              <option value="promotion">Промо</option>
+              <option value="clearance">Уцінка</option>
+              <option value="recommended">Рекомендуємо</option>
             </select>
           </label>
           <label className="field">
             <span>Наявність</span>
             <select {...register("stock_status")}>
+              <option value="in_stock_today">Відправимо сьогодні</option>
               <option value="in_stock">В наявності</option>
               <option value="preorder">Під замовлення</option>
+              <option value="out_of_stock">Немає в наявності</option>
             </select>
+          </label>
+          <label className="field">
+            <span>Строк постачання, днів</span>
+            <input
+              inputMode="numeric"
+              min="0"
+              placeholder="Для передзамовлення"
+              type="number"
+              {...register("availability_days")}
+            />
+            {errors.availability_days ? (
+              <small>{errors.availability_days.message}</small>
+            ) : null}
+          </label>
+          <label className="field">
+            <span>Одиниця продажу</span>
+            <select {...register("sale_unit")}>
+              <option value="piece">Штука</option>
+              <option value="meter">Метр</option>
+              <option value="coil">Бухта</option>
+            </select>
+          </label>
+          <label className="field">
+            <span>Гуртова ціна, ₴</span>
+            <input
+              inputMode="decimal"
+              min="0.01"
+              step="0.01"
+              type="number"
+              {...register("wholesale_price")}
+            />
+            {errors.wholesale_price ? (
+              <small>{errors.wholesale_price.message}</small>
+            ) : null}
+          </label>
+          <label className="field">
+            <span>Гурт: від кількості</span>
+            <input
+              inputMode="numeric"
+              min="1"
+              type="number"
+              {...register("wholesale_min_quantity")}
+            />
+            {errors.wholesale_min_quantity ? (
+              <small>{errors.wholesale_min_quantity.message}</small>
+            ) : null}
+          </label>
+          <label className="field field--wide">
+            <span>Короткий опис</span>
+            <textarea rows={2} {...register("short_description")} />
+          </label>
+          <label className="field field--wide">
+            <span>Повний опис</span>
+            <textarea rows={4} {...register("description")} />
           </label>
           <label className="field field--wide">
             <span>Зображення</span>

@@ -37,6 +37,9 @@ export function SiteFooter() {
         <div>
           <h3>Покупцю</h3>
           <Link to="/checkout">Оформлення</Link>
+          <Link to="/advisors">Калькулятори</Link>
+          <Link to="/custom-boards">Щити на замовлення</Link>
+          <Link to="/account">Особистий кабінет</Link>
           <Link to="/favorites">Обране</Link>
           <Link to="/compare">Порівняння</Link>
         </div>

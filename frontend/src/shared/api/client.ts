@@ -1,6 +1,11 @@
 import { ApiError, toApiError } from "./errors";
 
 const API_PREFIX = "/api/v1";
+let customerAccessToken: string | null = null;
+
+export function setCustomerAccessToken(token: string | null): void {
+  customerAccessToken = token;
+}
 
 export async function apiFetch(
   path: string,
@@ -11,15 +16,23 @@ export async function apiFetch(
     ? AbortSignal.any([init.signal, timeoutSignal])
     : timeoutSignal;
   try {
+    const headers = new Headers(init.headers);
+    headers.set("Accept", "application/json");
+    if (init.body && !headers.has("Content-Type")) {
+      headers.set("Content-Type", "application/json");
+    }
+    if (
+      customerAccessToken &&
+      !path.startsWith("/customer-auth") &&
+      !headers.has("Authorization")
+    ) {
+      headers.set("Authorization", `Bearer ${customerAccessToken}`);
+    }
     return await fetch(`${API_PREFIX}${path}`, {
       ...init,
       credentials: "include",
       signal,
-      headers: {
-        Accept: "application/json",
-        ...(init.body ? { "Content-Type": "application/json" } : {}),
-        ...init.headers,
-      },
+      headers,
     });
   } catch (error) {
     const timedOut =
