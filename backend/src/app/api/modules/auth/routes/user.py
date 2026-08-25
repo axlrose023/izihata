@@ -5,7 +5,11 @@ from dishka.integrations.fastapi import DishkaRoute
 from fastapi import APIRouter, Cookie, Depends, Response
 
 from app.api.common.exceptions import UnauthorizedError
-from app.api.common.rate_limit import LOGIN_RATE_LIMIT, REFRESH_RATE_LIMIT, RateLimit
+from app.api.common.rate_limit import (
+    STAFF_LOGIN_RATE_LIMIT,
+    STAFF_REFRESH_RATE_LIMIT,
+    RateLimit,
+)
 from app.api.modules.auth.schema import AccessTokenResponse, LoginRequest
 from app.api.modules.auth.service import (
     LoginService,
@@ -26,7 +30,7 @@ router = APIRouter(route_class=DishkaRoute)
 @router.post(
     "/login",
     response_model=AccessTokenResponse,
-    dependencies=[Depends(RateLimit(LOGIN_RATE_LIMIT))],
+    dependencies=[Depends(RateLimit(STAFF_LOGIN_RATE_LIMIT))],
 )
 async def login(
     request: LoginRequest,
@@ -42,7 +46,7 @@ async def login(
 @router.post(
     "/refresh",
     response_model=AccessTokenResponse,
-    dependencies=[Depends(RateLimit(REFRESH_RATE_LIMIT))],
+    dependencies=[Depends(RateLimit(STAFF_REFRESH_RATE_LIMIT))],
 )
 async def refresh_token(
     response: Response,
