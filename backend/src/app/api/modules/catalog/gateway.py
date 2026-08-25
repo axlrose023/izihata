@@ -4,7 +4,7 @@ from collections.abc import Sequence
 from decimal import Decimal
 from uuid import UUID
 
-from sqlalchemy import Select, and_, case, func, or_, select
+from sqlalchemy import Select, and_, case, delete, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
 from sqlalchemy.sql.elements import ColumnElement
@@ -17,8 +17,10 @@ from app.api.modules.catalog.enums import (
     StockSubscriptionStatus,
 )
 from app.api.modules.catalog.models import (
+    CatalogAttribute,
     CatalogSection,
     Category,
+    CategoryAttribute,
     Product,
     ProductAttribute,
     ProductRelation,
@@ -62,6 +64,86 @@ class CategoryGateway:
             Category.is_active.is_(True),
         )
         return (await self._session.execute(stmt)).scalar_one_or_none()
+
+    async def get_by_id_for_update(self, category_id: UUID) -> Category | None:
+        stmt = select(Category).where(Category.id == category_id).with_for_update()
+        return (await self._session.execute(stmt)).scalar_one_or_none()
+
+    async def get_section_by_slug(self, slug: str) -> CatalogSection | None:
+        stmt = select(CatalogSection).where(CatalogSection.slug == slug)
+        return (await self._session.execute(stmt)).scalar_one_or_none()
+
+    async def get_section_for_update(self, section_id: UUID) -> CatalogSection | None:
+        stmt = (
+            select(CatalogSection)
+            .where(CatalogSection.id == section_id)
+            .with_for_update()
+        )
+        return (await self._session.execute(stmt)).scalar_one_or_none()
+
+    async def create_section(self, section: CatalogSection) -> CatalogSection:
+        self._session.add(section)
+        await self._session.flush()
+        return section
+
+    async def list_attributes(self) -> Sequence[CatalogAttribute]:
+        stmt = (
+            select(CatalogAttribute)
+            .where(CatalogAttribute.is_active.is_(True))
+            .order_by(CatalogAttribute.position, CatalogAttribute.name)
+        )
+        return (await self._session.execute(stmt)).scalars().all()
+
+    async def get_attributes_by_ids(
+        self,
+        attribute_ids: set[UUID],
+    ) -> Sequence[CatalogAttribute]:
+        if not attribute_ids:
+            return []
+        stmt = select(CatalogAttribute).where(
+            CatalogAttribute.id.in_(attribute_ids),
+            CatalogAttribute.is_active.is_(True),
+        )
+        return (await self._session.execute(stmt)).scalars().all()
+
+    async def get_attribute_by_code(self, code: str) -> CatalogAttribute | None:
+        stmt = select(CatalogAttribute).where(CatalogAttribute.code == code)
+        return (await self._session.execute(stmt)).scalar_one_or_none()
+
+    async def create_attribute(self, attribute: CatalogAttribute) -> CatalogAttribute:
+        self._session.add(attribute)
+        await self._session.flush()
+        return attribute
+
+    async def replace_category_attributes(
+        self,
+        category_id: UUID,
+        assignments: list[CategoryAttribute],
+    ) -> None:
+        await self._session.execute(
+            delete(CategoryAttribute).where(
+                CategoryAttribute.category_id == category_id
+            )
+        )
+        self._session.add_all(assignments)
+        await self._session.flush()
+
+    async def list_category_attributes(
+        self,
+        category_id: UUID,
+    ) -> Sequence[tuple[CategoryAttribute, CatalogAttribute]]:
+        stmt = (
+            select(CategoryAttribute, CatalogAttribute)
+            .join(
+                CatalogAttribute, CatalogAttribute.id == CategoryAttribute.attribute_id
+            )
+            .where(CategoryAttribute.category_id == category_id)
+            .order_by(CategoryAttribute.position, CatalogAttribute.name)
+        )
+        return [
+            (assignment, attribute)
+            for assignment, attribute in (await self._session.execute(stmt)).all()
+        ]
 
     async def get_active_subcategory_by_id(
         self,
@@ -394,6 +476,41 @@ class ProductGateway:
             select(ProductReview).where(ProductReview.id == review_id).with_for_update()
         )
         return (await self._session.execute(stmt)).scalar_one_or_none()
+
+    async def list_reviews(
+        self,
+        *,
+        offset: int,
+        limit: int,
+    ) -> Sequence[tuple[ProductReview, Product]]:
+        stmt = (
+            select(ProductReview, Product)
+            .join(Product, Product.id == ProductReview.product_id)
+            .order_by(ProductReview.created_at.desc(), ProductReview.id)
+            .offset(offset)
+            .limit(limit)
+        )
+        return [
+            (review, product)
+            for review, product in (await self._session.execute(stmt)).all()
+        ]
+
+    async def review_count(self) -> int:
+        stmt = select(func.count(ProductReview.id))
+        return int((await self._session.execute(stmt)).scalar_one())
+
+    async def replace_relations(
+        self,
+        source_product_id: UUID,
+        relations: Sequence[ProductRelation],
+    ) -> None:
+        await self._session.execute(
+            delete(ProductRelation).where(
+                ProductRelation.source_product_id == source_product_id
+            )
+        )
+        self._session.add_all(relations)
+        await self._session.flush()
 
     async def get_stock_subscription(
         self,

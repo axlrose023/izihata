@@ -10,6 +10,7 @@ from app.api.modules.catalog.enums import (
     AttributeValueType,
     ProductBadge,
     ProductDocumentKind,
+    ProductRelationKind,
     ProductSort,
     ReviewStatus,
     SaleUnit,
@@ -387,6 +388,229 @@ class StockSubscriptionResponse(StrictSchema):
     status: StockSubscriptionStatus
 
 
+class ProductMediaInput(StrictSchema):
+    url: str = Field(min_length=1, max_length=500)
+    alt: str = Field(min_length=2, max_length=240)
+    position: int = Field(default=0, ge=0, le=100)
+
+    @field_validator("url", mode="before")
+    @classmethod
+    def validate_url(cls, value: object) -> str:
+        normalized = normalize_image_url(value)
+        if normalized is None:
+            raise ValueError("Media URL is required")
+        return normalized
+
+    @field_validator("alt", mode="before")
+    @classmethod
+    def normalize_alt(cls, value: object) -> str:
+        return normalize_text(value)
+
+
+class ProductDocumentInput(StrictSchema):
+    kind: ProductDocumentKind = ProductDocumentKind.CERTIFICATE
+    title: str = Field(min_length=2, max_length=240)
+    url: str = Field(min_length=1, max_length=500)
+    position: int = Field(default=0, ge=0, le=100)
+
+    @field_validator("title", mode="before")
+    @classmethod
+    def normalize_title(cls, value: object) -> str:
+        return normalize_text(value)
+
+    @field_validator("url", mode="before")
+    @classmethod
+    def validate_url(cls, value: object) -> str:
+        normalized = normalize_image_url(value)
+        if normalized is None:
+            raise ValueError("Document URL is required")
+        return normalized
+
+
+class ProductRelationInput(StrictSchema):
+    product_id: UUID
+    kind: ProductRelationKind
+    position: int = Field(default=0, ge=0, le=100)
+
+
+class AdminProductResponse(ProductResponse):
+    wholesale_price: Decimal | None
+    wholesale_min_quantity: int | None
+
+    @classmethod
+    def from_product(cls, product: Product) -> "AdminProductResponse":
+        return cls(
+            **ProductResponse.from_product(product).model_dump(),
+            wholesale_price=product.wholesale_price,
+            wholesale_min_quantity=product.wholesale_min_quantity,
+        )
+
+
+class CreateCatalogSectionRequest(StrictSchema):
+    slug: str = Field(
+        min_length=2, max_length=64, pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    )
+    name: str = Field(min_length=2, max_length=160)
+    description: str | None = Field(default=None, max_length=2000)
+    image_url: str | None = Field(default=None, max_length=500)
+    position: int = Field(default=0, ge=0, le=1000)
+
+    @field_validator("name", "description", mode="before")
+    @classmethod
+    def normalize_text_fields(cls, value: object | None) -> str | None:
+        return normalize_optional_text(value)
+
+    @field_validator("image_url", mode="before")
+    @classmethod
+    def validate_image_url(cls, value: object | None) -> str | None:
+        return normalize_image_url(value)
+
+
+class AdminCatalogSectionResponse(StrictSchema):
+    id: UUID
+    slug: str
+    name: str
+    description: str | None
+    image_url: str | None
+    position: int
+    is_active: bool
+
+    model_config = ConfigDict(extra="forbid", from_attributes=True)
+
+
+class UpdateCatalogSectionRequest(StrictSchema):
+    name: str | None = Field(default=None, min_length=2, max_length=160)
+    description: str | None = Field(default=None, max_length=2000)
+    image_url: str | None = Field(default=None, max_length=500)
+    position: int | None = Field(default=None, ge=0, le=1000)
+    is_active: bool | None = None
+
+    @field_validator("name", "description", mode="before")
+    @classmethod
+    def normalize_text_fields(cls, value: object | None) -> str | None:
+        return normalize_optional_text(value)
+
+    @field_validator("image_url", mode="before")
+    @classmethod
+    def validate_image_url(cls, value: object | None) -> str | None:
+        return normalize_image_url(value)
+
+    @model_validator(mode="after")
+    def require_update(self) -> "UpdateCatalogSectionRequest":
+        if not self.model_fields_set:
+            raise ValueError("At least one field must be provided")
+        return self
+
+
+class CreateCatalogAttributeRequest(StrictSchema):
+    code: str = Field(min_length=2, max_length=64, pattern=r"^[a-z][a-z0-9_]*$")
+    name: str = Field(min_length=2, max_length=120)
+    value_type: AttributeValueType = AttributeValueType.SELECT
+    unit: str | None = Field(default=None, max_length=32)
+    is_filterable: bool = True
+    position: int = Field(default=0, ge=0, le=1000)
+
+    @field_validator("name", "unit", mode="before")
+    @classmethod
+    def normalize_text_fields(cls, value: object | None) -> str | None:
+        return normalize_optional_text(value)
+
+
+class CategoryAttributeInput(StrictSchema):
+    attribute_id: UUID
+    is_required: bool = False
+    is_primary_filter: bool = False
+    position: int = Field(default=0, ge=0, le=1000)
+
+
+class ReplaceCategoryAttributesRequest(StrictSchema):
+    attributes: list[CategoryAttributeInput] = Field(min_length=1, max_length=50)
+
+    @model_validator(mode="after")
+    def validate_unique_attributes(self) -> "ReplaceCategoryAttributesRequest":
+        attribute_ids = [item.attribute_id for item in self.attributes]
+        if len(attribute_ids) != len(set(attribute_ids)):
+            raise ValueError("Attribute IDs must be unique")
+        return self
+
+
+class UpdateCategorySectionRequest(StrictSchema):
+    section_id: UUID | None = None
+
+    @model_validator(mode="after")
+    def require_update(self) -> "UpdateCategorySectionRequest":
+        if "section_id" not in self.model_fields_set:
+            raise ValueError("section_id must be provided")
+        return self
+
+
+class ReviewModerationRequest(StrictSchema):
+    status: ReviewStatus
+    is_featured: bool = False
+
+    @model_validator(mode="after")
+    def validate_status(self) -> "ReviewModerationRequest":
+        if self.status == ReviewStatus.PENDING:
+            raise ValueError("A review cannot be returned to pending")
+        if self.status != ReviewStatus.PUBLISHED and self.is_featured:
+            raise ValueError("Only published reviews can be featured")
+        return self
+
+
+class AdminProductReviewResponse(StrictSchema):
+    id: UUID
+    product_id: UUID
+    product_name: str
+    author: str
+    email: str | None
+    rating: int
+    text: str
+    status: ReviewStatus
+    is_featured: bool
+    created_at: datetime
+
+    @classmethod
+    def from_review(
+        cls,
+        review: ProductReview,
+        product: Product,
+    ) -> "AdminProductReviewResponse":
+        return cls(
+            id=review.id,
+            product_id=product.id,
+            product_name=product.name,
+            author=review.author,
+            email=review.email,
+            rating=review.rating,
+            text=review.text,
+            status=review.status,
+            is_featured=review.is_featured,
+            created_at=review.created_at,
+        )
+
+
+class ProductReviewListParams(PaginationParams):
+    pass
+
+
+class ProductReviewListResponse(StrictSchema):
+    items: list[AdminProductReviewResponse]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+    has_next: bool
+    has_prev: bool
+
+
+class CategoryAttributeResponse(StrictSchema):
+    id: UUID
+    attribute: CatalogAttributeResponse
+    is_required: bool
+    is_primary_filter: bool
+    position: int
+
+
 class CreateProductRequest(StrictSchema):
     category_id: UUID
     subcategory_id: UUID | None = None
@@ -416,6 +640,9 @@ class CreateProductRequest(StrictSchema):
         decimal_places=2,
     )
     wholesale_min_quantity: int | None = Field(default=None, ge=1, le=100000)
+    media: list[ProductMediaInput] = Field(default_factory=list, max_length=20)
+    documents: list[ProductDocumentInput] = Field(default_factory=list, max_length=20)
+    relations: list[ProductRelationInput] = Field(default_factory=list, max_length=30)
     specs: dict[str, str] = Field(default_factory=dict, max_length=30)
 
     @field_validator("sku", mode="before")
@@ -456,7 +683,17 @@ class CreateProductRequest(StrictSchema):
             )
         if self.wholesale_price is not None and self.wholesale_price >= self.price:
             raise ValueError("wholesale_price must be lower than retail price")
+        self._validate_positions()
         return self
+
+    def _validate_positions(self) -> None:
+        for items, label in ((self.media, "media"), (self.documents, "documents")):
+            positions = [item.position for item in items]
+            if len(positions) != len(set(positions)):
+                raise ValueError(f"{label} positions must be unique")
+        relation_keys = [(item.product_id, item.kind) for item in self.relations]
+        if len(relation_keys) != len(set(relation_keys)):
+            raise ValueError("Product relations must be unique by product and kind")
 
 
 class UpdateProductRequest(StrictSchema):
@@ -488,6 +725,9 @@ class UpdateProductRequest(StrictSchema):
         decimal_places=2,
     )
     wholesale_min_quantity: int | None = Field(default=None, ge=1, le=100000)
+    media: list[ProductMediaInput] | None = Field(default=None, max_length=20)
+    documents: list[ProductDocumentInput] | None = Field(default=None, max_length=20)
+    relations: list[ProductRelationInput] | None = Field(default=None, max_length=30)
     specs: dict[str, str] | None = Field(default=None, max_length=30)
 
     @field_validator("sku", mode="before")
@@ -541,4 +781,13 @@ class UpdateProductRequest(StrictSchema):
             and self.old_price < self.price
         ):
             raise ValueError("old_price cannot be lower than price")
+        for items, label in ((self.media, "media"), (self.documents, "documents")):
+            if items is not None:
+                positions = [item.position for item in items]
+                if len(positions) != len(set(positions)):
+                    raise ValueError(f"{label} positions must be unique")
+        if self.relations is not None:
+            relation_keys = [(item.product_id, item.kind) for item in self.relations]
+            if len(relation_keys) != len(set(relation_keys)):
+                raise ValueError("Product relations must be unique by product and kind")
         return self

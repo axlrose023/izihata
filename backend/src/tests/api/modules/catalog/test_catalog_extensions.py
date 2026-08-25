@@ -63,7 +63,8 @@ class TestCatalogExtensions:
         event = (
             await uow.session.execute(
                 select(OutboxEvent).where(
-                    OutboxEvent.topic == "catalog.review_submitted"
+                    OutboxEvent.topic == "catalog.review_submitted",
+                    OutboxEvent.payload["review_id"].as_string() == str(review_id),
                 )
             )
         ).scalar_one()

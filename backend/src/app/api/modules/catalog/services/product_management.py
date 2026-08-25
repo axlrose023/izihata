@@ -8,11 +8,17 @@ from app.api.modules.catalog.models import (
     Category,
     Product,
     ProductAttribute,
+    ProductDocument,
+    ProductMedia,
+    ProductRelation,
     Subcategory,
 )
 from app.api.modules.catalog.schema import (
+    AdminProductResponse,
     CreateProductRequest,
-    ProductResponse,
+    ProductDocumentInput,
+    ProductMediaInput,
+    ProductRelationInput,
     UpdateProductRequest,
 )
 from app.api.modules.catalog.utils import product_slug_from_sku
@@ -35,6 +41,30 @@ class ProductManagementService:
                 attribute.value = value
             attributes.append(attribute)
         product.attributes = attributes
+
+    @staticmethod
+    def _replace_media(product: Product, media: list[ProductMediaInput]) -> None:
+        product.media = [
+            ProductMedia(url=item.url, alt=item.alt, position=item.position)
+            for item in media
+        ]
+        if media:
+            product.image_url = media[0].url
+
+    @staticmethod
+    def _replace_documents(
+        product: Product,
+        documents: list[ProductDocumentInput],
+    ) -> None:
+        product.documents = [
+            ProductDocument(
+                kind=item.kind,
+                title=item.title,
+                url=item.url,
+                position=item.position,
+            )
+            for item in documents
+        ]
 
     @staticmethod
     def _is_available(status: StockStatus) -> bool:
@@ -70,7 +100,7 @@ class ProductManagementService:
     async def create_product(
         self,
         request: CreateProductRequest,
-    ) -> ProductResponse:
+    ) -> AdminProductResponse:
         category, subcategory = await self._get_references(
             request.category_id,
             request.subcategory_id,
@@ -109,9 +139,25 @@ class ProductManagementService:
                 ProductAttribute(key=key, value=value)
                 for key, value in request.specs.items()
             ],
+            media=[
+                ProductMedia(url=item.url, alt=item.alt, position=item.position)
+                for item in request.media
+            ],
+            documents=[
+                ProductDocument(
+                    kind=item.kind,
+                    title=item.title,
+                    url=item.url,
+                    position=item.position,
+                )
+                for item in request.documents
+            ],
         )
+        if request.media:
+            product.image_url = request.media[0].url
         try:
             await self._uow.products.create(product)
+            await self._replace_relations(product.id, request.relations)
             await self._uow.commit()
         except IntegrityError as error:
             await self._uow.rollback()
@@ -119,13 +165,13 @@ class ProductManagementService:
                 "Product SKU or slug already exists",
                 code="product_identity_exists",
             ) from error
-        return ProductResponse.from_product(product)
+        return AdminProductResponse.from_product(product)
 
     async def update_product(
         self,
         product_id: UUID,
         request: UpdateProductRequest,
-    ) -> ProductResponse:
+    ) -> AdminProductResponse:
         product = await self._uow.products.get_by_id_for_update(product_id)
         if product is None:
             raise NotFoundError("Product not found")
@@ -143,6 +189,16 @@ class ProductManagementService:
             product.subcategory = subcategory
 
         specs = data.pop("specs", None)
+        data.pop("media", None)
+        data.pop("documents", None)
+        data.pop("relations", None)
+        media = request.media if "media" in request.model_fields_set else None
+        documents = (
+            request.documents if "documents" in request.model_fields_set else None
+        )
+        relations = (
+            request.relations if "relations" in request.model_fields_set else None
+        )
         sku = data.get("sku", product.sku)
         slug = product_slug_from_sku(sku)
         if "sku" in data:
@@ -189,8 +245,14 @@ class ProductManagementService:
             setattr(product, field, value)
         if specs is not None:
             self._replace_specs(product, specs)
+        if media is not None:
+            self._replace_media(product, media)
+        if documents is not None:
+            self._replace_documents(product, documents)
         try:
             await self._uow.products.update(product)
+            if relations is not None:
+                await self._replace_relations(product.id, relations)
             if not self._is_available(previous_stock_status) and self._is_available(
                 product.stock_status
             ):
@@ -202,7 +264,37 @@ class ProductManagementService:
                 "Product SKU or slug already exists",
                 code="product_identity_exists",
             ) from error
-        return ProductResponse.from_product(product)
+        return AdminProductResponse.from_product(product)
+
+    async def _replace_relations(
+        self,
+        source_product_id: UUID,
+        relation_inputs: list[ProductRelationInput],
+    ) -> None:
+        target_product_ids = {item.product_id for item in relation_inputs}
+        if source_product_id in target_product_ids:
+            raise UnprocessableError(
+                "A product cannot be related to itself",
+                code="invalid_product_relation",
+            )
+        targets = await self._uow.products.get_many(target_product_ids)
+        if len(targets) != len(target_product_ids):
+            raise NotFoundError(
+                "Related product not found",
+                code="related_product_not_found",
+            )
+        await self._uow.products.replace_relations(
+            source_product_id,
+            [
+                ProductRelation(
+                    source_product_id=source_product_id,
+                    target_product_id=item.product_id,
+                    kind=item.kind,
+                    position=item.position,
+                )
+                for item in relation_inputs
+            ],
+        )
 
     async def _notify_stock_subscribers(self, product_id: UUID) -> None:
         subscriptions = await self._uow.products.active_stock_subscriptions(product_id)

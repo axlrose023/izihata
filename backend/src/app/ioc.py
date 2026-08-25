@@ -12,6 +12,7 @@ from app.api.modules.auth.service import (
     RefreshSessionService,
 )
 from app.api.modules.catalog.service import (
+    CatalogAdministrationService,
     CatalogQueryService,
     ProductManagementService,
     ReviewSubmissionService,
@@ -121,6 +122,13 @@ class ServicesProvider(Provider):
     @provide(scope=Scope.REQUEST)
     def get_catalog_query_service(self, uow: UnitOfWork) -> CatalogQueryService:
         return CatalogQueryService(uow)
+
+    @provide(scope=Scope.REQUEST)
+    def get_catalog_administration_service(
+        self,
+        uow: UnitOfWork,
+    ) -> CatalogAdministrationService:
+        return CatalogAdministrationService(uow)
 
     @provide(scope=Scope.REQUEST)
     def get_product_management_service(
