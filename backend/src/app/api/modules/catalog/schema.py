@@ -6,8 +6,24 @@ from pydantic import ConfigDict, Field, field_validator, model_validator
 
 from app.api.common.schema import PaginationParams, StrictSchema
 from app.api.common.utils import normalize_optional_text, normalize_text
-from app.api.modules.catalog.enums import ProductBadge, ProductSort, StockStatus
-from app.api.modules.catalog.models import Product, ProductReview
+from app.api.modules.catalog.enums import (
+    AttributeValueType,
+    ProductBadge,
+    ProductDocumentKind,
+    ProductSort,
+    ReviewStatus,
+    SaleUnit,
+    StockStatus,
+    StockSubscriptionStatus,
+)
+from app.api.modules.catalog.models import (
+    CatalogAttribute,
+    CatalogSection,
+    Product,
+    ProductDocument,
+    ProductMedia,
+    ProductReview,
+)
 from app.api.modules.catalog.utils import (
     normalize_image_url,
     normalize_product_specs,
@@ -31,17 +47,98 @@ class CategoryResponse(CatalogReference):
     subcategories: list[SubcategoryResponse]
 
 
+class CatalogSectionResponse(CatalogReference):
+    description: str | None
+    image_url: str | None
+    product_count: int
+    categories: list[CategoryResponse]
+
+    @classmethod
+    def from_section(
+        cls,
+        section: CatalogSection,
+        category_counts: dict[UUID, int],
+        subcategory_counts: dict[UUID, int],
+    ) -> "CatalogSectionResponse":
+        categories = [
+            CategoryResponse(
+                id=category.id,
+                slug=category.slug,
+                name=category.name,
+                accent=category.accent,
+                product_count=category_counts.get(category.id, 0),
+                subcategories=[
+                    SubcategoryResponse(
+                        id=subcategory.id,
+                        slug=subcategory.slug,
+                        name=subcategory.name,
+                        product_count=subcategory_counts.get(subcategory.id, 0),
+                    )
+                    for subcategory in category.subcategories
+                    if subcategory.is_active
+                ],
+            )
+            for category in section.categories
+            if category.is_active
+        ]
+        return cls(
+            id=section.id,
+            slug=section.slug,
+            name=section.name,
+            description=section.description,
+            image_url=section.image_url,
+            product_count=sum(category.product_count for category in categories),
+            categories=categories,
+        )
+
+
+class ProductAvailabilityResponse(StrictSchema):
+    status: StockStatus
+    lead_time_days: int | None
+
+
+class ProductMediaResponse(StrictSchema):
+    id: UUID
+    url: str
+    alt: str
+    position: int
+
+    @classmethod
+    def from_media(cls, media: ProductMedia) -> "ProductMediaResponse":
+        return cls.model_validate(media)
+
+    model_config = ConfigDict(extra="forbid", from_attributes=True)
+
+
+class ProductDocumentResponse(StrictSchema):
+    id: UUID
+    kind: ProductDocumentKind
+    title: str
+    url: str
+
+    @classmethod
+    def from_document(cls, document: ProductDocument) -> "ProductDocumentResponse":
+        return cls.model_validate(document)
+
+    model_config = ConfigDict(extra="forbid", from_attributes=True)
+
+
 class ProductResponse(StrictSchema):
     id: UUID
     sku: str
     slug: str
     name: str
     brand: str
+    brand_country: str | None
+    production_country: str | None
+    short_description: str | None
     image_url: str | None
     price: Decimal
     old_price: Decimal | None
     badge: ProductBadge | None
     stock_status: StockStatus
+    availability: ProductAvailabilityResponse
+    sale_unit: SaleUnit
     rating: Decimal
     reviews_count: int
     category: CatalogReference
@@ -56,11 +153,19 @@ class ProductResponse(StrictSchema):
             slug=product.slug,
             name=product.name,
             brand=product.brand,
+            brand_country=product.brand_country,
+            production_country=product.production_country,
+            short_description=product.short_description,
             image_url=product.image_url,
             price=product.price,
             old_price=product.old_price,
             badge=product.badge,
             stock_status=product.stock_status,
+            availability=ProductAvailabilityResponse(
+                status=product.stock_status,
+                lead_time_days=product.availability_days,
+            ),
+            sale_unit=product.sale_unit,
             rating=product.rating,
             reviews_count=product.reviews_count,
             category=CatalogReference.model_validate(product.category),
@@ -90,17 +195,43 @@ class ProductReviewResponse(StrictSchema):
 
 
 class ProductDetailResponse(ProductResponse):
+    description: str | None
+    media: list[ProductMediaResponse]
+    documents: list[ProductDocumentResponse]
     reviews: list[ProductReviewResponse]
+    related: list[ProductResponse]
+    alternatives: list[ProductResponse]
+    bought_together: list[ProductResponse]
 
     @classmethod
-    def from_product(cls, product: Product) -> "ProductDetailResponse":
+    def from_product(
+        cls,
+        product: Product,
+        *,
+        related: list[Product] | None = None,
+        alternatives: list[Product] | None = None,
+        bought_together: list[Product] | None = None,
+    ) -> "ProductDetailResponse":
         summary = ProductResponse.from_product(product)
         return cls(
             **summary.model_dump(),
+            description=product.description,
+            media=[ProductMediaResponse.from_media(media) for media in product.media],
+            documents=[
+                ProductDocumentResponse.from_document(document)
+                for document in product.documents
+            ],
             reviews=[
                 ProductReviewResponse.from_review(review)
                 for review in product.reviews
                 if review.is_published
+            ],
+            related=[ProductResponse.from_product(item) for item in related or []],
+            alternatives=[
+                ProductResponse.from_product(item) for item in alternatives or []
+            ],
+            bought_together=[
+                ProductResponse.from_product(item) for item in bought_together or []
             ],
         )
 
@@ -118,7 +249,25 @@ class PriceFacet(StrictSchema):
 class ProductFacets(StrictSchema):
     brands: list[FacetOption]
     specs: dict[str, list[FacetOption]]
+    availability: list[FacetOption]
+    sale_units: list[FacetOption]
     price: PriceFacet
+
+
+class CatalogAttributeResponse(StrictSchema):
+    id: UUID
+    code: str
+    name: str
+    value_type: AttributeValueType
+    unit: str | None
+    is_filterable: bool
+    position: int
+
+    @classmethod
+    def from_attribute(cls, attribute: CatalogAttribute) -> "CatalogAttributeResponse":
+        return cls.model_validate(attribute)
+
+    model_config = ConfigDict(extra="forbid", from_attributes=True)
 
 
 class ProductListParams(PaginationParams):
@@ -129,9 +278,12 @@ class ProductListParams(PaginationParams):
     )
     search: str | None = Field(default=None, min_length=2, max_length=120)
     category: str | None = Field(default=None, min_length=1, max_length=64)
+    section: str | None = Field(default=None, min_length=1, max_length=64)
     subcategory: str | None = Field(default=None, min_length=1, max_length=96)
     brand: list[str] = Field(default_factory=list)
     in_stock: bool = False
+    availability: list[StockStatus] = Field(default_factory=list, max_length=4)
+    sale_unit: list[SaleUnit] = Field(default_factory=list, max_length=3)
     min_price: Decimal | None = Field(default=None, ge=0)
     max_price: Decimal | None = Field(default=None, ge=0)
     spec: list[str] = Field(default_factory=list)
@@ -142,7 +294,7 @@ class ProductListParams(PaginationParams):
     def validate_product_ids(cls, values: list[UUID]) -> list[UUID]:
         return list(dict.fromkeys(values))
 
-    @field_validator("search", "category", "subcategory", mode="before")
+    @field_validator("search", "section", "category", "subcategory", mode="before")
     @classmethod
     def normalize_filters(cls, value: object | None) -> str | None:
         return normalize_optional_text(value)
@@ -195,12 +347,56 @@ class ProductListResponse(StrictSchema):
     facets: ProductFacets
 
 
+class CreateProductReviewRequest(StrictSchema):
+    author: str = Field(min_length=2, max_length=120)
+    email: str = Field(min_length=3, max_length=254)
+    rating: int = Field(ge=1, le=5)
+    text: str = Field(min_length=10, max_length=4000)
+
+    @field_validator("author", "text", mode="before")
+    @classmethod
+    def normalize_review_text(cls, value: object) -> str:
+        return normalize_text(value)
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def normalize_email(cls, value: object) -> str:
+        from app.api.modules.catalog.utils import normalize_email
+
+        return normalize_email(value)
+
+
+class CreateProductReviewResponse(StrictSchema):
+    id: UUID
+    status: ReviewStatus
+
+
+class CreateStockSubscriptionRequest(StrictSchema):
+    email: str = Field(min_length=3, max_length=254)
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def normalize_email(cls, value: object) -> str:
+        from app.api.modules.catalog.utils import normalize_email
+
+        return normalize_email(value)
+
+
+class StockSubscriptionResponse(StrictSchema):
+    id: UUID
+    status: StockSubscriptionStatus
+
+
 class CreateProductRequest(StrictSchema):
     category_id: UUID
     subcategory_id: UUID | None = None
     sku: str = Field(min_length=1, max_length=64)
     name: str = Field(min_length=2, max_length=240)
     brand: str = Field(min_length=1, max_length=120)
+    brand_country: str | None = Field(default=None, max_length=120)
+    production_country: str | None = Field(default=None, max_length=120)
+    short_description: str | None = Field(default=None, max_length=500)
+    description: str | None = Field(default=None, max_length=12000)
     image_url: str | None = Field(default=None, max_length=500)
     price: Decimal = Field(gt=0, max_digits=12, decimal_places=2)
     old_price: Decimal | None = Field(
@@ -211,6 +407,15 @@ class CreateProductRequest(StrictSchema):
     )
     badge: ProductBadge | None = None
     stock_status: StockStatus = StockStatus.IN_STOCK
+    availability_days: int | None = Field(default=None, ge=0, le=365)
+    sale_unit: SaleUnit = SaleUnit.PIECE
+    wholesale_price: Decimal | None = Field(
+        default=None,
+        gt=0,
+        max_digits=12,
+        decimal_places=2,
+    )
+    wholesale_min_quantity: int | None = Field(default=None, ge=1, le=100000)
     specs: dict[str, str] = Field(default_factory=dict, max_length=30)
 
     @field_validator("sku", mode="before")
@@ -218,7 +423,15 @@ class CreateProductRequest(StrictSchema):
     def validate_sku(cls, value: object) -> str:
         return normalize_sku(value)
 
-    @field_validator("name", "brand", mode="before")
+    @field_validator(
+        "name",
+        "brand",
+        "brand_country",
+        "production_country",
+        "short_description",
+        "description",
+        mode="before",
+    )
     @classmethod
     def normalize_required_text(cls, value: object) -> str:
         return normalize_text(value)
@@ -237,6 +450,12 @@ class CreateProductRequest(StrictSchema):
     def validate_old_price(self) -> "CreateProductRequest":
         if self.old_price is not None and self.old_price < self.price:
             raise ValueError("old_price cannot be lower than price")
+        if (self.wholesale_price is None) != (self.wholesale_min_quantity is None):
+            raise ValueError(
+                "wholesale_price and wholesale_min_quantity must be provided together"
+            )
+        if self.wholesale_price is not None and self.wholesale_price >= self.price:
+            raise ValueError("wholesale_price must be lower than retail price")
         return self
 
 
@@ -246,6 +465,10 @@ class UpdateProductRequest(StrictSchema):
     sku: str | None = Field(default=None, min_length=1, max_length=64)
     name: str | None = Field(default=None, min_length=2, max_length=240)
     brand: str | None = Field(default=None, min_length=1, max_length=120)
+    brand_country: str | None = Field(default=None, max_length=120)
+    production_country: str | None = Field(default=None, max_length=120)
+    short_description: str | None = Field(default=None, max_length=500)
+    description: str | None = Field(default=None, max_length=12000)
     image_url: str | None = Field(default=None, max_length=500)
     price: Decimal | None = Field(default=None, gt=0, max_digits=12, decimal_places=2)
     old_price: Decimal | None = Field(
@@ -256,6 +479,15 @@ class UpdateProductRequest(StrictSchema):
     )
     badge: ProductBadge | None = None
     stock_status: StockStatus | None = None
+    availability_days: int | None = Field(default=None, ge=0, le=365)
+    sale_unit: SaleUnit | None = None
+    wholesale_price: Decimal | None = Field(
+        default=None,
+        gt=0,
+        max_digits=12,
+        decimal_places=2,
+    )
+    wholesale_min_quantity: int | None = Field(default=None, ge=1, le=100000)
     specs: dict[str, str] | None = Field(default=None, max_length=30)
 
     @field_validator("sku", mode="before")
@@ -263,7 +495,15 @@ class UpdateProductRequest(StrictSchema):
     def validate_sku(cls, value: object | None) -> str | None:
         return normalize_sku(value) if value is not None else None
 
-    @field_validator("name", "brand", mode="before")
+    @field_validator(
+        "name",
+        "brand",
+        "brand_country",
+        "production_country",
+        "short_description",
+        "description",
+        mode="before",
+    )
     @classmethod
     def normalize_required_text(cls, value: object | None) -> str | None:
         return normalize_text(value) if value is not None else None
@@ -289,6 +529,7 @@ class UpdateProductRequest(StrictSchema):
             "brand": self.brand,
             "price": self.price,
             "stock_status": self.stock_status,
+            "sale_unit": self.sale_unit,
             "specs": self.specs,
         }
         for field, value in required_fields.items():

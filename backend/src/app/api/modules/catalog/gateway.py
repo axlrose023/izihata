@@ -9,12 +9,21 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
 from sqlalchemy.sql.elements import ColumnElement
 
-from app.api.modules.catalog.enums import ProductBadge, ProductSort, StockStatus
+from app.api.modules.catalog.enums import (
+    ProductBadge,
+    ProductRelationKind,
+    ProductSort,
+    StockStatus,
+    StockSubscriptionStatus,
+)
 from app.api.modules.catalog.models import (
+    CatalogSection,
     Category,
     Product,
     ProductAttribute,
+    ProductRelation,
     ProductReview,
+    ProductStockSubscription,
     Subcategory,
 )
 from app.api.modules.catalog.schema import ProductListParams
@@ -33,6 +42,19 @@ class CategoryGateway:
         )
         result = await self._session.execute(stmt)
         return result.scalars().unique().all()
+
+    async def list_active_sections(self) -> Sequence[CatalogSection]:
+        stmt = (
+            select(CatalogSection)
+            .where(CatalogSection.is_active.is_(True))
+            .options(
+                selectinload(CatalogSection.categories).selectinload(
+                    Category.subcategories
+                )
+            )
+            .order_by(CatalogSection.position, CatalogSection.name)
+        )
+        return (await self._session.execute(stmt)).scalars().unique().all()
 
     async def get_active_by_id(self, category_id: UUID) -> Category | None:
         stmt = select(Category).where(
@@ -102,6 +124,12 @@ class ProductGateway:
             )
         if params.category:
             conditions.append(Product.category.has(Category.slug == params.category))
+        if params.section:
+            conditions.append(
+                Product.category.has(
+                    Category.section.has(CatalogSection.slug == params.section)
+                )
+            )
         if params.subcategory:
             conditions.append(
                 Product.subcategory.has(Subcategory.slug == params.subcategory)
@@ -109,7 +137,15 @@ class ProductGateway:
         if include_brands and params.brand:
             conditions.append(Product.brand.in_(params.brand))
         if params.in_stock:
-            conditions.append(Product.stock_status == StockStatus.IN_STOCK)
+            conditions.append(
+                Product.stock_status.in_(
+                    [StockStatus.IN_STOCK_TODAY, StockStatus.IN_STOCK]
+                )
+            )
+        if params.availability:
+            conditions.append(Product.stock_status.in_(params.availability))
+        if params.sale_unit:
+            conditions.append(Product.sale_unit.in_(params.sale_unit))
         if params.min_price is not None:
             conditions.append(Product.price >= params.min_price)
         if params.max_price is not None:
@@ -133,6 +169,20 @@ class ProductGateway:
             return stmt.order_by(Product.price.desc(), Product.id)
         if sort == ProductSort.NEWEST:
             return stmt.order_by(Product.created_at.desc(), Product.id)
+        if sort == ProductSort.REVIEWS:
+            return stmt.order_by(
+                Product.reviews_count.desc(),
+                Product.rating.desc(),
+                Product.id,
+            )
+        if sort == ProductSort.AVAILABILITY:
+            availability_rank = case(
+                (Product.stock_status == StockStatus.IN_STOCK_TODAY, 0),
+                (Product.stock_status == StockStatus.IN_STOCK, 1),
+                (Product.stock_status == StockStatus.PREORDER, 2),
+                else_=3,
+            )
+            return stmt.order_by(availability_rank, Product.position, Product.id)
         top_first = case((Product.badge == ProductBadge.TOP, 0), else_=1)
         return stmt.order_by(
             top_first,
@@ -205,6 +255,36 @@ class ProductGateway:
         row = (await self._session.execute(stmt)).one()
         return row[0], row[1]
 
+    async def availability_facets(
+        self,
+        params: ProductListParams,
+    ) -> Sequence[tuple[StockStatus, int]]:
+        stmt = (
+            select(Product.stock_status, func.count(Product.id))
+            .where(*self._conditions(params))
+            .group_by(Product.stock_status)
+            .order_by(Product.stock_status)
+        )
+        return [
+            (status, int(count))
+            for status, count in (await self._session.execute(stmt)).all()
+        ]
+
+    async def sale_unit_facets(
+        self,
+        params: ProductListParams,
+    ) -> Sequence[tuple[str, int]]:
+        stmt = (
+            select(Product.sale_unit, func.count(Product.id))
+            .where(*self._conditions(params))
+            .group_by(Product.sale_unit)
+            .order_by(Product.sale_unit)
+        )
+        return [
+            (sale_unit.value, int(count))
+            for sale_unit, count in (await self._session.execute(stmt)).all()
+        ]
+
     async def get_by_id_for_update(self, product_id: UUID) -> Product | None:
         stmt = (
             select(Product)
@@ -213,6 +293,8 @@ class ProductGateway:
                 joinedload(Product.category),
                 joinedload(Product.subcategory),
                 selectinload(Product.attributes),
+                selectinload(Product.media),
+                selectinload(Product.documents),
             )
             .with_for_update(of=Product)
         )
@@ -253,10 +335,40 @@ class ProductGateway:
                 joinedload(Product.category),
                 joinedload(Product.subcategory),
                 selectinload(Product.attributes),
+                selectinload(Product.media),
+                selectinload(Product.documents),
                 selectinload(Product.reviews),
             )
         )
         return (await self._session.execute(stmt)).scalar_one_or_none()
+
+    async def list_related(
+        self,
+        source_product_id: UUID,
+        kind: ProductRelationKind,
+        *,
+        limit: int = 8,
+    ) -> Sequence[Product]:
+        stmt = (
+            select(Product)
+            .join(
+                ProductRelation,
+                ProductRelation.target_product_id == Product.id,
+            )
+            .where(
+                ProductRelation.source_product_id == source_product_id,
+                ProductRelation.kind == kind,
+                Product.is_active.is_(True),
+            )
+            .options(
+                joinedload(Product.category),
+                joinedload(Product.subcategory),
+                selectinload(Product.attributes),
+            )
+            .order_by(ProductRelation.position, Product.id)
+            .limit(limit)
+        )
+        return (await self._session.execute(stmt)).scalars().unique().all()
 
     async def list_featured_reviews(self, limit: int = 3) -> Sequence[ProductReview]:
         stmt = (
@@ -269,6 +381,46 @@ class ProductGateway:
             )
             .order_by(ProductReview.created_at.desc(), ProductReview.id)
             .limit(limit)
+        )
+        return (await self._session.execute(stmt)).scalars().all()
+
+    async def create_review(self, review: ProductReview) -> ProductReview:
+        self._session.add(review)
+        await self._session.flush()
+        return review
+
+    async def get_review_for_update(self, review_id: UUID) -> ProductReview | None:
+        stmt = (
+            select(ProductReview).where(ProductReview.id == review_id).with_for_update()
+        )
+        return (await self._session.execute(stmt)).scalar_one_or_none()
+
+    async def get_stock_subscription(
+        self,
+        product_id: UUID,
+        email: str,
+    ) -> ProductStockSubscription | None:
+        stmt = select(ProductStockSubscription).where(
+            ProductStockSubscription.product_id == product_id,
+            ProductStockSubscription.email == email,
+        )
+        return (await self._session.execute(stmt)).scalar_one_or_none()
+
+    async def create_stock_subscription(
+        self,
+        subscription: ProductStockSubscription,
+    ) -> ProductStockSubscription:
+        self._session.add(subscription)
+        await self._session.flush()
+        return subscription
+
+    async def active_stock_subscriptions(
+        self,
+        product_id: UUID,
+    ) -> Sequence[ProductStockSubscription]:
+        stmt = select(ProductStockSubscription).where(
+            ProductStockSubscription.product_id == product_id,
+            ProductStockSubscription.status == StockSubscriptionStatus.ACTIVE,
         )
         return (await self._session.execute(stmt)).scalars().all()
 

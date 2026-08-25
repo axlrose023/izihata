@@ -2,16 +2,26 @@ from typing import Annotated
 
 from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
-from fastapi import APIRouter, Path, Query
+from fastapi import APIRouter, Depends, Path, Query
 
+from app.api.common.rate_limit import LEAD_RATE_LIMIT, RateLimit
 from app.api.modules.catalog.schema import (
+    CatalogSectionResponse,
     CategoryResponse,
+    CreateProductReviewRequest,
+    CreateProductReviewResponse,
+    CreateStockSubscriptionRequest,
     ProductDetailResponse,
     ProductListParams,
     ProductListResponse,
     ProductReviewResponse,
+    StockSubscriptionResponse,
 )
-from app.api.modules.catalog.service import CatalogQueryService
+from app.api.modules.catalog.service import (
+    CatalogQueryService,
+    ReviewSubmissionService,
+    StockSubscriptionService,
+)
 
 router = APIRouter(route_class=DishkaRoute)
 
@@ -21,6 +31,13 @@ async def get_categories(
     service: FromDishka[CatalogQueryService],
 ) -> list[CategoryResponse]:
     return await service.get_categories()
+
+
+@router.get("/sections", response_model=list[CatalogSectionResponse])
+async def get_sections(
+    service: FromDishka[CatalogQueryService],
+) -> list[CatalogSectionResponse]:
+    return await service.get_sections()
 
 
 @router.get("/products", response_model=ProductListResponse)
@@ -47,3 +64,37 @@ async def get_product(
     service: FromDishka[CatalogQueryService],
 ) -> ProductDetailResponse:
     return await service.get_product(product_slug)
+
+
+@router.post(
+    "/products/{product_slug}/reviews",
+    response_model=CreateProductReviewResponse,
+    status_code=201,
+    dependencies=[Depends(RateLimit(LEAD_RATE_LIMIT))],
+)
+async def create_product_review(
+    product_slug: Annotated[
+        str,
+        Path(min_length=1, max_length=180, pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$"),
+    ],
+    request: CreateProductReviewRequest,
+    service: FromDishka[ReviewSubmissionService],
+) -> CreateProductReviewResponse:
+    return await service.submit(product_slug, request)
+
+
+@router.post(
+    "/products/{product_slug}/stock-subscriptions",
+    response_model=StockSubscriptionResponse,
+    status_code=201,
+    dependencies=[Depends(RateLimit(LEAD_RATE_LIMIT))],
+)
+async def create_stock_subscription(
+    product_slug: Annotated[
+        str,
+        Path(min_length=1, max_length=180, pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$"),
+    ],
+    request: CreateStockSubscriptionRequest,
+    service: FromDishka[StockSubscriptionService],
+) -> StockSubscriptionResponse:
+    return await service.subscribe(product_slug, request)

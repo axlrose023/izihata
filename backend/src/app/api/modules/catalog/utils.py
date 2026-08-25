@@ -6,6 +6,10 @@ from app.api.common.utils import normalize_text
 _SKU_PATTERN = re.compile(r"[A-Z0-9][A-Z0-9._/-]*")
 _SLUG_SEPARATORS = re.compile(r"[._/]+")
 _REPEATED_DASHES = re.compile(r"-+")
+_EMAIL_PATTERN = re.compile(
+    r"(?=.{3,254}$)[A-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?(?:\.[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?)+$",
+    re.IGNORECASE,
+)
 
 
 def normalize_sku(value: object) -> str:
@@ -37,6 +41,13 @@ def normalize_image_url(value: object | None) -> str | None:
             "Image URL must be an absolute HTTP(S) URL or an absolute path"
         )
     return image_url
+
+
+def normalize_email(value: object) -> str:
+    email = normalize_text(value).lower()
+    if _EMAIL_PATTERN.fullmatch(email) is None:
+        raise ValueError("Email address is invalid")
+    return email
 
 
 def normalize_product_specs(value: object) -> dict[str, str]:

@@ -1,5 +1,11 @@
+from collections.abc import Sequence
+from uuid import UUID
+
 from app.api.common.exceptions import NotFoundError
+from app.api.modules.catalog.enums import ProductRelationKind
+from app.api.modules.catalog.models import Product
 from app.api.modules.catalog.schema import (
+    CatalogSectionResponse,
     CategoryResponse,
     FacetOption,
     PriceFacet,
@@ -43,12 +49,27 @@ class CatalogQueryService:
             for category in categories
         ]
 
+    async def get_sections(self) -> list[CatalogSectionResponse]:
+        sections = await self._uow.categories.list_active_sections()
+        category_counts = await self._uow.categories.product_counts()
+        subcategory_counts = await self._uow.categories.subcategory_product_counts()
+        return [
+            CatalogSectionResponse.from_section(
+                section,
+                category_counts,
+                subcategory_counts,
+            )
+            for section in sections
+        ]
+
     async def get_products(self, params: ProductListParams) -> ProductListResponse:
         products = await self._uow.products.list(params)
         total = await self._uow.products.count(params)
         brand_rows = await self._uow.products.brand_facets(params)
         attribute_rows = await self._uow.products.attribute_facets(params)
         minimum, maximum = await self._uow.products.price_facet(params)
+        availability_rows = await self._uow.products.availability_facets(params)
+        sale_unit_rows = await self._uow.products.sale_unit_facets(params)
 
         spec_facets: dict[str, list[FacetOption]] = {}
         for key, value, count in attribute_rows:
@@ -70,6 +91,14 @@ class CatalogQueryService:
                     FacetOption(value=brand, count=count) for brand, count in brand_rows
                 ],
                 specs=spec_facets,
+                availability=[
+                    FacetOption(value=status.value, count=count)
+                    for status, count in availability_rows
+                ],
+                sale_units=[
+                    FacetOption(value=value, count=count)
+                    for value, count in sale_unit_rows
+                ],
                 price=PriceFacet(minimum=minimum, maximum=maximum),
             ),
         )
@@ -78,8 +107,33 @@ class CatalogQueryService:
         product = await self._uow.products.get_by_slug(product_slug)
         if product is None:
             raise NotFoundError("Product not found")
-        return ProductDetailResponse.from_product(product)
+        related, alternatives, bought_together = await self._get_relations(product.id)
+        return ProductDetailResponse.from_product(
+            product,
+            related=list(related),
+            alternatives=list(alternatives),
+            bought_together=list(bought_together),
+        )
 
     async def get_featured_reviews(self) -> list[ProductReviewResponse]:
         reviews = await self._uow.products.list_featured_reviews()
         return [ProductReviewResponse.from_review(review) for review in reviews]
+
+    async def _get_relations(
+        self,
+        product_id: UUID,
+    ) -> tuple[Sequence[Product], Sequence[Product], Sequence[Product]]:
+        return (
+            await self._uow.products.list_related(
+                product_id,
+                ProductRelationKind.RELATED,
+            ),
+            await self._uow.products.list_related(
+                product_id,
+                ProductRelationKind.ALTERNATIVE,
+            ),
+            await self._uow.products.list_related(
+                product_id,
+                ProductRelationKind.BOUGHT_TOGETHER,
+            ),
+        )

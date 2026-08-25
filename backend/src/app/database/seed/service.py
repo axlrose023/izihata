@@ -1,13 +1,14 @@
 import json
 from decimal import Decimal
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, TypedDict, cast
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.modules.catalog.enums import ProductBadge, StockStatus
 from app.api.modules.catalog.models import (
+    CatalogSection,
     Category,
     Product,
     ProductAttribute,
@@ -19,6 +20,46 @@ from app.api.modules.checkout.models import Promotion
 CATALOG_DATA_PATH = Path(__file__).with_name("catalog.json")
 
 
+class SeedSection(TypedDict):
+    slug: str
+    name: str
+    description: str
+    categories: set[str]
+
+
+SECTION_DATA: tuple[SeedSection, ...] = (
+    {
+        "slug": "home-repair",
+        "name": "Дім і ремонт",  # noqa: RUF001
+        "description": "Електрика для ремонту, побуту та розумного дому.",
+        "categories": {
+            "sockets",
+            "lowvoltage",
+            "relay",
+            "switching",
+            "cabletrays",
+            "installation",
+            "panels",
+            "light",
+            "metering",
+            "smarthome",
+        },
+    },
+    {
+        "slug": "business-objects",
+        "name": "Бізнес і об’єкти",  # noqa: RUF001
+        "description": "Рішення для електромонтажу, комерційних та промислових об’єктів.",  # noqa: RUF001
+        "categories": {"cable", "hv", "grounding", "network", "other"},
+    },
+    {
+        "slug": "energy-independence",
+        "name": "Енергонезалежність",
+        "description": "Резервне живлення, опалення та зарядна інфраструктура.",
+        "categories": {"power", "heating", "evcharge"},
+    },
+)
+
+
 def load_catalog_data() -> dict[str, Any]:
     data = json.loads(CATALOG_DATA_PATH.read_text(encoding="utf-8"))
     if not isinstance(data, dict):
@@ -28,6 +69,26 @@ def load_catalog_data() -> dict[str, Any]:
 
 async def seed_database(session: AsyncSession) -> None:
     data = load_catalog_data()
+    sections = {
+        section.slug: section
+        for section in (await session.execute(select(CatalogSection))).scalars().all()
+    }
+    category_sections: dict[str, CatalogSection] = {}
+    for position, raw_section in enumerate(SECTION_DATA):
+        section = sections.get(raw_section["slug"])
+        if section is None:
+            section = CatalogSection(
+                slug=raw_section["slug"],
+                name=raw_section["name"],
+                description=raw_section["description"],
+                position=position,
+            )
+            session.add(section)
+            await session.flush()
+            sections[section.slug] = section
+        for category_slug in raw_section["categories"]:
+            category_sections[category_slug] = section
+
     categories = {
         category.slug: category
         for category in (await session.execute(select(Category))).scalars().all()
@@ -50,6 +111,9 @@ async def seed_database(session: AsyncSession) -> None:
             session.add(category)
             await session.flush()
             categories[slug] = category
+        section = category_sections.get(slug)
+        if section is not None:
+            category.section_id = section.id
 
         for subcategory_position, name in enumerate(raw_category["subs"]):
             key = (category.id, name)
@@ -107,6 +171,7 @@ async def seed_database(session: AsyncSession) -> None:
                     if raw_product["stock"] == "in"
                     else StockStatus.PREORDER
                 ),
+                availability_days=0 if raw_product["stock"] == "in" else 5,
                 rating=Decimal(str(raw_product["rating"])),
                 reviews_count=raw_product["reviews"],
                 position=position,

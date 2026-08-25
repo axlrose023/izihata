@@ -14,6 +14,8 @@ from app.api.modules.auth.service import (
 from app.api.modules.catalog.service import (
     CatalogQueryService,
     ProductManagementService,
+    ReviewSubmissionService,
+    StockSubscriptionService,
 )
 from app.api.modules.checkout.service import PricingService
 from app.api.modules.delivery.service import DeliveryLocationService
@@ -126,6 +128,20 @@ class ServicesProvider(Provider):
         uow: UnitOfWork,
     ) -> ProductManagementService:
         return ProductManagementService(uow)
+
+    @provide(scope=Scope.REQUEST)
+    def get_review_submission_service(
+        self,
+        uow: UnitOfWork,
+    ) -> ReviewSubmissionService:
+        return ReviewSubmissionService(uow)
+
+    @provide(scope=Scope.REQUEST)
+    def get_stock_subscription_service(
+        self,
+        uow: UnitOfWork,
+    ) -> StockSubscriptionService:
+        return StockSubscriptionService(uow)
 
     @provide(scope=Scope.REQUEST)
     def get_pricing_service(self, uow: UnitOfWork) -> PricingService:

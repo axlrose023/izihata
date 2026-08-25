@@ -3,6 +3,7 @@ from uuid import UUID
 from sqlalchemy.exc import IntegrityError
 
 from app.api.common.exceptions import ConflictError, NotFoundError, UnprocessableError
+from app.api.modules.catalog.enums import StockStatus, StockSubscriptionStatus
 from app.api.modules.catalog.models import (
     Category,
     Product,
@@ -34,6 +35,10 @@ class ProductManagementService:
                 attribute.value = value
             attributes.append(attribute)
         product.attributes = attributes
+
+    @staticmethod
+    def _is_available(status: StockStatus) -> bool:
+        return status in {StockStatus.IN_STOCK_TODAY, StockStatus.IN_STOCK}
 
     async def _get_references(
         self,
@@ -86,11 +91,19 @@ class ProductManagementService:
             slug=slug,
             name=request.name,
             brand=request.brand,
+            brand_country=request.brand_country,
+            production_country=request.production_country,
+            short_description=request.short_description,
+            description=request.description,
             image_url=request.image_url,
             price=request.price,
             old_price=request.old_price,
             badge=request.badge,
             stock_status=request.stock_status,
+            availability_days=request.availability_days,
+            sale_unit=request.sale_unit,
+            wholesale_price=request.wholesale_price,
+            wholesale_min_quantity=request.wholesale_min_quantity,
             position=await self._uow.products.next_position(),
             attributes=[
                 ProductAttribute(key=key, value=value)
@@ -117,6 +130,7 @@ class ProductManagementService:
         if product is None:
             raise NotFoundError("Product not found")
 
+        previous_stock_status = product.stock_status
         data = request.model_dump(exclude_unset=True)
         category_id = data.pop("category_id", product.category_id)
         subcategory_id = data.pop("subcategory_id", product.subcategory_id)
@@ -146,14 +160,41 @@ class ProductManagementService:
 
         resulting_price = data.get("price", product.price)
         resulting_old_price = data.get("old_price", product.old_price)
+        resulting_wholesale_price = data.get(
+            "wholesale_price",
+            product.wholesale_price,
+        )
+        resulting_wholesale_min_quantity = data.get(
+            "wholesale_min_quantity",
+            product.wholesale_min_quantity,
+        )
         if resulting_old_price is not None and resulting_old_price < resulting_price:
             raise UnprocessableError("old_price cannot be lower than price")
+        if (resulting_wholesale_price is None) != (
+            resulting_wholesale_min_quantity is None
+        ):
+            raise UnprocessableError(
+                "Wholesale price and minimum quantity must be provided together",
+                code="invalid_wholesale_price",
+            )
+        if (
+            resulting_wholesale_price is not None
+            and resulting_wholesale_price >= resulting_price
+        ):
+            raise UnprocessableError(
+                "Wholesale price must be lower than retail price",
+                code="invalid_wholesale_price",
+            )
         for field, value in data.items():
             setattr(product, field, value)
         if specs is not None:
             self._replace_specs(product, specs)
         try:
             await self._uow.products.update(product)
+            if not self._is_available(previous_stock_status) and self._is_available(
+                product.stock_status
+            ):
+                await self._notify_stock_subscribers(product.id)
             await self._uow.commit()
         except IntegrityError as error:
             await self._uow.rollback()
@@ -162,3 +203,15 @@ class ProductManagementService:
                 code="product_identity_exists",
             ) from error
         return ProductResponse.from_product(product)
+
+    async def _notify_stock_subscribers(self, product_id: UUID) -> None:
+        subscriptions = await self._uow.products.active_stock_subscriptions(product_id)
+        for subscription in subscriptions:
+            subscription.status = StockSubscriptionStatus.NOTIFIED
+            await self._uow.outbox.add(
+                "catalog.back_in_stock",
+                {
+                    "subscription_id": str(subscription.id),
+                    "product_id": str(product_id),
+                },
+            )
