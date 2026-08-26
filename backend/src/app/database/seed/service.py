@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Any, TypedDict, cast
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.modules.catalog.enums import (
@@ -276,12 +276,10 @@ async def _seed_catalog_demo_content(
         await session.flush()
         products_by_sku[sku] = product
 
-    has_media = (
-        await session.execute(
-            select(ProductMedia.id).where(ProductMedia.product_id == product.id)
-        )
-    ).scalar_one_or_none()
-    if has_media is None:
+    has_media = await session.scalar(
+        select(exists().where(ProductMedia.product_id == product.id))
+    )
+    if not has_media:
         session.add_all(
             (
                 ProductMedia(
@@ -298,12 +296,10 @@ async def _seed_catalog_demo_content(
                 ),
             )
         )
-    has_document = (
-        await session.execute(
-            select(ProductDocument.id).where(ProductDocument.product_id == product.id)
-        )
-    ).scalar_one_or_none()
-    if has_document is None:
+    has_document = await session.scalar(
+        select(exists().where(ProductDocument.product_id == product.id))
+    )
+    if not has_document:
         session.add(
             ProductDocument(
                 product_id=product.id,
@@ -317,16 +313,16 @@ async def _seed_catalog_demo_content(
     alternative = products_by_sku.get("AX-10001")
     if alternative is None:
         return
-    relation = (
-        await session.execute(
-            select(ProductRelation.id).where(
+    has_relation = await session.scalar(
+        select(
+            exists().where(
                 ProductRelation.source_product_id == product.id,
                 ProductRelation.target_product_id == alternative.id,
                 ProductRelation.kind == ProductRelationKind.ALTERNATIVE,
             )
         )
-    ).scalar_one_or_none()
-    if relation is None:
+    )
+    if not has_relation:
         session.add(
             ProductRelation(
                 source_product_id=product.id,
