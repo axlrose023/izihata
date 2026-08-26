@@ -2,16 +2,26 @@ import json
 from decimal import Decimal
 from pathlib import Path
 from typing import Any, TypedDict, cast
+from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.modules.catalog.enums import ProductBadge, StockStatus
+from app.api.modules.catalog.enums import (
+    ProductBadge,
+    ProductDocumentKind,
+    ProductRelationKind,
+    SaleUnit,
+    StockStatus,
+)
 from app.api.modules.catalog.models import (
     CatalogSection,
     Category,
     Product,
     ProductAttribute,
+    ProductDocument,
+    ProductMedia,
+    ProductRelation,
     ProductReview,
     Subcategory,
 )
@@ -49,13 +59,13 @@ SECTION_DATA: tuple[SeedSection, ...] = (
         "slug": "business-objects",
         "name": "Бізнес і об’єкти",  # noqa: RUF001
         "description": "Рішення для електромонтажу, комерційних та промислових об’єктів.",  # noqa: RUF001
-        "categories": {"cable", "hv", "grounding", "network", "other"},
+        "categories": {"cable", "heating", "hv", "grounding", "network", "other"},
     },
     {
         "slug": "energy-independence",
         "name": "Енергонезалежність",
         "description": "Резервне живлення, опалення та зарядна інфраструктура.",
-        "categories": {"power", "heating", "evcharge"},
+        "categories": {"power", "evcharge"},
     },
 )
 
@@ -111,6 +121,9 @@ async def seed_database(session: AsyncSession) -> None:
             session.add(category)
             await session.flush()
             categories[slug] = category
+        category.name = raw_category["name"]
+        category.accent = raw_category["accent"]
+        category.position = category_position
         section = category_sections.get(slug)
         if section is not None:
             category.section_id = section.id
@@ -200,9 +213,125 @@ async def seed_database(session: AsyncSession) -> None:
             )
             reviewed_product_ids.add(product.id)
 
+    await _seed_catalog_demo_content(
+        session, categories, subcategories, products_by_sku
+    )
+
     promotion = (
         await session.execute(select(Promotion).where(Promotion.code == "ZNIZKA10"))
     ).scalar_one_or_none()
     if promotion is None:
         session.add(Promotion(code="ZNIZKA10", discount_rate=Decimal("0.10")))
     await session.commit()
+
+
+async def _seed_catalog_demo_content(
+    session: AsyncSession,
+    categories: dict[str, Category],
+    subcategories: dict[tuple[UUID, str], Subcategory],
+    products_by_sku: dict[str, Product],
+) -> None:
+    sku = "DEMO-MCB-16"
+    category = categories["lowvoltage"]
+    subcategory_name = "Автоматичні вимикачі (модульні / корпусні / повітряні)"
+    subcategory = subcategories[(category.id, subcategory_name)]
+    product = products_by_sku.get(sku)
+    if product is None:
+        product = Product(
+            category_id=category.id,
+            subcategory_id=subcategory.id,
+            sku=sku,
+            slug="demo-modular-circuit-breaker-1p-c16",
+            name="Демо: модульний автоматичний вимикач 1P C16",
+            brand="Demo Electric",
+            brand_country="Україна",
+            production_country="Китай",
+            short_description="Демонстраційна позиція з повним набором даних картки товару.",
+            description=(
+                "Тестовий товар для перевірки галереї, документації, гуртових умов "
+                "та структурованих характеристик. Не призначений для продажу."  # noqa: RUF001
+            ),
+            image_url="/product-images/demo/circuit-breaker-front.webp",
+            price=Decimal("320.00"),
+            old_price=Decimal("370.00"),
+            badge=ProductBadge.RECOMMENDED,
+            stock_status=StockStatus.IN_STOCK_TODAY,
+            availability_days=0,
+            sale_unit=SaleUnit.PIECE,
+            wholesale_price=Decimal("280.00"),
+            wholesale_min_quantity=5,
+            rating=Decimal("0"),
+            reviews_count=0,
+            position=10000,
+            attributes=[
+                ProductAttribute(key="Полюси", value="1P"),
+                ProductAttribute(key="Номінал", value="16 А"),  # noqa: RUF001
+                ProductAttribute(key="Характеристика", value="C"),
+                ProductAttribute(key="Відключ. здатність", value="6 кА"),
+                ProductAttribute(key="Напруга", value="230 В"),  # noqa: RUF001
+                ProductAttribute(key="Серія", value="Demo Modular"),
+            ],
+        )
+        session.add(product)
+        await session.flush()
+        products_by_sku[sku] = product
+
+    has_media = (
+        await session.execute(
+            select(ProductMedia.id).where(ProductMedia.product_id == product.id)
+        )
+    ).scalar_one_or_none()
+    if has_media is None:
+        session.add_all(
+            (
+                ProductMedia(
+                    product_id=product.id,
+                    url="/product-images/demo/circuit-breaker-front.webp",
+                    alt="Демонстраційний модульний автоматичний вимикач, вигляд спереду",
+                    position=0,
+                ),
+                ProductMedia(
+                    product_id=product.id,
+                    url="/product-images/demo/circuit-breaker-side.webp",
+                    alt="Демонстраційний модульний автоматичний вимикач, вигляд збоку",
+                    position=1,
+                ),
+            )
+        )
+    has_document = (
+        await session.execute(
+            select(ProductDocument.id).where(ProductDocument.product_id == product.id)
+        )
+    ).scalar_one_or_none()
+    if has_document is None:
+        session.add(
+            ProductDocument(
+                product_id=product.id,
+                kind=ProductDocumentKind.DATASHEET,
+                title="Технічна специфікація (демо)",
+                url="/documents/demo-circuit-breaker-specification.pdf",
+                position=0,
+            )
+        )
+
+    alternative = products_by_sku.get("AX-10001")
+    if alternative is None:
+        return
+    relation = (
+        await session.execute(
+            select(ProductRelation.id).where(
+                ProductRelation.source_product_id == product.id,
+                ProductRelation.target_product_id == alternative.id,
+                ProductRelation.kind == ProductRelationKind.ALTERNATIVE,
+            )
+        )
+    ).scalar_one_or_none()
+    if relation is None:
+        session.add(
+            ProductRelation(
+                source_product_id=product.id,
+                target_product_id=alternative.id,
+                kind=ProductRelationKind.ALTERNATIVE,
+                position=0,
+            )
+        )

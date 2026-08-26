@@ -227,7 +227,7 @@
     },
     {
       "id": "power",
-      "name": "Джерела живлення",
+      "name": "Альтернативна енергія",
       "imageUrl": "/product-images/power.svg",
       "accent": "amber",
       "subs": [
@@ -239,7 +239,7 @@
     },
     {
       "id": "heating",
-      "name": "Тепла підлога і обігрів",
+      "name": "Кліматичне обладнання",
       "imageUrl": "/product-images/power.svg",
       "accent": "amber",
       "subs": [
