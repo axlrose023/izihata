@@ -1304,8 +1304,10 @@ h2 {
   border-radius: 13px;
   background: #fff;
 }
-.filters__toggle,
-.filters__summary {
+.catalog-filter-launcher,
+.catalog-filters-backdrop,
+.filters__close,
+.filters__more {
   display: none;
 }
 .filters__title {
@@ -1374,6 +1376,12 @@ h2 {
 .filter-options small {
   margin-left: auto;
   color: #526075;
+}
+.filter-series-note {
+  margin: -2px 0 10px;
+  color: var(--ink-soft);
+  font-size: 0.69rem;
+  line-height: 1.4;
 }
 .stock-filter {
   margin: 17px 0;
@@ -3547,47 +3555,83 @@ h2 {
   .catalog-layout {
     grid-template-columns: 1fr;
   }
-  .filters {
-    order: 1;
-  }
-  .catalog-results {
-    order: 2;
-  }
-  .filters__toggle {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    opacity: 0;
-  }
-  .filters__summary {
-    min-height: 50px;
+  .catalog-filter-launcher {
+    width: 100%;
+    min-height: 46px;
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 8px;
-    padding: 0 16px;
-    cursor: pointer;
-  }
-  .filters__summary span {
-    margin-left: auto;
+    margin-bottom: 15px;
     color: var(--blue);
-    font-size: 0.7rem;
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    background: #fff;
+    font-weight: 800;
   }
-  .filters__summary span::after {
-    content: "Показати";
+  .catalog-filters-backdrop {
+    position: fixed;
+    z-index: 110;
+    inset: 0;
+    display: block;
+    border: 0;
+    background: rgba(12, 23, 42, 0.42);
   }
-  .filters__toggle:checked + .filters__summary span::after {
-    content: "Сховати";
+  .filters {
+    position: fixed;
+    z-index: 111;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: min(390px, 92vw);
+    overflow-y: auto;
+    visibility: hidden;
+    border: 0;
+    border-radius: 0;
+    box-shadow: -18px 0 45px rgba(12, 23, 42, 0.2);
+    transform: translateX(100%);
+    transition:
+      transform 180ms ease,
+      visibility 180ms ease;
   }
-  .filters__toggle:not(:checked) ~ form {
-    display: none;
-  }
-  .filters__toggle:focus-visible + .filters__summary {
-    outline: 3px solid rgba(154, 52, 18, 0.32);
-    outline-offset: -3px;
+  .filters[data-open] {
+    visibility: visible;
+    transform: translateX(0);
   }
   .filters__title {
+    position: sticky;
+    z-index: 1;
+    top: 0;
+    padding: 16px;
+    background: #fff;
+  }
+  .filters__close {
+    width: 34px;
+    height: 34px;
+    display: grid;
+    place-items: center;
+    margin-left: 4px;
+    color: var(--ink);
+    border: 1px solid var(--line);
+    border-radius: 50%;
+    background: #fff;
+  }
+  .filters__secondary {
     display: none;
+  }
+  .filters__secondary[data-open] {
+    display: block;
+  }
+  .filters__more {
+    width: 100%;
+    display: block;
+    margin: 16px 0 10px;
+    padding: 0;
+    color: var(--blue);
+    border: 0;
+    background: transparent;
+    font-weight: 800;
+    text-align: left;
   }
   .catalog-mobile-search {
     display: flex;

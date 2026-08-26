@@ -280,6 +280,24 @@ test("product quantity is added as one cart operation", async ({ page }) => {
   await expect(page.getByText("З цим купують")).toBeVisible();
 });
 
+test("catalog keeps every relevant facet", async ({ page }) => {
+  await page.goto("/catalog/lowvoltage?brand=Demo%20Electric");
+  await expect(
+    page.getByRole("heading", {
+      name: "Низьковольтне обладнання",
+      exact: true,
+    }),
+  ).toBeVisible();
+  if ((page.viewportSize()?.width ?? 1000) <= 820) {
+    await page.getByRole("button", { name: "Фільтри" }).click();
+    await page.getByRole("button", { name: "Більше фільтрів" }).click();
+  }
+  await expect(page.getByText("Полюси", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText("Вибір серії покаже всі сумісні елементи цього дизайну."),
+  ).toBeVisible();
+});
+
 test("mobile storefront keeps search, navigation and filters accessible", async ({
   page,
 }) => {
@@ -297,17 +315,17 @@ test("mobile storefront keeps search, navigation and filters accessible", async 
   await page.goto("/catalog");
   await expect(page.getByRole("heading", { name: "Усі товари" })).toBeVisible();
   const filters = page.locator(".filters");
-  const results = page.locator(".catalog-results");
-  await expect(filters.locator(".filters__summary")).toContainText("Фільтри");
-  await filters.locator(".filters__summary").click();
+  await page.getByRole("button", { name: "Фільтри" }).click();
+  await expect(filters).toHaveAttribute("data-open", "true");
   await expect(
     filters.getByRole("button", { name: "Застосувати" }),
   ).toBeVisible();
-  const filterBox = await filters.locator(".filters__summary").boundingBox();
-  const resultBox = await results.locator(".catalog-toolbar").boundingBox();
-  expect(filterBox).not.toBeNull();
-  expect(resultBox).not.toBeNull();
-  expect(filterBox!.y).toBeLessThan(resultBox!.y);
+  await filters.getByRole("button", { name: "Більше фільтрів" }).click();
+  await expect(
+    filters.getByText("Одиниця продажу", { exact: true }),
+  ).toBeVisible();
+  await filters.getByRole("button", { name: "Закрити фільтри" }).click();
+  await expect(filters).not.toHaveAttribute("data-open", "true");
 });
 
 test("empty checkout and staff login route have safe states", async ({

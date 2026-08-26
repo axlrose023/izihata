@@ -1,5 +1,5 @@
 import { useQueries } from "@tanstack/react-query";
-import { Filter, LayoutGrid, List, Search } from "lucide-react";
+import { LayoutGrid, List, Search } from "lucide-react";
 import { Form, Link, useParams, useSearchParams } from "react-router-dom";
 
 import {
@@ -7,6 +7,10 @@ import {
   productsQuery,
 } from "@/modules/catalog/api/catalog-queries";
 import { CatalogEducation } from "@/modules/catalog/components/catalog-education";
+import {
+  CatalogFilters,
+  type CatalogFilterQuery,
+} from "@/modules/catalog/components/catalog-filters";
 import { ProductCard } from "@/modules/catalog/components/product-card";
 import { ProductPriceList } from "@/modules/catalog/components/product-price-list";
 import type { ProductSort } from "@/shared/types/api";
@@ -23,19 +27,6 @@ const sorts: Array<{ value: ProductSort; label: string }> = [
   { value: "reviews", label: "За відгуками" },
   { value: "availability", label: "За наявністю" },
 ];
-
-const availabilityLabels = {
-  in_stock_today: "Відправимо сьогодні",
-  in_stock: "В наявності",
-  preorder: "Під замовлення",
-  out_of_stock: "Немає в наявності",
-} as const;
-
-const saleUnitLabels = {
-  piece: "Поштучно",
-  meter: "За метр",
-  coil: "Бухтами",
-} as const;
 
 function pageHref(params: URLSearchParams, page: number, category?: string) {
   const next = new URLSearchParams(params);
@@ -117,11 +108,8 @@ export function CatalogPage() {
   const activeCategory = categories.find(
     (item) => item.slug === query.category,
   );
-  const activeBrands = new Set(query.brand);
-  const activeSpecs = new Set(query.spec);
-  const activeAvailability = new Set(query.availability);
-  const activeSaleUnits = new Set(query.sale_unit);
   const basePath = category ? `/catalog/${category}` : "/catalog";
+  const filterQuery: CatalogFilterQuery = query;
 
   return (
     <div className="container catalog-page">
@@ -157,195 +145,14 @@ export function CatalogPage() {
       </Form>
 
       <div className="catalog-layout">
-        <aside className="filters">
-          <input
-            aria-controls="catalog-filter-form"
-            aria-label="Показати фільтри"
-            className="filters__toggle"
-            id="catalog-filter-toggle"
-            type="checkbox"
-          />
-          <label className="filters__summary" htmlFor="catalog-filter-toggle">
-            <Filter size={18} />
-            <strong>Фільтри</strong>
-            <span />
-          </label>
-          <div className="filters__title">
-            <Filter size={18} />
-            <strong>Фільтри</strong>
-            <Link to={basePath}>Скинути</Link>
-          </div>
-          <Form action={basePath} id="catalog-filter-form" method="get">
-            {query.search ? (
-              <input name="search" type="hidden" value={query.search} />
-            ) : null}
-            <fieldset>
-              <legend>Категорія</legend>
-              <select
-                aria-label="Категорія"
-                defaultValue={activeCategory?.slug ?? ""}
-                disabled={Boolean(category)}
-                name="category"
-              >
-                <option value="">Усі категорії</option>
-                {categories.map((item) => (
-                  <option key={item.id} value={item.slug}>
-                    {item.name} ({item.product_count})
-                  </option>
-                ))}
-              </select>
-            </fieldset>
-            {activeCategory?.subcategories.length ? (
-              <fieldset>
-                <legend>Підкатегорія</legend>
-                <select
-                  aria-label="Підкатегорія"
-                  defaultValue={query.subcategory ?? ""}
-                  name="subcategory"
-                >
-                  <option value="">Усі</option>
-                  {activeCategory.subcategories.map((item) => (
-                    <option key={item.id} value={item.slug}>
-                      {item.name} ({item.product_count})
-                    </option>
-                  ))}
-                </select>
-              </fieldset>
-            ) : null}
-            <fieldset>
-              <legend>Ціна, ₴</legend>
-              <div className="price-filter">
-                <input
-                  aria-label="Мінімальна ціна"
-                  defaultValue={query.min_price}
-                  inputMode="decimal"
-                  min="0"
-                  name="min_price"
-                  placeholder={products.facets.price.minimum ?? "від"}
-                  type="number"
-                />
-                <input
-                  aria-label="Максимальна ціна"
-                  defaultValue={query.max_price}
-                  inputMode="decimal"
-                  min="0"
-                  name="max_price"
-                  placeholder={products.facets.price.maximum ?? "до"}
-                  type="number"
-                />
-              </div>
-            </fieldset>
-            {products.facets.brands.length ? (
-              <fieldset>
-                <legend>Бренд</legend>
-                <div className="filter-options">
-                  {products.facets.brands.map((brand) => (
-                    <label key={brand.value}>
-                      <input
-                        defaultChecked={activeBrands.has(brand.value)}
-                        name="brand"
-                        type="checkbox"
-                        value={brand.value}
-                      />
-                      <span>{brand.value}</span>
-                      <small>{brand.count}</small>
-                    </label>
-                  ))}
-                </div>
-              </fieldset>
-            ) : null}
-            {products.facets.availability.length ? (
-              <fieldset>
-                <legend>Наявність</legend>
-                <div className="filter-options">
-                  {products.facets.availability.map((option) => (
-                    <label key={option.value}>
-                      <input
-                        defaultChecked={activeAvailability.has(option.value)}
-                        name="availability"
-                        type="checkbox"
-                        value={option.value}
-                      />
-                      <span>
-                        {availabilityLabels[
-                          option.value as keyof typeof availabilityLabels
-                        ] ?? option.value}
-                      </span>
-                      <small>{option.count}</small>
-                    </label>
-                  ))}
-                </div>
-              </fieldset>
-            ) : null}
-            {products.facets.sale_units.length ? (
-              <fieldset>
-                <legend>Одиниця продажу</legend>
-                <div className="filter-options">
-                  {products.facets.sale_units.map((option) => (
-                    <label key={option.value}>
-                      <input
-                        defaultChecked={activeSaleUnits.has(option.value)}
-                        name="sale_unit"
-                        type="checkbox"
-                        value={option.value}
-                      />
-                      <span>
-                        {saleUnitLabels[
-                          option.value as keyof typeof saleUnitLabels
-                        ] ?? option.value}
-                      </span>
-                      <small>{option.count}</small>
-                    </label>
-                  ))}
-                </div>
-              </fieldset>
-            ) : null}
-            {Object.entries(products.facets.specs)
-              .filter(
-                ([key]) =>
-                  key.toLocaleLowerCase("uk") !== "серія" ||
-                  activeBrands.size > 0,
-              )
-              .slice(0, 4)
-              .map(([key, options]) => (
-                <fieldset key={key}>
-                  <legend>{key}</legend>
-                  <div className="filter-options">
-                    {options.slice(0, 8).map((option) => {
-                      const value = `${key}:${option.value}`;
-                      return (
-                        <label key={value}>
-                          <input
-                            defaultChecked={activeSpecs.has(value)}
-                            name="spec"
-                            type="checkbox"
-                            value={value}
-                          />
-                          <span>{option.value}</span>
-                          <small>{option.count}</small>
-                        </label>
-                      );
-                    })}
-                  </div>
-                </fieldset>
-              ))}
-            <label className="stock-filter">
-              <input
-                defaultChecked={query.in_stock === "true"}
-                name="in_stock"
-                type="checkbox"
-                value="true"
-              />
-              Лише в наявності
-            </label>
-            <button
-              className="button button--primary button--wide"
-              type="submit"
-            >
-              Застосувати
-            </button>
-          </Form>
-        </aside>
+        <CatalogFilters
+          action={basePath}
+          activeCategory={activeCategory}
+          categories={categories}
+          categoryIsRouteParam={Boolean(category)}
+          facets={products.facets}
+          query={filterQuery}
+        />
 
         <section className="catalog-results">
           <Form action={basePath} className="catalog-toolbar" method="get">
