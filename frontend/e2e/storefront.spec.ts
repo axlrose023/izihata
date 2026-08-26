@@ -262,7 +262,7 @@ test("callback validation and submission work", async ({ page }) => {
 
 test("product quantity is added as one cart operation", async ({ page }) => {
   await page.goto("/catalog");
-  await page.locator(".product-card__name").first().click();
+  await page.locator(".product-card__details-link").first().click();
   await page
     .getByRole("button", { name: "Збільшити кількість товару" })
     .click();
