@@ -1,12 +1,13 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery } from "@tanstack/react-query";
 import { Check, LoaderCircle, ShoppingBag } from "lucide-react";
-import { useDeferredValue, useState } from "react";
-import { useForm, useWatch } from "react-hook-form";
+import { useDeferredValue, useEffect, useState } from "react";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
 
 import { useCartStore } from "@/modules/cart/store";
+import { DeliveryAutocomplete } from "@/modules/checkout/components/delivery-autocomplete";
 import { apiClient } from "@/shared/api/client";
 import { getUserErrorMessage } from "@/shared/api/errors";
 import { formatMoney } from "@/shared/lib/format";
@@ -94,6 +95,7 @@ export function CheckoutForm() {
   const [promoInput, setPromoInput] = useState("");
   const [promoCode, setPromoCode] = useState<string | null>(null);
   const [selectedCityRef, setSelectedCityRef] = useState<string | null>(null);
+  const [selectedPointRef, setSelectedPointRef] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [idempotency, setIdempotency] = useState<{
     fingerprint: string;
@@ -103,6 +105,7 @@ export function CheckoutForm() {
     register,
     control,
     handleSubmit,
+    setError,
     setValue,
     formState: { errors, isSubmitting },
   } = useForm<CheckoutValues>({
@@ -124,9 +127,6 @@ export function CheckoutForm() {
   const point = useWatch({ control, name: "point" });
   const deferredCity = useDeferredValue(city.trim());
   const deferredPoint = useDeferredValue(point.trim());
-  const cityField = register("city");
-  const pointField = register("point");
-  const deliveryMethodField = register("delivery_method");
   const isNovaPoshta = deliveryMethod !== "pickup";
   const cities = useQuery({
     queryKey: ["delivery", "cities", deferredCity],
@@ -164,6 +164,13 @@ export function CheckoutForm() {
       }),
   });
 
+  useEffect(() => {
+    if (!promoCode || !quote.error) return;
+
+    const timeoutId = window.setTimeout(() => setPromoCode(null), 6_000);
+    return () => window.clearTimeout(timeoutId);
+  }, [promoCode, quote.error]);
+
   if (!lines.length) {
     return (
       <EmptyState
@@ -176,6 +183,22 @@ export function CheckoutForm() {
   }
 
   const submit = handleSubmit(async (values) => {
+    if (
+      values.delivery_method !== "pickup" &&
+      !cities.isError &&
+      !selectedCityRef
+    ) {
+      setError("city", { message: "Оберіть місто зі списку" });
+      return;
+    }
+    if (
+      values.delivery_method !== "pickup" &&
+      !points.isError &&
+      !selectedPointRef
+    ) {
+      setError("point", { message: "Оберіть відділення зі списку" });
+      return;
+    }
     if (!quote.data) {
       setSubmitError("Дочекайтеся розрахунку замовлення");
       return;
@@ -258,11 +281,16 @@ export function CheckoutForm() {
                   <input
                     type="radio"
                     value={option.value}
-                    {...deliveryMethodField}
                     onChange={(event) => {
-                      void deliveryMethodField.onChange(event);
+                      setValue(
+                        "delivery_method",
+                        event.target.value as typeof option.value,
+                      );
                       setValue("point", "");
+                      setSelectedCityRef(null);
+                      setSelectedPointRef(null);
                     }}
+                    checked={deliveryMethod === option.value}
                   />
                   <span>
                     {option.label}
@@ -276,27 +304,32 @@ export function CheckoutForm() {
               <div className="form-grid">
                 <label className="field">
                   <span>Місто</span>
-                  <input
-                    {...cityField}
-                    autoComplete="address-level2"
-                    list="nova-poshta-cities"
-                    onChange={(event) => {
-                      void cityField.onChange(event);
-                      const selected = cities.data?.find(
-                        (option) =>
-                          option.label === event.target.value ||
-                          option.name === event.target.value,
-                      );
-                      setSelectedCityRef(selected?.ref ?? null);
-                      setValue("point", "");
-                    }}
-                    placeholder="Почніть вводити населений пункт"
+                  <Controller
+                    control={control}
+                    name="city"
+                    render={({ field }) => (
+                      <DeliveryAutocomplete
+                        emptyMessage="Місто не знайдено"
+                        isLoading={cities.isFetching}
+                        minimumQueryLength={2}
+                        onChange={(value) => {
+                          field.onChange(value);
+                          setSelectedCityRef(null);
+                          setSelectedPointRef(null);
+                          setValue("point", "");
+                        }}
+                        onSelect={(option) => {
+                          field.onChange(option.label);
+                          setSelectedCityRef(option.ref);
+                          setSelectedPointRef(null);
+                          setValue("point", "");
+                        }}
+                        options={cities.data ?? []}
+                        placeholder="Почніть вводити місто й оберіть зі списку"
+                        value={field.value}
+                      />
+                    )}
                   />
-                  <datalist id="nova-poshta-cities">
-                    {cities.data?.map((option) => (
-                      <option key={option.ref} value={option.label} />
-                    ))}
-                  </datalist>
                   {errors.city ? <small>{errors.city.message}</small> : null}
                 </label>
                 <label className="field">
@@ -305,26 +338,40 @@ export function CheckoutForm() {
                       ? "Поштомат"
                       : "Відділення"}
                   </span>
-                  <input
-                    {...pointField}
-                    list="nova-poshta-points"
-                    placeholder={
-                      selectedCityRef
-                        ? "Оберіть зі списку або уточніть пошук"
-                        : city.trim().length >= 2
-                          ? "Можна ввести вручну"
-                          : "Спочатку вкажіть місто"
-                    }
-                  />
-                  <datalist id="nova-poshta-points">
-                    {points.data?.map((option) => (
-                      <option
-                        key={option.ref}
-                        label={option.label}
-                        value={option.name}
+                  <Controller
+                    control={control}
+                    name="point"
+                    render={({ field }) => (
+                      <DeliveryAutocomplete
+                        disabled={!selectedCityRef && !cities.isError}
+                        emptyMessage={
+                          deliveryMethod === "nova_poshta_locker"
+                            ? "Поштомат не знайдено"
+                            : "Відділення не знайдено"
+                        }
+                        isLoading={points.isFetching}
+                        onChange={(value) => {
+                          field.onChange(value);
+                          setSelectedPointRef(null);
+                        }}
+                        onSelect={(option) => {
+                          field.onChange(option.label);
+                          setSelectedPointRef(option.ref);
+                        }}
+                        options={points.data ?? []}
+                        placeholder={
+                          selectedCityRef
+                            ? `Почніть вводити номер або адресу й оберіть ${
+                                deliveryMethod === "nova_poshta_locker"
+                                  ? "поштомат"
+                                  : "відділення"
+                              } зі списку`
+                            : "Спочатку оберіть місто зі списку"
+                        }
+                        value={field.value}
                       />
-                    ))}
-                  </datalist>
+                    )}
+                  />
                   {errors.point ? <small>{errors.point.message}</small> : null}
                 </label>
               </div>
@@ -441,7 +488,10 @@ export function CheckoutForm() {
         <div className="promo-form">
           <input
             aria-label="Промокод"
-            onChange={(event) => setPromoInput(event.target.value)}
+            onChange={(event) => {
+              setPromoInput(event.target.value);
+              if (promoCode) setPromoCode(null);
+            }}
             placeholder="Промокод"
             value={promoInput}
           />

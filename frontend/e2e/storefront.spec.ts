@@ -179,14 +179,31 @@ test("checkout explains an invalid promo and suggests Nova Poshta addresses", as
   await expect(
     page.getByText("Промокод недійсний або термін його дії минув."),
   ).toBeVisible();
+  await page.getByLabel("Промокод").fill("correct-me");
+  await expect(
+    page.getByText("Промокод недійсний або термін його дії минув."),
+  ).not.toBeVisible();
 
   await page.getByLabel("Місто").fill("Київ");
-  await expect(page.locator("#nova-poshta-cities option")).toHaveCount(1);
-  await page.getByLabel("Місто").fill("м. Київ, Київська обл.");
   await expect(
-    page.getByRole("combobox", { name: "Відділення" }),
-  ).toBeEnabled();
-  await expect(page.locator("#nova-poshta-points option")).toHaveCount(1);
+    page.getByRole("option", { name: "м. Київ, Київська обл." }),
+  ).toBeVisible();
+  await page.getByLabel("Місто").press("ArrowDown");
+  await page.getByLabel("Місто").press("Enter");
+  const point = page.getByRole("combobox", { name: "Відділення" });
+  await expect(point).toBeEnabled();
+  await expect(point).toHaveAttribute(
+    "placeholder",
+    "Почніть вводити номер або адресу й оберіть відділення зі списку",
+  );
+  await point.fill("12");
+  await expect(
+    page.getByRole("option", { name: "Київ, вул. Хрещатик, 12" }),
+  ).toBeVisible();
+  await point.press("ArrowDown");
+  await point.press("Enter");
+  await expect(point).toHaveValue("Київ, вул. Хрещатик, 12");
+  await expect(page.getByRole("listbox")).toHaveCount(0);
 });
 
 test("favourites and comparison survive route navigation", async ({ page }) => {
