@@ -18,7 +18,7 @@ class TestDashboard:
 
         assert response.status_code == 200, response.text
         body = response.json()
-        assert body["active_products"] == 72
+        assert body["active_products"] == 73
         assert int(body["orders_today"]) >= 0
         assert "revenue_last_7_days" in body
         assert "new_leads" in body

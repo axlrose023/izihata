@@ -13,7 +13,7 @@ class TestGetProducts:
 
         assert response.status_code == 200, response.text
         body = response.json()
-        assert body["total"] == 72
+        assert body["total"] == 73
         assert len(body["items"]) == 10
         assert body["page"] == 1
         assert body["total_pages"] == 8

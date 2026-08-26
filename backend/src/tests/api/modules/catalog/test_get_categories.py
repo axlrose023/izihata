@@ -12,9 +12,9 @@ class TestGetCategories:
         assert response.status_code == 200
         categories = response.json()
         assert len(categories) == 18
-        assert sum(category["product_count"] for category in categories) == 72
+        assert sum(category["product_count"] for category in categories) == 73
         low_voltage = next(item for item in categories if item["slug"] == "lowvoltage")
-        assert low_voltage["product_count"] == 11
+        assert low_voltage["product_count"] == 12
         assert len(low_voltage["subcategories"]) == 14
 
     async def test_rejects_wrong_method(self, client: AsyncClient):
