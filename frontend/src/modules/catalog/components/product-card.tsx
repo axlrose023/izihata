@@ -39,6 +39,11 @@ export function ProductCard({
 
   return (
     <article className="product-card" data-layout={layout}>
+      <Link
+        aria-label={product.name}
+        className="product-card__details-link"
+        to={`/products/${product.slug}`}
+      />
       <div className="product-card__visual">
         {product.badge ? (
           <span className="product-card__badge" data-badge={product.badge}>
@@ -76,9 +81,7 @@ export function ProductCard({
           </span>
           <StatusBadge status={product.stock_status} />
         </div>
-        <Link className="product-card__name" to={`/products/${product.slug}`}>
-          {product.name}
-        </Link>
+        <h3 className="product-card__name">{product.name}</h3>
         {specs.length ? (
           <dl className="product-card__specs">
             {specs.map(([key, value]) => (

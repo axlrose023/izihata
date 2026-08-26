@@ -22,11 +22,10 @@ export function SiteFooter() {
           />
         </div>
         <div>
-          <h3>Про компанію</h3>
-          <span>Про нас</span>
-          <span>Постачальникам</span>
-          <span>Гарантія та повернення</span>
-          <span>Доставка і оплата</span>
+          <h3>Допомога</h3>
+          <Link to="/advisors">Підбір товарів</Link>
+          <Link to="/custom-boards">Щити на замовлення</Link>
+          <LeadAction label="Уточнити доставку і гарантію" type="callback" />
         </div>
         <div>
           <h3>Каталог</h3>

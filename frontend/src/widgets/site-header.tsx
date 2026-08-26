@@ -5,6 +5,7 @@ import {
   LayoutGrid,
   Menu,
   MessageCircle,
+  PanelsTopLeft,
   Phone,
   ShoppingCart,
   UserRound,
@@ -106,6 +107,9 @@ export function SiteHeader() {
           </Link>
           <Link to="/advisors" onClick={() => setMenuOpen(false)}>
             Підбір товарів
+          </Link>
+          <Link to="/custom-boards" onClick={() => setMenuOpen(false)}>
+            <PanelsTopLeft size={17} /> Щити
           </Link>
           <Link to="/account" onClick={() => setMenuOpen(false)}>
             Для бізнесу

@@ -26,14 +26,15 @@ test("public routes render and product navigation works", async ({ page }) => {
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     "Усі товари",
   );
-  const product = page.locator(".product-card__name").first();
+  const product = page.locator(".product-card").first();
   await expect(product).toBeVisible();
+  const productName = await product.locator(".product-card__name").innerText();
   const productRequest = page.waitForResponse(
     (response) =>
       response.url().includes("/api/v1/catalog/products/") &&
       response.status() === 200,
   );
-  await product.click();
+  await product.getByRole("link", { name: productName }).click();
   const productResponse = await productRequest;
   const productBody = (await productResponse.json()) as {
     image_url: string;
@@ -70,6 +71,14 @@ test("public routes render and product navigation works", async ({ page }) => {
     (element) => element.scrollWidth <= element.clientWidth,
   );
   expect(specificationHeadingFits).toBe(true);
+
+  await page.goto("/");
+  if ((page.viewportSize()?.width ?? 1000) <= 820) {
+    await page.getByRole("button", { name: "Відкрити меню" }).click();
+  }
+  await expect(
+    page.getByRole("link", { name: "Щити", exact: true }),
+  ).toHaveAttribute("href", "/custom-boards");
 
   await page.goto("/not-a-real-page");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
