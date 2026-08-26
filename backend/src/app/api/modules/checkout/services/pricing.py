@@ -13,12 +13,14 @@ from app.api.modules.checkout.schema import (
     QuoteResponse,
 )
 from app.api.modules.checkout.utils import round_money
+from app.api.modules.customers.enums import CompanyStatus
 from app.database.uow import UnitOfWork
 
 
 @dataclass(frozen=True, slots=True)
 class PriceContext:
     company_verified: bool = False
+    cumulative_discount_rate: Decimal = Decimal("0")
 
 
 class PricingService:
@@ -47,13 +49,7 @@ class PricingService:
                 code="products_unavailable",
             )
 
-        context = PriceContext(
-            company_verified=(
-                await self._uow.customers.has_approved_company(customer_id)
-                if customer_id is not None
-                else False
-            )
-        )
+        context = await self._get_price_context(customer_id)
         quote_items: list[QuoteItemResponse] = []
         for item in request.items:
             product = products_by_id[item.product_id]
@@ -103,6 +99,18 @@ class PricingService:
             promotion=promotion,
         )
 
+    async def _get_price_context(self, customer_id: UUID | None) -> PriceContext:
+        if customer_id is None:
+            return PriceContext()
+
+        company = await self._uow.customers.get_company_for_customer(customer_id)
+        if company is None or company.status != CompanyStatus.APPROVED:
+            return PriceContext()
+        return PriceContext(
+            company_verified=True,
+            cumulative_discount_rate=company.cumulative_discount_rate,
+        )
+
     @staticmethod
     def _resolve_unit_price(
         product: Product,
@@ -116,5 +124,11 @@ class PricingService:
             and wholesale_min_quantity is not None
             and (context.company_verified or quantity >= wholesale_min_quantity)
         ):
-            return round_money(wholesale_price), QuotePriceType.WHOLESALE
-        return round_money(product.price), QuotePriceType.RETAIL
+            price = wholesale_price
+            price_type = QuotePriceType.WHOLESALE
+        else:
+            price = product.price
+            price_type = QuotePriceType.RETAIL
+
+        discount_multiplier = Decimal("1") - context.cumulative_discount_rate
+        return round_money(price * discount_multiplier), price_type

@@ -89,7 +89,7 @@ class TestCustomersB2B:
             headers=customer_headers,
         )
         assert quote.status_code == 200, quote.text
-        assert quote.json()["items"][0]["unit_price"] == f"{wholesale_price:.2f}"
+        assert quote.json()["items"][0]["unit_price"] == "45.60"
         assert quote.json()["items"][0]["price_type"] == "wholesale"
 
         public_product = await client.get(f"/api/v1/catalog/products/{product.slug}")
