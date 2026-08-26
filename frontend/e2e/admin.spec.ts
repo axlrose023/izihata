@@ -13,7 +13,10 @@ async function login(page: Page) {
 }
 
 async function createProduct(page: Page, testInfo: TestInfo) {
-  await page.goto("/admin/products");
+  await page
+    .locator(".admin-sidebar")
+    .getByRole("link", { name: "Товари" })
+    .click();
 
   const suffix = `${testInfo.project.name}-${Date.now().toString(36)}`;
   const sku = `E2E-${suffix}`.toUpperCase();
@@ -105,15 +108,18 @@ test("staff can manage modules and create and edit a product", async ({
   expect(authRequests).toContain("/api/v1/auth/login");
   expect(authRequests.every((path) => !path.includes("/session/"))).toBe(true);
 
-  for (const [path, heading] of [
-    ["/admin/products", "Товари"],
-    ["/admin/orders", "Замовлення"],
-    ["/admin/leads", "Звернення"],
-    ["/admin/reviews", "Відгуки"],
-    ["/admin/companies", "Компанії"],
-    ["/admin/custom-boards", "Щити на замовлення"],
+  for (const [navigationLabel, heading] of [
+    ["Товари", "Товари"],
+    ["Замовлення", "Замовлення"],
+    ["Звернення", "Звернення"],
+    ["Відгуки", "Відгуки"],
+    ["Компанії", "Компанії"],
+    ["Щити", "Щити на замовлення"],
   ] as const) {
-    await page.goto(path);
+    await page
+      .locator(".admin-sidebar")
+      .getByRole("link", { name: navigationLabel })
+      .click();
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(heading);
     await expect(page.locator(".admin-table")).toBeVisible();
   }
