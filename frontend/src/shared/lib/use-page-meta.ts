@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 
 const APP_NAME = "IZI HATA";
+const trackingParameters = new Set(["fbclid", "gclid", "msclkid"]);
 
 function getOrCreateMeta(name: string): HTMLMetaElement {
   const existing = document.head.querySelector<HTMLMetaElement>(
@@ -26,6 +27,17 @@ function getOrCreateCanonical(): HTMLLinkElement {
   return link;
 }
 
+export function canonicalizeUrl(href: string): string {
+  const url = new URL(href);
+  for (const parameter of [...url.searchParams.keys()]) {
+    if (parameter.startsWith("utm_") || trackingParameters.has(parameter)) {
+      url.searchParams.delete(parameter);
+    }
+  }
+  url.hash = "";
+  return url.toString();
+}
+
 export function usePageMeta({
   title,
   description,
@@ -38,7 +50,7 @@ export function usePageMeta({
   useEffect(() => {
     document.title = `${title} | ${APP_NAME}`;
     getOrCreateMeta("description").content = description;
-    getOrCreateCanonical().href = window.location.href;
+    getOrCreateCanonical().href = canonicalizeUrl(window.location.href);
 
     const script = document.head.querySelector<HTMLScriptElement>(
       'script[data-page-structured-data="true"]',
