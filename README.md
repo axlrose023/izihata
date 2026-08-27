@@ -56,3 +56,20 @@ docker compose exec app cli create-user
 The storefront is served at `http://localhost:3000`; the API remains available
 directly at `http://localhost:18000`. The optional observability profile exposes
 Grafana at `http://localhost:3001`.
+
+## Production deployment
+
+Production uses `compose.production.yml`: Traefik is the only public service,
+terminates TLS, redirects HTTP to HTTPS, serves the storefront, and sends
+`/api` requests straight to FastAPI. PostgreSQL, KeyDB, Taskiq workers, and
+the migration job are private to the Docker network.
+
+```bash
+cp .env.production.example .env.production
+# Set all required values in .env.production, then:
+docker compose -f compose.production.yml up --build -d
+```
+
+The production environment file contains credentials and is intentionally
+ignored by Git. Keep database backups outside this server before treating a
+deployment as recoverable.

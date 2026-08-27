@@ -7,6 +7,20 @@ on:
     branches: [dev, stage, main]
 
 jobs:
+  deployment:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Validate production Compose configuration
+        run: |
+          cp .env.production.example .env.production
+          docker compose --env-file .env.production -f compose.production.yml config >/dev/null
+
   backend:
     runs-on: ubuntu-latest
     permissions:

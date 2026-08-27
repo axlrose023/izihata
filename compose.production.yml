@@ -1,0 +1,202 @@
+name: izihata
+
+x-app: &app
+  build:
+    context: ./backend
+  restart: unless-stopped
+  env_file:
+    - .env.production
+  environment:
+    APP__ENV: prod
+    APP__POSTGRES__HOST: db
+    APP__REDIS__HOST: cache
+    APP__API__ALLOWED_ORIGINS: '["https://izihata.com.ua","https://www.izihata.com.ua"]'
+    APP__API__ALLOWED_HOSTS: '["izihata.com.ua","www.izihata.com.ua","app","localhost","127.0.0.1"]'
+    APP__API__FORWARDED_ALLOW_IPS: '["172.29.0.0/24"]'
+  logging: &default-logging
+    driver: local
+    options:
+      max-size: "10m"
+      max-file: "3"
+  networks:
+    - internal
+  healthcheck:
+    test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:${APP__API__PORT}/health')\""]
+    interval: 10s
+    timeout: 5s
+    retries: 5
+    start_period: 10s
+
+services:
+  traefik:
+    image: traefik:v3.7.1
+    restart: unless-stopped
+    command:
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.network=izihata_proxy
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+      - --certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL:?set ACME_EMAIL in .env.production}
+      - --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
+      - --certificatesresolvers.letsencrypt.acme.tlschallenge=true
+      - --accesslog=true
+      - --api.dashboard=false
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik_data:/letsencrypt
+    logging: *default-logging
+    networks:
+      - proxy
+
+  app:
+    <<: *app
+    networks:
+      - internal
+      - proxy
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: izihata_proxy
+      traefik.http.routers.izihata-api.rule: Host(`izihata.com.ua`) && PathPrefix(`/api`)
+      traefik.http.routers.izihata-api.entrypoints: websecure
+      traefik.http.routers.izihata-api.tls.certresolver: letsencrypt
+      traefik.http.routers.izihata-api.priority: "100"
+      traefik.http.routers.izihata-api.middlewares: izihata-security@docker
+      traefik.http.services.izihata-api.loadbalancer.server.port: "8000"
+    depends_on:
+      cache:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+      migrator:
+        condition: service_completed_successfully
+
+  frontend:
+    build:
+      context: ./frontend
+    restart: unless-stopped
+    logging: *default-logging
+    networks:
+      - proxy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:3000/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    depends_on:
+      app:
+        condition: service_healthy
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: izihata_proxy
+      traefik.http.routers.izihata.rule: Host(`izihata.com.ua`)
+      traefik.http.routers.izihata.entrypoints: websecure
+      traefik.http.routers.izihata.tls.certresolver: letsencrypt
+      traefik.http.routers.izihata.middlewares: izihata-security@docker
+      traefik.http.services.izihata.loadbalancer.server.port: "3000"
+      traefik.http.routers.izihata-www.rule: Host(`www.izihata.com.ua`)
+      traefik.http.routers.izihata-www.entrypoints: websecure
+      traefik.http.routers.izihata-www.tls.certresolver: letsencrypt
+      traefik.http.routers.izihata-www.middlewares: izihata-www-redirect@docker
+      traefik.http.routers.izihata-www.service: noop@internal
+      traefik.http.middlewares.izihata-www-redirect.redirectregex.regex: ^https://www\\.izihata\\.com\\.ua/(.*)
+      traefik.http.middlewares.izihata-www-redirect.redirectregex.replacement: https://izihata.com.ua/$${1}
+      traefik.http.middlewares.izihata-www-redirect.redirectregex.permanent: "true"
+      traefik.http.middlewares.izihata-security.headers.stsSeconds: "31536000"
+      traefik.http.middlewares.izihata-security.headers.stsIncludeSubdomains: "true"
+      traefik.http.middlewares.izihata-security.headers.contentTypeNosniff: "true"
+      traefik.http.middlewares.izihata-security.headers.frameDeny: "true"
+      traefik.http.middlewares.izihata-security.headers.referrerPolicy: strict-origin-when-cross-origin
+      traefik.http.middlewares.izihata-security.headers.permissionsPolicy: geolocation=(), microphone=(), camera=()
+
+  migrator:
+    <<: *app
+    command: [cli, bootstrap]
+    restart: "no"
+    healthcheck:
+      disable: true
+    depends_on:
+      db:
+        condition: service_healthy
+
+  scheduler:
+    <<: *app
+    command: [taskiq, scheduler, "app.tiq:scheduler", "app.tasks"]
+    healthcheck:
+      disable: true
+    depends_on:
+      cache:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+      migrator:
+        condition: service_completed_successfully
+
+  tasks:
+    <<: *app
+    command: [taskiq, worker, "app.tiq:broker", -w, "4", "app.tasks"]
+    healthcheck:
+      disable: true
+    depends_on:
+      cache:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+      migrator:
+        condition: service_completed_successfully
+
+  cache:
+    image: eqalpha/keydb@sha256:6537505c42355ca1f571276bddf83f5b750f760f07b2a185a676481791e388ac # 6.3.4
+    restart: unless-stopped
+    volumes:
+      - cache_data:/data
+    logging: *default-logging
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD", "keydb-cli", "ping"]
+      interval: 5s
+      timeout: 10s
+      retries: 5
+
+  db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${APP__POSTGRES__USER:?set APP__POSTGRES__USER in .env.production}
+      POSTGRES_PASSWORD: ${APP__POSTGRES__PASSWORD:?set APP__POSTGRES__PASSWORD in .env.production}
+      POSTGRES_DB: ${APP__POSTGRES__DB:?set APP__POSTGRES__DB in .env.production}
+    volumes:
+      - db_data:/var/lib/postgresql
+    logging: *default-logging
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${APP__POSTGRES__USER:?set APP__POSTGRES__USER in .env.production}"]
+      interval: 5s
+      timeout: 10s
+      retries: 5
+
+networks:
+  proxy:
+    name: izihata_proxy
+    ipam:
+      config:
+        - subnet: 172.29.0.0/24
+  internal:
+    name: izihata_internal
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24
+
+volumes:
+  traefik_data:
+  db_data:
+  cache_data:
