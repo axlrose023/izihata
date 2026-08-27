@@ -105,7 +105,7 @@ services:
       traefik.http.routers.izihata-www.tls.certresolver: letsencrypt
       traefik.http.routers.izihata-www.middlewares: izihata-www-redirect@docker
       traefik.http.routers.izihata-www.service: izihata
-      traefik.http.middlewares.izihata-www-redirect.redirectregex.regex: ^https://www\\.izihata\\.com\\.ua/(.*)
+      traefik.http.middlewares.izihata-www-redirect.redirectregex.regex: ^https://www\.izihata\.com\.ua/(.*)
       traefik.http.middlewares.izihata-www-redirect.redirectregex.replacement: https://izihata.com.ua/$${1}
       traefik.http.middlewares.izihata-www-redirect.redirectregex.permanent: "true"
       traefik.http.middlewares.izihata-security.headers.stsSeconds: "31536000"
