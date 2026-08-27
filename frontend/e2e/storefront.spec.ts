@@ -308,11 +308,19 @@ test("mobile storefront keeps search, navigation and filters accessible", async 
 
   await page.goto("/");
   await expect(page.locator(".header-search")).toBeVisible();
+  const mobileNavigation = page.getByRole("navigation", {
+    name: "Мобільна навігація",
+  });
+  await expect(mobileNavigation).toBeVisible();
+  await expect(mobileNavigation.getByRole("link")).toHaveCount(4);
   await expect(
-    page.getByRole("navigation", { name: "Мобільна навігація" }),
+    mobileNavigation.getByRole("button", { name: /Кошик/ }),
   ).toBeVisible();
 
   await page.goto("/catalog");
+  await expect(
+    mobileNavigation.getByRole("link", { name: "Каталог" }),
+  ).toHaveAttribute("aria-current", "page");
   await expect(page.getByRole("heading", { name: "Усі товари" })).toBeVisible();
   const filters = page.locator(".filters");
   await page.getByRole("button", { name: "Фільтри" }).click();

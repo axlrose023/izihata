@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 
 import { cartCount, useCartStore } from "@/modules/cart/store";
 import { ProductSearch } from "@/modules/catalog/components/product-search";
@@ -32,6 +32,9 @@ export function SiteHeader() {
   const compareCount = useCollectionStore((state) => state.compare.length);
   const categories = useQuery(categoriesQuery()).data ?? [];
   const { status: customerStatus } = useCustomerAuth();
+  const { pathname } = useLocation();
+  const isCatalogRoute =
+    pathname === "/catalog" || pathname.startsWith("/catalog/");
 
   return (
     <header className="site-header">
@@ -133,20 +136,26 @@ export function SiteHeader() {
         </nav>
       ) : null}
       <nav aria-label="Мобільна навігація" className="mobile-bottom-nav">
-        <Link to="/">
+        <Link aria-current={pathname === "/" ? "page" : undefined} to="/">
           <House size={20} />
           <span>Головна</span>
         </Link>
-        <Link to="/catalog">
+        <Link aria-current={isCatalogRoute ? "page" : undefined} to="/catalog">
           <LayoutGrid size={20} />
           <span>Каталог</span>
         </Link>
-        <Link to="/favorites">
+        <Link
+          aria-current={pathname === "/favorites" ? "page" : undefined}
+          to="/favorites"
+        >
           <Heart size={20} />
           <span>Обране</span>
           {favoriteCount ? <b>{favoriteCount}</b> : null}
         </Link>
-        <Link to="/account">
+        <Link
+          aria-current={pathname.startsWith("/account") ? "page" : undefined}
+          to="/account"
+        >
           <UserRound size={20} />
           <span>Кабінет</span>
         </Link>
