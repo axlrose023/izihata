@@ -12,7 +12,7 @@ def main() -> None:
         port=config.api.port,
         reload=reload,
         factory=True,
-        reload_dirs=["src/app/"],
+        reload_dirs=["src/app/"] if reload else None,
         proxy_headers=True,
         forwarded_allow_ips=",".join(config.api.forwarded_allow_ips),
     )
