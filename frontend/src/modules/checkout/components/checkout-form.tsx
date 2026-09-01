@@ -1,6 +1,13 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery } from "@tanstack/react-query";
-import { Check, LoaderCircle, ShoppingBag } from "lucide-react";
+import {
+  Check,
+  LoaderCircle,
+  Minus,
+  Plus,
+  ShoppingBag,
+  Trash2,
+} from "lucide-react";
 import { useDeferredValue, useEffect, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
@@ -10,6 +17,7 @@ import { useCartStore } from "@/modules/cart/store";
 import { DeliveryAutocomplete } from "@/modules/checkout/components/delivery-autocomplete";
 import { apiClient } from "@/shared/api/client";
 import { getUserErrorMessage } from "@/shared/api/errors";
+import { useDebouncedValue } from "@/shared/lib/use-debounced-value";
 import { formatMoney } from "@/shared/lib/format";
 import type {
   DeliveryCityOption,
@@ -92,6 +100,8 @@ export function CheckoutForm() {
   const navigate = useNavigate();
   const lines = useCartStore((state) => state.lines);
   const clearCart = useCartStore((state) => state.clear);
+  const setQuantity = useCartStore((state) => state.setQuantity);
+  const removeLine = useCartStore((state) => state.remove);
   const [promoInput, setPromoInput] = useState("");
   const [promoCode, setPromoCode] = useState<string | null>(null);
   const [selectedCityRef, setSelectedCityRef] = useState<string | null>(null);
@@ -154,13 +164,20 @@ export function CheckoutForm() {
     product_id: line.product.id,
     quantity: line.quantity,
   }));
+  // Quantity edits happen in bursts; only the settled basket is re-quoted.
+  const serializedItems = JSON.stringify(items);
+  const quotedItems = useDebouncedValue(serializedItems, 350);
+  const quoteIsStale = serializedItems !== quotedItems;
   const quote = useQuery({
-    queryKey: ["quote", items, promoCode],
+    queryKey: ["quote", quotedItems, promoCode],
     enabled: items.length > 0,
     queryFn: () =>
       apiClient<Quote>("/checkout/quote", {
         method: "POST",
-        body: JSON.stringify({ items, promo_code: promoCode }),
+        body: JSON.stringify({
+          items: JSON.parse(quotedItems) as typeof items,
+          promo_code: promoCode,
+        }),
       }),
   });
 
@@ -199,7 +216,7 @@ export function CheckoutForm() {
       setError("point", { message: "Оберіть відділення зі списку" });
       return;
     }
-    if (!quote.data) {
+    if (!quote.data || quoteIsStale) {
       setSubmitError("Дочекайтеся розрахунку замовлення");
       return;
     }
@@ -455,10 +472,12 @@ export function CheckoutForm() {
         ) : null}
         <button
           className="button button--primary button--wide checkout-submit"
-          disabled={isSubmitting || quote.isLoading || !quote.data}
+          disabled={
+            isSubmitting || quote.isLoading || !quote.data || quoteIsStale
+          }
           type="submit"
         >
-          {isSubmitting ? (
+          {isSubmitting || quoteIsStale ? (
             <LoaderCircle className="spin" size={19} />
           ) : (
             <Check size={19} />
@@ -474,14 +493,42 @@ export function CheckoutForm() {
         </div>
         <div className="order-summary__items">
           {lines.map((line) => (
-            <div key={line.product.id}>
-              <span>
+            <div className="order-summary__line" key={line.product.id}>
+              <span className="order-summary__line-name">
                 {line.product.name}
-                <small>{line.quantity} шт.</small>
               </span>
+              <div className="quantity-control">
+                <button
+                  aria-label={`Зменшити кількість: ${line.product.name}`}
+                  onClick={() =>
+                    setQuantity(line.product.id, line.quantity - 1)
+                  }
+                  type="button"
+                >
+                  <Minus size={14} />
+                </button>
+                <span>{line.quantity}</span>
+                <button
+                  aria-label={`Збільшити кількість: ${line.product.name}`}
+                  onClick={() =>
+                    setQuantity(line.product.id, line.quantity + 1)
+                  }
+                  type="button"
+                >
+                  <Plus size={14} />
+                </button>
+              </div>
               <strong>
                 {formatMoney(Number(line.product.price) * line.quantity)}
               </strong>
+              <button
+                aria-label={`Видалити товар: ${line.product.name}`}
+                className="order-summary__remove"
+                onClick={() => removeLine(line.product.id)}
+                type="button"
+              >
+                <Trash2 size={15} />
+              </button>
             </div>
           ))}
         </div>
