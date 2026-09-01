@@ -6,7 +6,7 @@ import { ProductVisual } from "@/modules/catalog/components/product-visual";
 import { apiClient } from "@/shared/api/client";
 import { buildQuery } from "@/shared/api/query";
 import { formatMoney } from "@/shared/lib/format";
-import type { Product, ProductList } from "@/shared/types/api";
+import type { Product } from "@/shared/types/api";
 
 import { cartCount, useCartStore } from "../store";
 
@@ -15,7 +15,7 @@ export function CartDrawer() {
   const [recommendations, setRecommendations] = useState<Product[]>([]);
   const recommendationKey = useMemo(() => {
     if (!isOpen || !lines.length) return null;
-    return `${lines[0].product.category.slug}:${lines.map((line) => line.product.id).join(",")}`;
+    return lines.map((line) => line.product.id).join(",");
   }, [isOpen, lines]);
   const total = lines.reduce(
     (sum, line) => sum + Number(line.product.price) * line.quantity,
@@ -27,18 +27,13 @@ export function CartDrawer() {
       return;
     }
     const controller = new AbortController();
-    const [category] = recommendationKey.split(":");
-    const selectedIds = new Set(lines.map((line) => line.product.id));
-    void apiClient<ProductList>(
-      `/catalog/products${buildQuery({ category, page_size: 6, sort: "popular" })}`,
+    // "Bought together" is curated in the admin panel, not inferred here.
+    void apiClient<Product[]>(
+      `/catalog/recommendations${buildQuery({ id: recommendationKey.split(",") })}`,
       { signal: controller.signal },
     )
       .then((result) => {
-        setRecommendations(
-          result.items
-            .filter((product) => !selectedIds.has(product.id))
-            .slice(0, 2),
-        );
+        setRecommendations(result.slice(0, 3));
       })
       .catch((error: unknown) => {
         if (!(error instanceof DOMException && error.name === "AbortError")) {
@@ -46,7 +41,7 @@ export function CartDrawer() {
         }
       });
     return () => controller.abort();
-  }, [lines, recommendationKey]);
+  }, [recommendationKey]);
 
   if (!isOpen) return null;
 

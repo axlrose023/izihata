@@ -82,6 +82,16 @@ export const productFormSchema = z
       .trim()
       .regex(/^\d*$/, "Вкажіть ціле число"),
     specs: z.array(productSpecSchema).max(30),
+    relations: z
+      .array(
+        z.object({
+          product_id: z.string().min(1),
+          kind: z.enum(["related", "alternative", "bought_together"]),
+          name: z.string(),
+          sku: z.string(),
+        }),
+      )
+      .max(30),
   })
   .superRefine((values, context) => {
     if (values.old_price && Number(values.old_price) < Number(values.price)) {
@@ -108,6 +118,17 @@ export const productFormSchema = z
         code: "custom",
         path: ["wholesale_price"],
         message: "Гуртова ціна має бути нижча за роздрібну",
+      });
+    }
+
+    const relationKeys = values.relations.map(
+      ({ product_id, kind }) => `${kind}:${product_id}`,
+    );
+    if (new Set(relationKeys).size !== relationKeys.length) {
+      context.addIssue({
+        code: "custom",
+        path: ["relations"],
+        message: "Товар не може повторюватися в одній групі",
       });
     }
 
@@ -145,4 +166,5 @@ export const productFormDefaults: ProductFormValues = {
   wholesale_price: "",
   wholesale_min_quantity: "",
   specs: [],
+  relations: [],
 };

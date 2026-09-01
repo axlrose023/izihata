@@ -106,6 +106,20 @@ export interface ProductReview {
   created_at: string;
 }
 
+export interface AdminProductRelation {
+  product_id: string;
+  kind: ProductRelationKind;
+  position: number;
+  name: string;
+  sku: string;
+}
+
+export interface AdminProductDetail extends Product {
+  wholesale_price: string | null;
+  description: string | null;
+  relations: AdminProductRelation[];
+}
+
 export interface ProductDetail extends Product {
   description: string | null;
   media: ProductMedia[];
