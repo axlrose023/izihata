@@ -4,6 +4,10 @@ from dishka import AsyncContainer, Provider, Scope, make_async_container, provid
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.modules.activity.service import (
+    VisitorQueryService,
+    VisitorTrackingService,
+)
 from app.api.modules.admin.service import DashboardService
 from app.api.modules.advisors.service import ElectricalAdvisorService
 from app.api.modules.auth.service import (
@@ -110,6 +114,14 @@ class ServicesProvider(Provider):
         client: NovaPoshtaClient,
     ) -> DeliveryLocationService:
         return DeliveryLocationService(client)
+
+    @provide(scope=Scope.REQUEST)
+    def get_visitor_tracking_service(self, uow: UnitOfWork) -> VisitorTrackingService:
+        return VisitorTrackingService(uow)
+
+    @provide(scope=Scope.REQUEST)
+    def get_visitor_query_service(self, uow: UnitOfWork) -> VisitorQueryService:
+        return VisitorQueryService(uow)
 
     @provide(scope=Scope.REQUEST)
     def get_electrical_advisor_service(

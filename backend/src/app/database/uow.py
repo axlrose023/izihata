@@ -3,6 +3,7 @@ from typing import Self
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.modules.activity.gateway import VisitorGateway
 from app.api.modules.admin.gateway import DashboardGateway
 from app.api.modules.auth.gateway import AuthSessionGateway
 from app.api.modules.catalog.gateway import CategoryGateway, ProductGateway
@@ -17,6 +18,7 @@ from app.api.modules.users.gateway import UserGateway
 
 class UnitOfWork:
     dashboard: DashboardGateway
+    visitors: VisitorGateway
     auth_sessions: AuthSessionGateway
     users: UserGateway
     categories: CategoryGateway
@@ -31,6 +33,7 @@ class UnitOfWork:
     def __init__(self, session: AsyncSession):
         self.session = session
         self.dashboard = DashboardGateway(session)
+        self.visitors = VisitorGateway(session)
         self.auth_sessions = AuthSessionGateway(session)
         self.users = UserGateway(session)
         self.categories = CategoryGateway(session)
