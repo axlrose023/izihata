@@ -1,4 +1,5 @@
 import {
+  Check,
   GitCompareArrows,
   Heart,
   Minus,
@@ -7,7 +8,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
-import { useCartStore } from "@/modules/cart/store";
+import { cartQuantityOf, useCartStore } from "@/modules/cart/store";
 import { useCollectionStore } from "@/modules/collections/store";
 import { LeadAction } from "@/modules/leads/components/lead-action";
 import type { Product } from "@/shared/types/api";
@@ -16,6 +17,10 @@ import { StockSubscriptionForm } from "./stock-subscription-form";
 
 export function ProductActions({ product }: { product: Product }) {
   const add = useCartStore((state) => state.add);
+  const openCart = useCartStore((state) => state.open);
+  const inCart = useCartStore((state) =>
+    cartQuantityOf(state.lines, product.id),
+  );
   const favorites = useCollectionStore((state) => state.favorites);
   const compare = useCollectionStore((state) => state.compare);
   const toggleFavorite = useCollectionStore((state) => state.toggleFavorite);
@@ -66,12 +71,20 @@ export function ProductActions({ product }: { product: Product }) {
         <StockSubscriptionForm slug={product.slug} />
       ) : (
         <>
+          {inCart ? (
+            <p className="product-in-cart-note">
+              <Check size={16} /> Уже в кошику: {inCart} шт.{" "}
+              <button onClick={openCart} type="button">
+                Перейти в кошик
+              </button>
+            </p>
+          ) : null}
           <button
             className="button button--primary button--wide"
             onClick={() => add(product, quantity)}
             type="button"
           >
-            <ShoppingCart size={19} /> Додати в кошик
+            <ShoppingCart size={19} /> {inCart ? "Додати ще" : "Додати в кошик"}
           </button>
           <LeadAction
             className="button button--outline button--wide"

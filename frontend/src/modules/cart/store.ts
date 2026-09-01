@@ -67,3 +67,6 @@ export const useCartStore = create<CartState>()(
 
 export const cartCount = (lines: CartLine[]) =>
   lines.reduce((total, line) => total + line.quantity, 0);
+
+export const cartQuantityOf = (lines: CartLine[], productId: string) =>
+  lines.find((line) => line.product.id === productId)?.quantity ?? 0;

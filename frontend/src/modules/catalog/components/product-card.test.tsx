@@ -66,6 +66,21 @@ describe("ProductCard", () => {
     expect(screen.getByLabelText(/Рейтинг 4.8 з 5/)).toBeInTheDocument();
   });
 
+  it("marks the product as already added to the cart", () => {
+    useCartStore.setState({ lines: [{ product, quantity: 3 }], isOpen: false });
+    render(
+      <MemoryRouter>
+        <ProductCard product={product} />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText("У кошику: 3 шт.")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Перейти в кошик" }));
+
+    expect(useCartStore.getState().isOpen).toBe(true);
+    expect(useCartStore.getState().lines[0].quantity).toBe(3);
+  });
+
   it("falls back to a category illustration when an image fails", () => {
     render(
       <MemoryRouter>

@@ -1,7 +1,7 @@
-import { GitCompareArrows, Heart, ShoppingCart } from "lucide-react";
+import { Check, GitCompareArrows, Heart, ShoppingCart } from "lucide-react";
 import { Link } from "react-router-dom";
 
-import { useCartStore } from "@/modules/cart/store";
+import { cartQuantityOf, useCartStore } from "@/modules/cart/store";
 import { useCollectionStore } from "@/modules/collections/store";
 import { LeadAction } from "@/modules/leads/components/lead-action";
 import { formatMoney } from "@/shared/lib/format";
@@ -28,6 +28,10 @@ export function ProductCard({
   layout?: "grid" | "list";
 }) {
   const add = useCartStore((state) => state.add);
+  const openCart = useCartStore((state) => state.open);
+  const inCart = useCartStore((state) =>
+    cartQuantityOf(state.lines, product.id),
+  );
   const favorites = useCollectionStore((state) => state.favorites);
   const compare = useCollectionStore((state) => state.compare);
   const toggleFavorite = useCollectionStore((state) => state.toggleFavorite);
@@ -38,12 +42,11 @@ export function ProductCard({
   const unavailable = product.stock_status === "out_of_stock";
 
   return (
-    <article className="product-card" data-layout={layout}>
-      <Link
-        aria-label={product.name}
-        className="product-card__details-link"
-        to={`/products/${product.slug}`}
-      />
+    <article
+      className="product-card"
+      data-in-cart={inCart ? "true" : undefined}
+      data-layout={layout}
+    >
       <div className="product-card__visual">
         {product.badge ? (
           <span className="product-card__badge" data-badge={product.badge}>
@@ -81,7 +84,14 @@ export function ProductCard({
           </span>
           <StatusBadge status={product.stock_status} />
         </div>
-        <h3 className="product-card__name">{product.name}</h3>
+        <h3 className="product-card__name">
+          <Link to={`/products/${product.slug}`}>{product.name}</Link>
+        </h3>
+        {inCart ? (
+          <span className="product-card__in-cart">
+            <Check size={14} /> У кошику: {inCart} шт.
+          </span>
+        ) : null}
         {specs.length ? (
           <dl className="product-card__specs">
             {specs.map(([key, value]) => (
@@ -107,13 +117,14 @@ export function ProductCard({
             {!unavailable ? (
               <>
                 <button
-                  aria-label="Додати в кошик"
+                  aria-label={inCart ? "Перейти в кошик" : "Додати в кошик"}
                   className="cart-add"
-                  onClick={() => add(product)}
+                  data-in-cart={inCart ? "true" : undefined}
+                  onClick={() => (inCart ? openCart() : add(product))}
                   type="button"
                 >
-                  <ShoppingCart size={19} />
-                  <span>В кошик</span>
+                  {inCart ? <Check size={19} /> : <ShoppingCart size={19} />}
+                  <span>{inCart ? "У кошику" : "В кошик"}</span>
                 </button>
                 <LeadAction
                   className="quick-buy-button"
