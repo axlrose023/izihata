@@ -20,6 +20,7 @@ from app.api.modules.catalog.models import (
     Subcategory,
 )
 from app.api.modules.catalog.schema import (
+    AdminProductDetailResponse,
     AdminProductResponse,
     CreateProductRequest,
     ProductDocumentInput,
@@ -34,6 +35,13 @@ from app.database.uow import UnitOfWork
 class ProductManagementService:
     def __init__(self, uow: UnitOfWork):
         self._uow = uow
+
+    async def get_product(self, product_id: UUID) -> AdminProductDetailResponse:
+        product = await self._uow.products.get_by_id(product_id)
+        if product is None:
+            raise NotFoundError("Product not found", code="product_not_found")
+        relations = await self._uow.products.list_relations(product_id)
+        return AdminProductDetailResponse.from_product(product, relations)
 
     async def _replace_specs(
         self,

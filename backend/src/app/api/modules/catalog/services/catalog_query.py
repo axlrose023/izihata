@@ -115,6 +115,16 @@ class CatalogQueryService:
             bought_together=list(bought_together),
         )
 
+    async def get_recommendations(
+        self,
+        product_ids: list[UUID],
+    ) -> list[ProductResponse]:
+        products = await self._uow.products.list_related_to_any(
+            set(product_ids),
+            ProductRelationKind.BOUGHT_TOGETHER,
+        )
+        return [ProductResponse.from_product(product) for product in products]
+
     async def get_featured_reviews(self) -> list[ProductReviewResponse]:
         reviews = await self._uow.products.list_featured_reviews()
         return [ProductReviewResponse.from_review(review) for review in reviews]

@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
@@ -23,6 +24,7 @@ from app.api.modules.catalog.models import (
     Product,
     ProductDocument,
     ProductMedia,
+    ProductRelation,
     ProductReview,
 )
 from app.api.modules.catalog.utils import (
@@ -439,6 +441,28 @@ class ProductRelationInput(StrictSchema):
     position: int = Field(default=0, ge=0, le=100)
 
 
+class AdminProductRelationResponse(StrictSchema):
+    product_id: UUID
+    kind: ProductRelationKind
+    position: int
+    name: str
+    sku: str
+
+    @classmethod
+    def from_relation(
+        cls,
+        relation: ProductRelation,
+        target: Product,
+    ) -> "AdminProductRelationResponse":
+        return cls(
+            product_id=target.id,
+            kind=relation.kind,
+            position=relation.position,
+            name=target.name,
+            sku=target.sku,
+        )
+
+
 class AdminProductResponse(ProductResponse):
     wholesale_price: Decimal | None
 
@@ -447,6 +471,27 @@ class AdminProductResponse(ProductResponse):
         return cls(
             **ProductResponse.from_product(product).model_dump(),
             wholesale_price=product.wholesale_price,
+        )
+
+
+class AdminProductDetailResponse(AdminProductResponse):
+    description: str | None
+    relations: list[AdminProductRelationResponse]
+
+    @classmethod
+    def from_product(  # type: ignore[override]
+        cls,
+        product: Product,
+        relations: Sequence[tuple[ProductRelation, Product]] = (),
+    ) -> "AdminProductDetailResponse":
+        summary = AdminProductResponse.from_product(product)
+        return cls(
+            **summary.model_dump(),
+            description=product.description,
+            relations=[
+                AdminProductRelationResponse.from_relation(relation, target)
+                for relation, target in relations
+            ],
         )
 
 
