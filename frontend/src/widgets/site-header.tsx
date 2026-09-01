@@ -10,11 +10,12 @@ import {
   Phone,
   ShoppingCart,
   UserRound,
-  X,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
+
+import { SiteSidebar } from "./site-sidebar";
 
 import { cartCount, useCartStore } from "@/modules/cart/store";
 import { ProductSearch } from "@/modules/catalog/components/product-search";
@@ -56,22 +57,31 @@ export function SiteHeader() {
         <button
           aria-expanded={menuOpen}
           aria-label="Відкрити меню"
-          className="mobile-menu-button icon-button"
-          onClick={() => setMenuOpen((value) => !value)}
+          className="menu-button"
+          onClick={() => setMenuOpen(true)}
           type="button"
         >
-          {menuOpen ? <X /> : <Menu />}
+          <Menu size={20} />
+          <span>Меню</span>
         </button>
         <Logo />
         <ProductSearch />
         <div className="header-actions">
           <Link
-            aria-label="Особистий кабінет"
+            aria-label={
+              customerStatus === "authenticated"
+                ? "Особистий кабінет"
+                : "Увійти до кабінету"
+            }
             className="header-actions__account"
-            to="/account"
+            to={
+              customerStatus === "authenticated" ? "/account" : "/account/login"
+            }
           >
             <UserRound />
-            {customerStatus === "authenticated" ? <b>Кабінет</b> : null}
+            <span>
+              {customerStatus === "authenticated" ? "Кабінет" : "Увійти"}
+            </span>
           </Link>
           <Link
             aria-label="Підбір товарів і калькулятори"
@@ -107,33 +117,20 @@ export function SiteHeader() {
           </button>
         </div>
       </div>
-      <nav className="catalog-nav" data-open={menuOpen || undefined}>
+      <SiteSidebar onClose={() => setMenuOpen(false)} open={menuOpen} />
+      <nav className="catalog-nav">
         <div className="container catalog-nav__inner">
-          <Link
-            className="catalog-nav__primary"
-            to="/catalog"
-            onClick={() => setMenuOpen(false)}
-          >
+          <Link className="catalog-nav__primary" to="/catalog">
             <Menu size={18} /> Усі товари
           </Link>
-          <Link to="/catalog?sort=popular" onClick={() => setMenuOpen(false)}>
-            Популярне
-          </Link>
-          <Link to="/catalog?sort=newest" onClick={() => setMenuOpen(false)}>
-            Новинки
-          </Link>
-          <Link to="/catalog?in_stock=true" onClick={() => setMenuOpen(false)}>
-            В наявності
-          </Link>
-          <Link to="/advisors" onClick={() => setMenuOpen(false)}>
-            Підбір товарів
-          </Link>
-          <Link to="/custom-boards" onClick={() => setMenuOpen(false)}>
+          <Link to="/catalog?sort=popular">Популярне</Link>
+          <Link to="/catalog?sort=newest">Новинки</Link>
+          <Link to="/catalog?in_stock=true">В наявності</Link>
+          <Link to="/advisors">Підбір товарів</Link>
+          <Link to="/custom-boards">
             <PanelsTopLeft size={17} /> Щити
           </Link>
-          <Link to="/account" onClick={() => setMenuOpen(false)}>
-            Для бізнесу
-          </Link>
+          <Link to="/account">Для бізнесу</Link>
           <LeadAction
             className="nav-callback"
             label="Замовити дзвінок"
