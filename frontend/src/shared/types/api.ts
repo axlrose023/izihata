@@ -241,6 +241,20 @@ export interface Paginated<T> {
   has_prev: boolean;
 }
 
+export interface SiteVisitor {
+  id: string;
+  first_seen_at: string;
+  last_seen_at: string;
+  page_views: number;
+  orders_count: number;
+  leads_count: number;
+  last_path: string | null;
+  name: string | null;
+  phone: string | null;
+  customer_id: string | null;
+  is_registered: boolean;
+}
+
 export interface Lead {
   id: string;
   type: LeadType;

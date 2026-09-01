@@ -4,6 +4,7 @@ import { OrdersView } from "@/modules/admin/components/orders-view";
 import { ProductsView } from "@/modules/admin/components/products-view";
 import { AdminReviewsView } from "@/modules/catalog/components/admin-reviews-view";
 import { AdminBoardRequestsView } from "@/modules/custom-boards/components/admin-board-requests-view";
+import { AdminActivityView } from "@/modules/activity/components/admin-activity-view";
 import { AdminCompaniesView } from "@/modules/customers/components/admin-companies-view";
 import { useDocumentTitle } from "@/shared/lib/use-document-title";
 
@@ -85,6 +86,19 @@ export function AdminReviewsPage() {
         description="Публікуйте перевірені відгуки або відхиляйте некоректні."
       />
       <AdminReviewsView />
+    </div>
+  );
+}
+
+export function AdminActivityPage() {
+  return (
+    <div className="admin-page">
+      <PageHeader
+        eyebrow="Відвідувачі"
+        title="Активність"
+        description="Хто заходив на сайт, коли востаннє й за яким номером можна передзвонити."
+      />
+      <AdminActivityView />
     </div>
   );
 }

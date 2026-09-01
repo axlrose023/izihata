@@ -3472,6 +3472,67 @@ h2 {
 .product-form .field--wide {
   grid-column: 1 / -1;
 }
+.admin-activity__filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.admin-activity__search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding-left: 11px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: #fff;
+}
+.admin-activity__search svg {
+  flex-shrink: 0;
+  color: var(--ink-soft);
+}
+.admin-activity__search input {
+  width: 230px;
+  max-width: 45vw;
+  height: 100%;
+  border: 0;
+  background: transparent;
+}
+.admin-activity__toggle {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+.admin-activity__call {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--blue);
+  font-weight: 800;
+}
+.admin-activity__empty {
+  padding: 22px;
+  color: var(--ink-soft);
+  font-size: 0.78rem;
+  text-align: center;
+}
+.admin-activity .pagination button {
+  padding: 7px 14px;
+  color: var(--blue);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  font-size: 0.74rem;
+  font-weight: 750;
+}
+.admin-activity .pagination button:disabled {
+  color: var(--ink-soft);
+  background: var(--surface);
+}
 .product-relations {
   min-width: 0;
   display: grid;

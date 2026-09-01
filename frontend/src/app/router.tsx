@@ -164,6 +164,13 @@ export const router = createBrowserRouter([
             }),
           },
           {
+            path: "activity",
+            lazy: async () => ({
+              Component: (await import("@/pages/admin/admin-pages"))
+                .AdminActivityPage,
+            }),
+          },
+          {
             path: "companies",
             lazy: async () => ({
               Component: (await import("@/pages/admin/admin-pages"))
