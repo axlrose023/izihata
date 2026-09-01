@@ -4,6 +4,7 @@ import { StoreHydrator } from "@/shared/ui/store-hydrator";
 import { ScrollToTop } from "./scroll-to-top";
 import { SiteFooter } from "./site-footer";
 import { SiteHeader } from "./site-header";
+import { SupportButton } from "./support-button";
 
 export function StoreShell() {
   return (
@@ -15,6 +16,7 @@ export function StoreShell() {
       </main>
       <SiteFooter />
       <CartDrawer />
+      <SupportButton />
       <ScrollToTop />
     </>
   );
