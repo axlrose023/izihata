@@ -1,4 +1,5 @@
 import { useQueries } from "@tanstack/react-query";
+import { useState } from "react";
 import {
   Calculator,
   PackageCheck,
@@ -22,6 +23,7 @@ import { CategoryIcon } from "@/shared/ui/category-icon";
 import { TestimonialsSection } from "@/modules/reviews/components/testimonials-section";
 
 export function HomePage() {
+  const [allCategoriesShown, setAllCategoriesShown] = useState(false);
   useDocumentTitle();
   const [sectionsResult, categoriesResult, productsResult, reviewsResult] =
     useQueries({
@@ -124,33 +126,33 @@ export function HomePage() {
           <Link to="/catalog">Дивитися все →</Link>
         </div>
         <div className="category-grid">
-          {categories.slice(0, 8).map((category) => (
-            <Link
-              className="category-card"
-              key={category.id}
-              style={{ "--accent": category.accent } as React.CSSProperties}
-              to={`/catalog/${category.slug}`}
-            >
-              <CategoryIcon size={38} slug={category.slug} />
-              <strong>{category.name}</strong>
-              <span>{category.product_count} товарів</span>
-            </Link>
-          ))}
-        </div>
-        <div className="all-categories">
-          <div className="all-categories__heading">
-            <strong>Усі напрями каталогу</strong>
-            <span>{categories.length} напрямів</span>
-          </div>
-          <div className="all-categories__grid">
-            {categories.map((category) => (
-              <Link key={category.id} to={`/catalog/${category.slug}`}>
-                <CategoryIcon size={22} slug={category.slug} />
-                <span>{category.name}</span>
+          {(allCategoriesShown ? categories : categories.slice(0, 5)).map(
+            (category) => (
+              <Link
+                className="category-card"
+                key={category.id}
+                style={{ "--accent": category.accent } as React.CSSProperties}
+                to={`/catalog/${category.slug}`}
+              >
+                <CategoryIcon size={38} slug={category.slug} />
+                <strong>{category.name}</strong>
+                <span>{category.product_count} товарів</span>
               </Link>
-            ))}
-          </div>
+            ),
+          )}
         </div>
+        {categories.length > 5 ? (
+          <button
+            aria-expanded={allCategoriesShown}
+            className="show-all-button"
+            onClick={() => setAllCategoriesShown((value) => !value)}
+            type="button"
+          >
+            {allCategoriesShown
+              ? "Згорнути"
+              : `Показати всі напрями (${categories.length})`}
+          </button>
+        ) : null}
       </section>
 
       <section aria-label="Переваги оформлення" className="trust-strip">
