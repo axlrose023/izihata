@@ -1,4 +1,10 @@
-import type { Product, ProductBadge, StockStatus } from "@/shared/types/api";
+import type {
+  AdminProductDetail,
+  AdminProductRelation,
+  Product,
+  ProductBadge,
+  StockStatus,
+} from "@/shared/types/api";
 
 export type AdminRequest = <T>(path: string, init?: RequestInit) => Promise<T>;
 
@@ -22,6 +28,18 @@ export interface CreateProductPayload {
   wholesale_price?: string;
   wholesale_min_quantity?: number;
   specs: Record<string, string>;
+  relations?: Array<
+    Pick<AdminProductRelation, "product_id" | "kind"> & {
+      position: number;
+    }
+  >;
+}
+
+export function fetchAdminProduct(
+  request: AdminRequest,
+  productId: string,
+): Promise<AdminProductDetail> {
+  return request(`/admin/catalog/products/${productId}`);
 }
 
 export function createAdminProduct(

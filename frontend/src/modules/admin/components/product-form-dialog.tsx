@@ -6,8 +6,10 @@ import { useFieldArray, useForm, useWatch } from "react-hook-form";
 
 import {
   createAdminProduct,
+  fetchAdminProduct,
   updateAdminProductDetails,
 } from "@/modules/admin/api/admin-catalog";
+import { ProductRelationsField } from "@/modules/admin/components/product-relations-field";
 import {
   productFormDefaults,
   productFormSchema,
@@ -19,11 +21,14 @@ import {
   categoriesQuery,
 } from "@/modules/catalog/api/catalog-queries";
 import { getUserErrorMessage } from "@/shared/api/errors";
-import type { Product } from "@/shared/types/api";
+import type { AdminProductDetail, Product } from "@/shared/types/api";
 import { Modal } from "@/shared/ui/modal";
 
-function productValues(product: Product | null): ProductFormValues {
+function productValues(
+  product: Product | AdminProductDetail | null,
+): ProductFormValues {
   if (!product) return productFormDefaults;
+  const detail = "relations" in product ? product : null;
   return {
     category_id: product.category.id,
     subcategory_id: product.subcategory?.id ?? "",
@@ -33,7 +38,7 @@ function productValues(product: Product | null): ProductFormValues {
     brand_country: product.brand_country ?? "",
     production_country: product.production_country ?? "",
     short_description: product.short_description ?? "",
-    description: "",
+    description: detail?.description ?? "",
     image_url: product.image_url ?? "",
     price: product.price,
     old_price: product.old_price ?? "",
@@ -41,12 +46,19 @@ function productValues(product: Product | null): ProductFormValues {
     stock_status: product.stock_status,
     availability_days: product.availability.lead_time_days?.toString() ?? "",
     sale_unit: product.sale_unit,
-    wholesale_price: "",
-    wholesale_min_quantity: "",
+    wholesale_price: detail?.wholesale_price ?? "",
+    wholesale_min_quantity: product.wholesale_min_quantity?.toString() ?? "",
     specs: Object.entries(product.specs).map(([key, value]) => ({
       key,
       value,
     })),
+    relations:
+      detail?.relations.map(({ product_id, kind, name, sku }) => ({
+        product_id,
+        kind,
+        name,
+        sku,
+      })) ?? [],
   };
 }
 
@@ -62,6 +74,11 @@ export function ProductFormDialog({
   const { request } = useAuth();
   const queryClient = useQueryClient();
   const categories = useQuery({ ...categoriesQuery(), enabled: open });
+  const detail = useQuery({
+    queryKey: ["admin", "product", product?.id],
+    enabled: open && Boolean(product),
+    queryFn: () => fetchAdminProduct(request, product?.id ?? ""),
+  });
   const {
     control,
     register,
@@ -83,10 +100,16 @@ export function ProductFormDialog({
     (category) => category.id === categoryId,
   );
   const categoryField = register("category_id");
+  const relations = useWatch({ control, name: "relations" }) ?? [];
 
   useEffect(() => {
-    if (open) reset(productValues(product));
-  }, [open, product, reset]);
+    if (!open) return;
+    if (!product) {
+      reset(productValues(null));
+      return;
+    }
+    reset(productValues(detail.data ?? product));
+  }, [detail.data, open, product, reset]);
 
   const close = () => {
     if (isSubmitting) return;
@@ -132,6 +155,11 @@ export function ProductFormDialog({
         specs: Object.fromEntries(
           values.specs.map(({ key, value }) => [key.trim(), value.trim()]),
         ),
+        relations: values.relations.map(({ product_id, kind }, index) => ({
+          product_id,
+          kind,
+          position: index,
+        })),
       };
       if (product) {
         await updateAdminProductDetails(request, product.id, payload);
@@ -140,6 +168,7 @@ export function ProductFormDialog({
       }
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["admin", "products"] }),
+        queryClient.invalidateQueries({ queryKey: ["admin", "product"] }),
         queryClient.invalidateQueries({ queryKey: catalogKeys.all }),
       ]);
       reset(productFormDefaults);
@@ -347,6 +376,14 @@ export function ProductFormDialog({
             )}
           </label>
         </div>
+
+        <ProductRelationsField
+          onChange={(next) =>
+            setValue("relations", next, { shouldDirty: true })
+          }
+          productId={product?.id ?? null}
+          value={relations}
+        />
 
         <fieldset className="product-specs">
           <div className="product-specs__header">
