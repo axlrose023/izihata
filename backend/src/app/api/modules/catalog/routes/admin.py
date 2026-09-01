@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, Query, status
 from app.api.modules.auth.service import AuthenticateUser
 from app.api.modules.catalog.schema import (
     AdminCatalogSectionResponse,
+    AdminProductDetailResponse,
     AdminProductResponse,
     CatalogAttributeResponse,
     CategoryAttributeResponse,
@@ -42,6 +43,15 @@ async def create_product(
     current_user: User = Depends(AuthenticateUser()),
 ) -> AdminProductResponse:
     return await service.create_product(request)
+
+
+@router.get("/products/{product_id}", response_model=AdminProductDetailResponse)
+async def get_product(
+    product_id: UUID,
+    service: FromDishka[ProductManagementService],
+    current_user: User = Depends(AuthenticateUser()),
+) -> AdminProductDetailResponse:
+    return await service.get_product(product_id)
 
 
 @router.patch("/products/{product_id}", response_model=AdminProductResponse)

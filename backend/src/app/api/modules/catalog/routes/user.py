@@ -1,4 +1,5 @@
 from typing import Annotated
+from uuid import UUID
 
 from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
@@ -14,6 +15,7 @@ from app.api.modules.catalog.schema import (
     ProductDetailResponse,
     ProductListParams,
     ProductListResponse,
+    ProductResponse,
     ProductReviewResponse,
     StockSubscriptionResponse,
 )
@@ -46,6 +48,14 @@ async def get_products(
     params: Annotated[ProductListParams, Query()],
 ) -> ProductListResponse:
     return await service.get_products(params)
+
+
+@router.get("/recommendations", response_model=list[ProductResponse])
+async def get_recommendations(
+    service: FromDishka[CatalogQueryService],
+    product_id: Annotated[list[UUID], Query(alias="id", max_length=50)],
+) -> list[ProductResponse]:
+    return await service.get_recommendations(product_id)
 
 
 @router.get("/reviews/featured", response_model=list[ProductReviewResponse])

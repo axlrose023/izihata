@@ -367,6 +367,20 @@ class ProductGateway:
             for sale_unit, count in (await self._session.execute(stmt)).all()
         ]
 
+    async def get_by_id(self, product_id: UUID) -> Product | None:
+        stmt = (
+            select(Product)
+            .where(Product.id == product_id, Product.is_active.is_(True))
+            .options(
+                joinedload(Product.category),
+                joinedload(Product.subcategory),
+                selectinload(Product.attributes),
+                selectinload(Product.media),
+                selectinload(Product.documents),
+            )
+        )
+        return (await self._session.execute(stmt)).scalar_one_or_none()
+
     async def get_by_id_for_update(self, product_id: UUID) -> Product | None:
         stmt = (
             select(Product)
@@ -448,6 +462,54 @@ class ProductGateway:
                 selectinload(Product.attributes),
             )
             .order_by(ProductRelation.position, Product.id)
+            .limit(limit)
+        )
+        return (await self._session.execute(stmt)).scalars().unique().all()
+
+    async def list_relations(
+        self,
+        source_product_id: UUID,
+    ) -> Sequence[tuple[ProductRelation, Product]]:
+        stmt = (
+            select(ProductRelation, Product)
+            .join(Product, Product.id == ProductRelation.target_product_id)
+            .where(ProductRelation.source_product_id == source_product_id)
+            .order_by(ProductRelation.kind, ProductRelation.position, Product.id)
+        )
+        return [
+            (relation, product)
+            for relation, product in (await self._session.execute(stmt)).all()
+        ]
+
+    async def list_related_to_any(
+        self,
+        source_product_ids: set[UUID],
+        kind: ProductRelationKind,
+        *,
+        limit: int = 8,
+    ) -> Sequence[Product]:
+        """Products related to any of the given sources, excluding the sources."""
+        if not source_product_ids:
+            return []
+        stmt = (
+            select(Product)
+            .join(
+                ProductRelation,
+                ProductRelation.target_product_id == Product.id,
+            )
+            .where(
+                ProductRelation.source_product_id.in_(source_product_ids),
+                ProductRelation.target_product_id.not_in(source_product_ids),
+                ProductRelation.kind == kind,
+                Product.is_active.is_(True),
+            )
+            .options(
+                joinedload(Product.category),
+                joinedload(Product.subcategory),
+                selectinload(Product.attributes),
+            )
+            .order_by(ProductRelation.position, Product.id)
+            .distinct()
             .limit(limit)
         )
         return (await self._session.execute(stmt)).scalars().unique().all()
