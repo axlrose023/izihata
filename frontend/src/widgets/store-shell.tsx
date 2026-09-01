@@ -1,6 +1,7 @@
 import { CartDrawer } from "@/modules/cart/components/cart-drawer";
 import { StoreHydrator } from "@/shared/ui/store-hydrator";
 
+import { ActivityTracker } from "./activity-tracker";
 import { ScrollToTop } from "./scroll-to-top";
 import { SiteFooter } from "./site-footer";
 import { SiteHeader } from "./site-header";
@@ -10,6 +11,7 @@ export function StoreShell() {
   return (
     <>
       <StoreHydrator />
+      <ActivityTracker />
       <SiteHeader />
       <main>
         <Outlet />
