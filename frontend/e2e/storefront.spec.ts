@@ -326,7 +326,7 @@ test("mobile storefront keeps search, navigation and filters accessible", async 
   await page.getByRole("button", { name: "Фільтри" }).click();
   await expect(filters).toHaveAttribute("data-open", "true");
   await expect(
-    filters.getByRole("button", { name: "Застосувати" }),
+    filters.getByRole("button", { name: /^Показати \d+/ }),
   ).toBeVisible();
   await filters.getByRole("button", { name: "Більше фільтрів" }).click();
   await expect(
@@ -334,6 +334,22 @@ test("mobile storefront keeps search, navigation and filters accessible", async 
   ).toBeVisible();
   await filters.getByRole("button", { name: "Закрити фільтри" }).click();
   await expect(filters).not.toHaveAttribute("data-open", "true");
+});
+
+test("filters apply without a submit button", async ({ page }) => {
+  await page.goto("/catalog");
+  const filters = page.locator(".filters");
+  if ((page.viewportSize()?.width ?? 1000) <= 820) {
+    await page.getByRole("button", { name: "Фільтри" }).click();
+  }
+  await expect(
+    filters.getByRole("button", { name: "Застосувати" }),
+  ).toHaveCount(0);
+
+  const brand = filters.getByRole("checkbox").first();
+  await brand.check();
+  await expect(page).toHaveURL(/brand=/);
+  await expect(brand).toBeChecked();
 });
 
 test("empty checkout and staff login route have safe states", async ({
