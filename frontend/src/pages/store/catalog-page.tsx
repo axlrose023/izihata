@@ -12,7 +12,6 @@ import {
   type CatalogFilterQuery,
 } from "@/modules/catalog/components/catalog-filters";
 import { ProductCard } from "@/modules/catalog/components/product-card";
-import { ProductPriceList } from "@/modules/catalog/components/product-price-list";
 import type { ProductSort } from "@/shared/types/api";
 import { useDocumentTitle } from "@/shared/lib/use-document-title";
 import { usePageMeta } from "@/shared/lib/use-page-meta";
@@ -37,7 +36,7 @@ function pageHref(params: URLSearchParams, page: number, category?: string) {
 
 function viewHref(
   params: URLSearchParams,
-  view: "grid" | "list" | "price",
+  view: "grid" | "list",
   category?: string,
 ) {
   const next = new URLSearchParams(params);
@@ -51,11 +50,7 @@ function viewHref(
 export function CatalogPage() {
   const { category } = useParams<{ category?: string }>();
   const [searchParams] = useSearchParams();
-  const requestedView = searchParams.get("view");
-  const view =
-    requestedView === "list" || requestedView === "price"
-      ? requestedView
-      : "grid";
+  const view = searchParams.get("view") === "list" ? "list" : "grid";
   const query = {
     search: searchParams.get("search") ?? undefined,
     category: category ?? searchParams.get("category") ?? undefined,
@@ -199,32 +194,17 @@ export function CatalogPage() {
               >
                 <List size={18} />
               </Link>
-              <Link
-                aria-label="Показати прайс-листом"
-                aria-current={view === "price" ? "true" : undefined}
-                to={viewHref(searchParams, "price", category)}
-              >
-                ₴
-              </Link>
             </div>
           </Form>
           {products.items.length ? (
-            view === "price" ? (
-              <ProductPriceList products={products.items} />
-            ) : (
-              <div
-                className="product-grid product-grid--catalog"
-                data-view={view}
-              >
-                {products.items.map((product) => (
-                  <ProductCard
-                    key={product.id}
-                    layout={view}
-                    product={product}
-                  />
-                ))}
-              </div>
-            )
+            <div
+              className="product-grid product-grid--catalog"
+              data-view={view}
+            >
+              {products.items.map((product) => (
+                <ProductCard key={product.id} layout={view} product={product} />
+              ))}
+            </div>
           ) : (
             <EmptyState
               actionHref={basePath}
