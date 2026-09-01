@@ -1,4 +1,5 @@
 import {
+  Calculator,
   GitCompareArrows,
   Heart,
   House,
@@ -72,11 +73,27 @@ export function SiteHeader() {
             <UserRound />
             {customerStatus === "authenticated" ? <b>Кабінет</b> : null}
           </Link>
-          <Link aria-label={`Обране: ${favoriteCount}`} to="/favorites">
+          <Link
+            aria-label="Підбір товарів і калькулятори"
+            className="header-actions__advisors"
+            title="Підбір товарів"
+            to="/advisors"
+          >
+            <Calculator />
+          </Link>
+          <Link
+            aria-label={`Обране: ${favoriteCount}`}
+            className="header-actions__favorites"
+            to="/favorites"
+          >
             <Heart />
             {favoriteCount ? <b>{favoriteCount}</b> : null}
           </Link>
-          <Link aria-label={`Порівняння: ${compareCount}`} to="/compare">
+          <Link
+            aria-label={`Порівняння: ${compareCount}`}
+            className="header-actions__compare"
+            to="/compare"
+          >
             <GitCompareArrows />
             {compareCount ? <b>{compareCount}</b> : null}
           </Link>
