@@ -1,7 +1,8 @@
 import { Filter, X } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Form, Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 
+import { useDebouncedValue } from "@/shared/lib/use-debounced-value";
 import type {
   Category,
   ProductList,
@@ -41,6 +42,7 @@ interface CatalogFiltersProps {
   categoryIsRouteParam: boolean;
   facets: ProductList["facets"];
   query: CatalogFilterQuery;
+  total: number;
 }
 
 export function CatalogFilters({
@@ -50,13 +52,34 @@ export function CatalogFilters({
   categoryIsRouteParam,
   facets,
   query,
+  total,
 }: CatalogFiltersProps) {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [isOpen, setIsOpen] = useState(false);
   const [moreFiltersOpen, setMoreFiltersOpen] = useState(false);
   const activeBrands = new Set(query.brand);
   const activeSpecs = new Set(query.spec);
   const activeAvailability = new Set(query.availability);
   const activeSaleUnits = new Set(query.sale_unit);
+
+  const update = (mutate: (params: URLSearchParams) => void) => {
+    const next = new URLSearchParams(searchParams);
+    mutate(next);
+    next.delete("page");
+    setSearchParams(next, { replace: true });
+  };
+  const setSingle = (name: string, value: string) =>
+    update((params) => {
+      if (value) params.set(name, value);
+      else params.delete(name);
+    });
+  const toggleMulti = (name: string, value: string, checked: boolean) =>
+    update((params) => {
+      const kept = params.getAll(name).filter((item) => item !== value);
+      params.delete(name);
+      for (const item of kept) params.append(name, item);
+      if (checked) params.append(name, value);
+    });
 
   useEffect(() => {
     if (!isOpen) return;
@@ -107,17 +130,14 @@ export function CatalogFilters({
             <X size={19} />
           </button>
         </div>
-        <Form action={action} method="get" onSubmit={() => setIsOpen(false)}>
-          {query.search ? (
-            <input name="search" type="hidden" value={query.search} />
-          ) : null}
+        <div className="filters__body">
           <fieldset>
             <legend>Категорія</legend>
             <select
               aria-label="Категорія"
-              defaultValue={activeCategory?.slug ?? ""}
               disabled={categoryIsRouteParam}
-              name="category"
+              onChange={(event) => setSingle("category", event.target.value)}
+              value={activeCategory?.slug ?? ""}
             >
               <option value="">Усі категорії</option>
               {categories.map((item) => (
@@ -132,8 +152,10 @@ export function CatalogFilters({
               <legend>Підкатегорія</legend>
               <select
                 aria-label="Підкатегорія"
-                defaultValue={query.subcategory ?? ""}
-                name="subcategory"
+                onChange={(event) =>
+                  setSingle("subcategory", event.target.value)
+                }
+                value={query.subcategory ?? ""}
               >
                 <option value="">Усі</option>
                 {activeCategory.subcategories.map((item) => (
@@ -144,43 +166,23 @@ export function CatalogFilters({
               </select>
             </fieldset>
           ) : null}
-          <fieldset>
-            <legend>Ціна, ₴</legend>
-            <div className="price-filter">
-              <input
-                aria-label="Мінімальна ціна"
-                defaultValue={query.min_price}
-                inputMode="decimal"
-                min="0"
-                name="min_price"
-                placeholder={facets.price.minimum ?? "від"}
-                type="number"
-              />
-              <input
-                aria-label="Максимальна ціна"
-                defaultValue={query.max_price}
-                inputMode="decimal"
-                min="0"
-                name="max_price"
-                placeholder={facets.price.maximum ?? "до"}
-                type="number"
-              />
-            </div>
-          </fieldset>
+          <PriceFilter facets={facets} onChange={setSingle} query={query} />
           <FacetOptions
             activeValues={activeBrands}
             label="Бренд"
             name="brand"
+            onToggle={toggleMulti}
             options={facets.brands}
           />
           <FacetOptions
             activeValues={activeAvailability}
             label="Наявність"
             name="availability"
-            options={facets.availability}
+            onToggle={toggleMulti}
             optionLabel={(value) =>
               availabilityLabels[value as StockStatus] ?? value
             }
+            options={facets.availability}
           />
           <div
             className="filters__secondary"
@@ -190,10 +192,11 @@ export function CatalogFilters({
               activeValues={activeSaleUnits}
               label="Одиниця продажу"
               name="sale_unit"
-              options={facets.sale_units}
+              onToggle={toggleMulti}
               optionLabel={(value) =>
                 saleUnitLabels[value as SaleUnit] ?? value
               }
+              options={facets.sale_units}
             />
             {Object.entries(facets.specs)
               .filter(
@@ -217,10 +220,11 @@ export function CatalogFilters({
                         return (
                           <label key={value}>
                             <input
-                              defaultChecked={activeSpecs.has(value)}
-                              name="spec"
+                              checked={activeSpecs.has(value)}
+                              onChange={(event) =>
+                                toggleMulti("spec", value, event.target.checked)
+                              }
                               type="checkbox"
-                              value={value}
                             />
                             <span>{option.value}</span>
                             <small>{option.count}</small>
@@ -233,10 +237,11 @@ export function CatalogFilters({
               })}
             <label className="stock-filter">
               <input
-                defaultChecked={query.in_stock === "true"}
-                name="in_stock"
+                checked={query.in_stock === "true"}
+                onChange={(event) =>
+                  setSingle("in_stock", event.target.checked ? "true" : "")
+                }
                 type="checkbox"
-                value="true"
               />
               Лише в наявності
             </label>
@@ -249,12 +254,73 @@ export function CatalogFilters({
           >
             {moreFiltersOpen ? "Менше фільтрів" : "Більше фільтрів"}
           </button>
-          <button className="button button--primary button--wide" type="submit">
-            Застосувати
-          </button>
-        </Form>
+        </div>
+        <button
+          className="filters__done"
+          onClick={() => setIsOpen(false)}
+          type="button"
+        >
+          Показати {total}
+        </button>
       </aside>
     </>
+  );
+}
+
+function PriceFilter({
+  facets,
+  onChange,
+  query,
+}: {
+  facets: ProductList["facets"];
+  onChange: (name: string, value: string) => void;
+  query: CatalogFilterQuery;
+}) {
+  const [range, setRange] = useState({
+    min: query.min_price ?? "",
+    max: query.max_price ?? "",
+  });
+  const debounced = useDebouncedValue(range, 500);
+
+  useEffect(() => {
+    if (debounced.min !== (query.min_price ?? "")) {
+      onChange("min_price", debounced.min);
+    }
+    if (debounced.max !== (query.max_price ?? "")) {
+      onChange("max_price", debounced.max);
+    }
+    // Only the settled input drives the URL; query values are the source of truth.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debounced]);
+
+  return (
+    <fieldset>
+      <legend>Ціна, ₴</legend>
+      <div className="price-filter">
+        <input
+          aria-label="Мінімальна ціна"
+          inputMode="decimal"
+          min="0"
+          onChange={(event) =>
+            setRange((value) => ({ ...value, min: event.target.value }))
+          }
+          placeholder={facets.price.minimum ?? "від"}
+          type="number"
+          value={range.min}
+        />
+        <input
+          aria-label="Максимальна ціна"
+          inputMode="decimal"
+          min="0"
+          onChange={(event) =>
+            setRange((value) => ({ ...value, max: event.target.value }))
+          }
+          placeholder={facets.price.maximum ?? "до"}
+          type="number"
+          value={range.max}
+        />
+      </div>
+    </fieldset>
   );
 }
 
@@ -262,12 +328,14 @@ function FacetOptions({
   activeValues,
   label,
   name,
+  onToggle,
   optionLabel,
   options,
 }: {
   activeValues: Set<string>;
   label: string;
   name: string;
+  onToggle: (name: string, value: string, checked: boolean) => void;
   optionLabel?: (value: string) => string;
   options: ProductList["facets"]["brands"];
 }) {
@@ -279,10 +347,11 @@ function FacetOptions({
         {options.map((option) => (
           <label key={option.value}>
             <input
-              defaultChecked={activeValues.has(option.value)}
-              name={name}
+              checked={activeValues.has(option.value)}
+              onChange={(event) =>
+                onToggle(name, option.value, event.target.checked)
+              }
               type="checkbox"
-              value={option.value}
             />
             <span>{optionLabel?.(option.value) ?? option.value}</span>
             <small>{option.count}</small>

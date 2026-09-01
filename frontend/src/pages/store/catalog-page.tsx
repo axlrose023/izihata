@@ -49,7 +49,7 @@ function viewHref(
 
 export function CatalogPage() {
   const { category } = useParams<{ category?: string }>();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const view = searchParams.get("view") === "list" ? "list" : "grid";
   const query = {
     search: searchParams.get("search") ?? undefined,
@@ -147,29 +147,23 @@ export function CatalogPage() {
           categoryIsRouteParam={Boolean(category)}
           facets={products.facets}
           query={filterQuery}
+          total={products.total}
         />
 
         <section className="catalog-results">
-          <Form action={basePath} className="catalog-toolbar" method="get">
-            {[...searchParams.entries()].flatMap(([key, value]) =>
-              key === "sort" || key === "page"
-                ? []
-                : [
-                    <input
-                      key={`${key}-${value}`}
-                      name={key}
-                      type="hidden"
-                      value={value}
-                    />,
-                  ],
-            )}
+          <div className="catalog-toolbar">
             <span>Знайдено: {products.total}</span>
             <label>
               <span>Сортування</span>
               <select
                 aria-label="Сортування"
-                defaultValue={query.sort}
-                name="sort"
+                onChange={(event) => {
+                  const next = new URLSearchParams(searchParams);
+                  next.set("sort", event.target.value);
+                  next.delete("page");
+                  setSearchParams(next, { replace: true });
+                }}
+                value={query.sort}
               >
                 {sorts.map((sort) => (
                   <option key={sort.value} value={sort.value}>
@@ -178,7 +172,6 @@ export function CatalogPage() {
                 ))}
               </select>
             </label>
-            <button type="submit">Оновити</button>
             <div aria-label="Вигляд каталогу" className="catalog-view-toggle">
               <Link
                 aria-label="Показати плиткою"
@@ -195,7 +188,7 @@ export function CatalogPage() {
                 <List size={18} />
               </Link>
             </div>
-          </Form>
+          </div>
           {products.items.length ? (
             <div
               className="product-grid product-grid--catalog"

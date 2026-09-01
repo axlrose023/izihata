@@ -1,4 +1,4 @@
-import { queryOptions } from "@tanstack/react-query";
+import { keepPreviousData, queryOptions } from "@tanstack/react-query";
 
 import type { QueryValue } from "@/shared/api/query";
 
@@ -47,6 +47,9 @@ export const productsQuery = (
   queryOptions({
     queryKey: catalogKeys.products(params),
     queryFn: () => fetchProducts(params),
+    // Filters apply as you click them, so keep the previous page visible
+    // instead of dropping the grid into a loader on every change.
+    placeholderData: keepPreviousData,
   });
 
 export const productQuery = (slug: string) =>
