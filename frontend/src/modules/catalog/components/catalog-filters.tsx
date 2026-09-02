@@ -68,11 +68,15 @@ export function CatalogFilters({
     next.delete("page");
     setSearchParams(next, { replace: true });
   };
-  const setSingle = (name: string, value: string) =>
+  const setValues = (values: Record<string, string>) =>
     update((params) => {
-      if (value) params.set(name, value);
-      else params.delete(name);
+      for (const [name, value] of Object.entries(values)) {
+        if (value) params.set(name, value);
+        else params.delete(name);
+      }
     });
+  const setSingle = (name: string, value: string) =>
+    setValues({ [name]: value });
   const toggleMulti = (name: string, value: string, checked: boolean) =>
     update((params) => {
       const kept = params.getAll(name).filter((item) => item !== value);
@@ -166,7 +170,7 @@ export function CatalogFilters({
               </select>
             </fieldset>
           ) : null}
-          <PriceFilter facets={facets} onChange={setSingle} query={query} />
+          <PriceFilter facets={facets} onChange={setValues} query={query} />
           <FacetOptions
             activeValues={activeBrands}
             label="Бренд"
@@ -273,7 +277,7 @@ function PriceFilter({
   query,
 }: {
   facets: ProductList["facets"];
-  onChange: (name: string, value: string) => void;
+  onChange: (values: Record<string, string>) => void;
   query: CatalogFilterQuery;
 }) {
   const [range, setRange] = useState({
@@ -283,12 +287,13 @@ function PriceFilter({
   const debounced = useDebouncedValue(range, 500);
 
   useEffect(() => {
-    if (debounced.min !== (query.min_price ?? "")) {
-      onChange("min_price", debounced.min);
+    if (
+      debounced.min === (query.min_price ?? "") &&
+      debounced.max === (query.max_price ?? "")
+    ) {
+      return;
     }
-    if (debounced.max !== (query.max_price ?? "")) {
-      onChange("max_price", debounced.max);
-    }
+    onChange({ min_price: debounced.min, max_price: debounced.max });
     // Only the settled input drives the URL; query values are the source of truth.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debounced]);

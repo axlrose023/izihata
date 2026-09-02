@@ -29,7 +29,7 @@ const shortcuts = [
   { to: "/catalog?sort=newest", label: "Новинки", icon: Sparkles },
   { to: "/catalog?in_stock=true", label: "В наявності", icon: PackageCheck },
   { to: "/advisors", label: "Підбір товарів", icon: LayoutGrid },
-  { to: "/custom-boards", label: "Щити на замовлення", icon: PanelsTopLeft },
+  { to: "/custom-boards", label: "Щити", icon: PanelsTopLeft },
 ];
 
 export function SiteSidebar({

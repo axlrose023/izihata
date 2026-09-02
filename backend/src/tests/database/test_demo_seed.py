@@ -32,14 +32,23 @@ async def test_demo_catalog_seed_is_repeatable(session: AsyncSession) -> None:
         .select_from(ProductDocument)
         .where(ProductDocument.product_id == product_id)
     )
-    relation_count = await session.scalar(
-        select(func.count())
-        .select_from(ProductRelation)
-        .where(ProductRelation.source_product_id == product_id)
+    relation_kinds = sorted(
+        kind.value
+        for kind in (
+            await session.scalars(
+                select(ProductRelation.kind).where(
+                    ProductRelation.source_product_id == product_id
+                )
+            )
+        ).all()
     )
     category_names = set((await session.scalars(select(Category.name))).all())
 
     assert media_count == 2
     assert document_count == 1
-    assert relation_count == 1
+    assert relation_kinds == [
+        "alternative",
+        "bought_together",
+        "bought_together",
+    ]
     assert {"Альтернативна енергія", "Кліматичне обладнання"} <= category_names

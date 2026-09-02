@@ -310,24 +310,32 @@ async def _seed_catalog_demo_content(
             )
         )
 
-    alternative = products_by_sku.get("AX-10001")
-    if alternative is None:
-        return
-    has_relation = await session.scalar(
-        select(
-            exists().where(
-                ProductRelation.source_product_id == product.id,
-                ProductRelation.target_product_id == alternative.id,
-                ProductRelation.kind == ProductRelationKind.ALTERNATIVE,
-            )
-        )
+    # Curated relations: "bought together" is admin-managed, never inferred,
+    # so the demo catalog has to carry a couple of them to be representative.
+    demo_relations = (
+        ("AX-10001", ProductRelationKind.ALTERNATIVE, 0),
+        ("AX-10006", ProductRelationKind.BOUGHT_TOGETHER, 0),
+        ("AX-10003", ProductRelationKind.BOUGHT_TOGETHER, 1),
     )
-    if not has_relation:
-        session.add(
-            ProductRelation(
-                source_product_id=product.id,
-                target_product_id=alternative.id,
-                kind=ProductRelationKind.ALTERNATIVE,
-                position=0,
+    for target_sku, kind, position in demo_relations:
+        target = products_by_sku.get(target_sku)
+        if target is None or target.id == product.id:
+            continue
+        has_relation = await session.scalar(
+            select(
+                exists().where(
+                    ProductRelation.source_product_id == product.id,
+                    ProductRelation.target_product_id == target.id,
+                    ProductRelation.kind == kind,
+                )
             )
         )
+        if not has_relation:
+            session.add(
+                ProductRelation(
+                    source_product_id=product.id,
+                    target_product_id=target.id,
+                    kind=kind,
+                    position=position,
+                )
+            )

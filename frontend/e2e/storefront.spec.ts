@@ -277,7 +277,22 @@ test("product quantity is added as one cart operation", async ({ page }) => {
     .getByRole("button", { name: "Додати в кошик" })
     .click();
   await expect(page.getByRole("heading", { name: /Кошик · 3/ })).toBeVisible();
-  await expect(page.getByText("З цим купують")).toBeVisible();
+});
+
+test("the cart suggests only curated companion products", async ({ page }) => {
+  // "Bought together" is admin-managed; the demo product is the seeded one
+  // that carries those relations.
+  await page.goto("/products/demo-modular-circuit-breaker-1p-c16");
+  await page
+    .locator(".product-actions-panel")
+    .getByRole("button", { name: "Додати в кошик" })
+    .click();
+
+  const drawer = page.locator(".drawer__panel");
+  await expect(drawer.getByText("З цим купують")).toBeVisible();
+  await expect(drawer.locator(".cart-recommendations article")).not.toHaveCount(
+    0,
+  );
 });
 
 test("catalog keeps every relevant facet", async ({ page }) => {
@@ -341,15 +356,19 @@ test("filters apply without a submit button", async ({ page }) => {
   const filters = page.locator(".filters");
   if ((page.viewportSize()?.width ?? 1000) <= 820) {
     await page.getByRole("button", { name: "Фільтри" }).click();
+    await expect(filters).toHaveAttribute("data-open", "true");
   }
   await expect(
     filters.getByRole("button", { name: "Застосувати" }),
   ).toHaveCount(0);
 
-  const brand = filters.getByRole("checkbox").first();
-  await brand.check();
-  await expect(page).toHaveURL(/brand=/);
+  const brand = filters.getByRole("checkbox", { name: /Demo Electric/ });
+  await expect(brand).toBeVisible();
+  await brand.click();
+
+  await expect(page).toHaveURL(/brand=Demo\+Electric/);
   await expect(brand).toBeChecked();
+  await expect(page.locator(".product-card")).not.toHaveCount(0);
 });
 
 test("empty checkout and staff login route have safe states", async ({
