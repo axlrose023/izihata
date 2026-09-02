@@ -491,28 +491,41 @@ class ProductGateway:
         """Products related to any of the given sources, excluding the sources."""
         if not source_product_ids:
             return []
-        stmt = (
-            select(Product)
-            .join(
-                ProductRelation,
-                ProductRelation.target_product_id == Product.id,
+        # Resolve the ordered target ids first: deduplicating in the same
+        # statement would need DISTINCT or GROUP BY, and neither survives the
+        # extra columns the eager loaders add to the select list.
+        ranked = (
+            select(
+                ProductRelation.target_product_id,
+                func.min(ProductRelation.position).label("relation_position"),
             )
+            .join(Product, Product.id == ProductRelation.target_product_id)
             .where(
                 ProductRelation.source_product_id.in_(source_product_ids),
                 ProductRelation.target_product_id.not_in(source_product_ids),
                 ProductRelation.kind == kind,
                 Product.is_active.is_(True),
             )
+            .group_by(ProductRelation.target_product_id)
+            .order_by("relation_position", ProductRelation.target_product_id)
+            .limit(limit)
+        )
+        ordered_ids = [row[0] for row in (await self._session.execute(ranked)).all()]
+        if not ordered_ids:
+            return []
+
+        stmt = (
+            select(Product)
+            .where(Product.id.in_(ordered_ids))
             .options(
                 joinedload(Product.category),
                 joinedload(Product.subcategory),
                 selectinload(Product.attributes),
             )
-            .order_by(ProductRelation.position, Product.id)
-            .distinct()
-            .limit(limit)
         )
-        return (await self._session.execute(stmt)).scalars().unique().all()
+        products = (await self._session.execute(stmt)).scalars().unique().all()
+        by_id = {product.id: product for product in products}
+        return [by_id[product_id] for product_id in ordered_ids if product_id in by_id]
 
     async def list_featured_reviews(self, limit: int = 3) -> Sequence[ProductReview]:
         stmt = (

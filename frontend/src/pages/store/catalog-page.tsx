@@ -1,4 +1,4 @@
-import { useQueries } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { LayoutGrid, List, Search } from "lucide-react";
 import { Form, Link, useParams, useSearchParams } from "react-router-dom";
 
@@ -67,9 +67,8 @@ export function CatalogPage() {
     page: searchParams.get("page") ?? "1",
     page_size: 12,
   };
-  const [categoriesResult, productsResult] = useQueries({
-    queries: [categoriesQuery(), productsQuery(query)],
-  });
+  const categoriesResult = useQuery(categoriesQuery());
+  const productsResult = useQuery(productsQuery(query));
   const initialActiveCategory = categoriesResult.data?.find(
     (item) => item.slug === query.category,
   );
@@ -81,25 +80,24 @@ export function CatalogPage() {
       : "Каталог електротоварів IZI HATA: перевіряйте характеристики, ціни та наявність.",
   });
 
-  if (categoriesResult.isPending || productsResult.isPending) {
-    return <div className="page-loader">Завантажуємо каталог…</div>;
-  }
-  if (categoriesResult.isError || productsResult.isError) {
-    return (
-      <ErrorNotice
-        className="container service-notice"
-        error={categoriesResult.error ?? productsResult.error}
-        fallback="Не вдалося завантажити каталог."
-        onRetry={() => {
-          void categoriesResult.refetch();
-          void productsResult.refetch();
-        }}
-      />
-    );
-  }
-
   const categories = categoriesResult.data;
   const products = productsResult.data;
+  if (!categories || !products) {
+    if (categoriesResult.isError || productsResult.isError) {
+      return (
+        <ErrorNotice
+          className="container service-notice"
+          error={categoriesResult.error ?? productsResult.error}
+          fallback="Не вдалося завантажити каталог."
+          onRetry={() => {
+            void categoriesResult.refetch();
+            void productsResult.refetch();
+          }}
+        />
+      );
+    }
+    return <div className="page-loader">Завантажуємо каталог…</div>;
+  }
   const activeCategory = categories.find(
     (item) => item.slug === query.category,
   );
