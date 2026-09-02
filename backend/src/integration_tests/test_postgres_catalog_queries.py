@@ -16,7 +16,7 @@ from app.database.uow import UnitOfWork
 pytestmark = pytest.mark.integration
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_recommendations_dedupe_and_exclude_the_basket():
     async with SessionFactory() as session, UnitOfWork(session) as uow:
         source_ids = (
@@ -45,7 +45,7 @@ async def test_recommendations_dedupe_and_exclude_the_basket():
         assert all(product.category.slug for product in recommended)
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_recommendations_are_empty_without_sources():
     async with SessionFactory() as session, UnitOfWork(session) as uow:
         assert (
@@ -57,7 +57,7 @@ async def test_recommendations_are_empty_without_sources():
         )
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_admin_product_detail_loads_relations():
     async with SessionFactory() as session, UnitOfWork(session) as uow:
         product_id = (
