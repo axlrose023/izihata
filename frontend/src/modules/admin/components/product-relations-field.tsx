@@ -76,7 +76,7 @@ export function ProductRelationsField({
           ))}
         </div>
         <label className="field">
-          <span>Знайти товар за назвою або SKU</span>
+          <span>Пошук товару за назвою або артикулом</span>
           <span className="product-relations__search">
             <Search size={16} />
             <input
