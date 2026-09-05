@@ -371,6 +371,62 @@ test("filters apply without a submit button", async ({ page }) => {
   await expect(page.locator(".product-card")).not.toHaveCount(0);
 });
 
+test("sale and new arrivals are their own catalog sections", async ({
+  page,
+}) => {
+  await page.goto("/catalog/sale");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    "Акції та знижки",
+  );
+  const cards = page.locator(".product-card");
+  if (await cards.count()) {
+    // Every listed product must actually carry a reduced price.
+    await expect(cards.first().locator("del")).toBeVisible();
+  }
+
+  await page.goto("/catalog/new");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Новинки");
+});
+
+test("the catalog offers two grid densities", async ({ page }) => {
+  await page.goto("/catalog");
+  const grid = page.locator(".product-grid--catalog");
+  const toggle = page.getByLabel("Вигляд каталогу");
+
+  if ((page.viewportSize()?.width ?? 1000) <= 820) {
+    await expect(toggle).toBeHidden();
+    return;
+  }
+
+  await expect(toggle.getByRole("link")).toHaveCount(2);
+  await expect(grid).not.toHaveAttribute("data-view", "large");
+  await toggle.getByRole("link", { name: "Більша сітка" }).click();
+  await expect(grid).toHaveAttribute("data-view", "large");
+  await toggle.getByRole("link", { name: "Дрібніша сітка" }).click();
+  await expect(grid).toHaveAttribute("data-view", "grid");
+});
+
+test("the sidebar opens the catalog one level down", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Відкрити меню" }).click();
+  const panel = page.locator(".site-sidebar__panel");
+  await expect(panel).toBeVisible();
+
+  // Categories are behind the catalog entry, not listed straight away.
+  await expect(panel.locator(".site-sidebar__categories")).toHaveCount(0);
+  await panel.getByRole("button", { name: "Каталог товарів" }).click();
+  await expect(
+    panel.locator(".site-sidebar__categories a").first(),
+  ).toBeVisible();
+  await expect(panel.getByRole("link", { name: "Усі товари" })).toHaveAttribute(
+    "href",
+    "/catalog",
+  );
+
+  await panel.getByRole("button", { name: "Каталог товарів" }).click();
+  await expect(panel.locator(".site-sidebar__auth")).toBeVisible();
+});
+
 test("empty checkout and staff login route have safe states", async ({
   page,
 }) => {
