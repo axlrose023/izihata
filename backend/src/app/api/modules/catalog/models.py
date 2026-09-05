@@ -155,6 +155,14 @@ class Product(Base, UUIDIDMixin, DateTimeMixin):
     reviews_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     position: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
+    # Editorial pick, independent of ``badge`` so a product can be both
+    # popular and discounted at the same time.
+    is_popular: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False,
+        nullable=False,
+        index=True,
+    )
 
     category: Mapped[Category] = relationship(lazy="raise")
     subcategory: Mapped[Subcategory | None] = relationship(lazy="raise")

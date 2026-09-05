@@ -214,6 +214,8 @@ class ProductGateway:
             )
         if params.badge:
             conditions.append(Product.badge.in_(params.badge))
+        if params.is_popular:
+            conditions.append(Product.is_popular.is_(True))
         if params.subcategory:
             conditions.append(
                 Product.subcategory.has(Subcategory.slug == params.subcategory)
@@ -267,8 +269,10 @@ class ProductGateway:
                 else_=3,
             )
             return stmt.order_by(availability_rank, Product.position, Product.id)
+        popular_first = case((Product.is_popular.is_(True), 0), else_=1)
         top_first = case((Product.badge == ProductBadge.TOP, 0), else_=1)
         return stmt.order_by(
+            popular_first,
             top_first,
             Product.reviews_count.desc(),
             Product.position,

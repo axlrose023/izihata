@@ -291,6 +291,7 @@ class ProductListParams(PaginationParams):
     subcategory: str | None = Field(default=None, min_length=1, max_length=96)
     brand: list[str] = Field(default_factory=list)
     badge: list[ProductBadge] = Field(default_factory=list, max_length=6)
+    is_popular: bool = False
     in_stock: bool = False
     availability: list[StockStatus] = Field(default_factory=list, max_length=4)
     sale_unit: list[SaleUnit] = Field(default_factory=list, max_length=3)
@@ -466,12 +467,14 @@ class AdminProductRelationResponse(StrictSchema):
 
 class AdminProductResponse(ProductResponse):
     wholesale_price: Decimal | None
+    is_popular: bool
 
     @classmethod
     def from_product(cls, product: Product) -> "AdminProductResponse":
         return cls(
             **ProductResponse.from_product(product).model_dump(),
             wholesale_price=product.wholesale_price,
+            is_popular=product.is_popular,
         )
 
 
@@ -682,6 +685,7 @@ class CreateProductRequest(StrictSchema):
         decimal_places=2,
     )
     badge: ProductBadge | None = None
+    is_popular: bool = False
     stock_status: StockStatus = StockStatus.IN_STOCK
     availability_days: int | None = Field(default=None, ge=0, le=365)
     sale_unit: SaleUnit = SaleUnit.PIECE
@@ -767,6 +771,7 @@ class UpdateProductRequest(StrictSchema):
         decimal_places=2,
     )
     badge: ProductBadge | None = None
+    is_popular: bool | None = None
     stock_status: StockStatus | None = None
     availability_days: int | None = Field(default=None, ge=0, le=365)
     sale_unit: SaleUnit | None = None
