@@ -106,6 +106,20 @@ export interface ProductReview {
   created_at: string;
 }
 
+export interface Brand {
+  id: string;
+  slug: string;
+  name: string;
+  logo_url: string | null;
+  description: string | null;
+  product_count: number;
+}
+
+export interface AdminBrand extends Brand {
+  position: number;
+  is_active: boolean;
+}
+
 export interface AdminProductRelation {
   product_id: string;
   kind: ProductRelationKind;

@@ -18,7 +18,12 @@ export async function apiFetch(
   try {
     const headers = new Headers(init.headers);
     headers.set("Accept", "application/json");
-    if (init.body && !headers.has("Content-Type")) {
+    // FormData must keep the browser-generated multipart boundary.
+    if (
+      init.body &&
+      !(init.body instanceof FormData) &&
+      !headers.has("Content-Type")
+    ) {
       headers.set("Content-Type", "application/json");
     }
     if (

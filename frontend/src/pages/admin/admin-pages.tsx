@@ -5,6 +5,7 @@ import { ProductsView } from "@/modules/admin/components/products-view";
 import { AdminReviewsView } from "@/modules/catalog/components/admin-reviews-view";
 import { AdminBoardRequestsView } from "@/modules/custom-boards/components/admin-board-requests-view";
 import { AdminActivityView } from "@/modules/activity/components/admin-activity-view";
+import { AdminBrandsView } from "@/modules/catalog/components/admin-brands-view";
 import { AdminCompaniesView } from "@/modules/customers/components/admin-companies-view";
 import { useDocumentTitle } from "@/shared/lib/use-document-title";
 
@@ -99,6 +100,19 @@ export function AdminActivityPage() {
         description="Хто заходив на сайт, коли востаннє й за яким номером можна передзвонити."
       />
       <AdminActivityView />
+    </div>
+  );
+}
+
+export function AdminBrandsPage() {
+  return (
+    <div className="admin-page">
+      <PageHeader
+        eyebrow="Каталог"
+        title="Бренди"
+        description="Логотипи та порядок виробників у каталозі й на головній сторінці."
+      />
+      <AdminBrandsView />
     </div>
   );
 }

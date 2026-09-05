@@ -398,6 +398,27 @@ test("customer reviews are shown as a rail", async ({ page }) => {
   await expect(reviews.locator(".testimonial").first()).toBeVisible();
 });
 
+test("manufacturers get their own rail and pages", async ({ page }) => {
+  await page.goto("/");
+  const rail = page.locator(".brands-section .carousel__rail");
+  await expect(rail).toBeVisible();
+  await expect(rail.locator(".brand-tile").first()).toBeVisible();
+
+  await page.goto("/brands");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Виробники");
+  const tiles = page.locator(".brand-grid .brand-tile");
+  await expect(tiles.first()).toBeVisible();
+
+  // A tile may show a logo instead of a name, so navigate by its link.
+  const slug = (await tiles.first().getAttribute("href"))?.split("/").pop();
+  expect(slug).toBeTruthy();
+  await tiles.first().click();
+  await expect(page).toHaveURL(new RegExp(`/brands/${slug}$`));
+  // The brand page is the catalog scoped to that manufacturer.
+  await expect(page.locator(".product-card").first()).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1 })).not.toBeEmpty();
+});
+
 test("sale and new arrivals are their own catalog sections", async ({
   page,
 }) => {

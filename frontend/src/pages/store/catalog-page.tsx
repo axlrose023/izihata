@@ -71,10 +71,12 @@ export function NewArrivalsPage() {
 
 export function CatalogPage({
   presetBadges,
+  presetBrand,
   presetTitle,
   presetDescription,
 }: {
   presetBadges?: ProductBadge[];
+  presetBrand?: string;
   presetTitle?: string;
   presetDescription?: string;
 } = {}) {
@@ -86,7 +88,7 @@ export function CatalogPage({
     category: category ?? searchParams.get("category") ?? undefined,
     subcategory: searchParams.get("subcategory") ?? undefined,
     section: searchParams.get("section") ?? undefined,
-    brand: searchParams.getAll("brand"),
+    brand: presetBrand ? [presetBrand] : searchParams.getAll("brand"),
     in_stock: searchParams.get("in_stock") ?? undefined,
     availability: searchParams.getAll("availability"),
     sale_unit: searchParams.getAll("sale_unit"),
