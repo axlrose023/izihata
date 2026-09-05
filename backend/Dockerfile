@@ -45,6 +45,10 @@ COPY --from=builder --chown=appuser:appuser /app/src/cli /app/src/cli
 COPY --from=builder --chown=appuser:appuser /app/README.md /app/README.md
 COPY --from=builder --chown=appuser:appuser /app/alembic.ini /app/alembic.ini
 
+# Staff uploads land here. Creating it owned by appuser means a fresh named
+# volume mounted over it inherits that ownership instead of defaulting to root.
+RUN mkdir -p /app/media && chown appuser:appgroup /app/media
+
 USER appuser
 
 # Set the default command

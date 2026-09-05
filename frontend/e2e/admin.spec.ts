@@ -92,6 +92,37 @@ async function createProduct(page: Page, testInfo: TestInfo) {
   expect((await updatedResponse.json()).name).toBe(updatedName);
 }
 
+// A 1x1 PNG, enough to prove the whole upload path works end to end.
+const PNG_BASE64 =
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+
+test("staff can upload a brand logo", async ({ page }) => {
+  await login(page);
+  await page
+    .locator(".admin-sidebar")
+    .getByRole("link", { name: "Бренди" })
+    .click();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Бренди");
+
+  const row = page.locator(".admin-brands tbody tr").first();
+  await expect(row).toBeVisible();
+  await row.locator('input[type="file"]').setInputFiles({
+    name: "logo.png",
+    mimeType: "image/png",
+    buffer: Buffer.from(PNG_BASE64, "base64"),
+  });
+
+  const logo = row.locator(".admin-brand__logo img");
+  await expect(logo).toBeVisible({ timeout: 20_000 });
+  const src = await logo.getAttribute("src");
+  expect(src).toMatch(/^\/api\/v1\/media\//);
+
+  // The stored file must actually be served back.
+  const stored = await page.request.get(src!);
+  expect(stored.status()).toBe(200);
+  expect(stored.headers()["content-type"]).toContain("image");
+});
+
 test("staff can manage modules and create and edit a product", async ({
   page,
 }, testInfo) => {
