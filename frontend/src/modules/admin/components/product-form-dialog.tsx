@@ -43,6 +43,7 @@ function productValues(
     price: product.price,
     old_price: product.old_price ?? "",
     badge: product.badge ?? "",
+    is_popular: detail?.is_popular ?? false,
     stock_status: product.stock_status,
     availability_days: product.availability.lead_time_days?.toString() ?? "",
     sale_unit: product.sale_unit,
@@ -141,6 +142,7 @@ export function ProductFormDialog({
         price: values.price,
         old_price: values.old_price || null,
         badge: values.badge || null,
+        is_popular: values.is_popular,
         stock_status: values.stock_status,
         ...(values.availability_days
           ? { availability_days: Number(values.availability_days) }
@@ -296,6 +298,16 @@ export function ProductFormDialog({
               <option value="clearance">Уцінка</option>
               <option value="recommended">Рекомендуємо</option>
             </select>
+          </label>
+          <label className="field field--checkbox">
+            <input type="checkbox" {...register("is_popular")} />
+            <span>
+              Популярний товар
+              <small className="field-hint">
+                Показується в блоці «Популярні товари» на головній. Не заважає
+                акційному бейджу.
+              </small>
+            </span>
           </label>
           <label className="field">
             <span>Наявність</span>

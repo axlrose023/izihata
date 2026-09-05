@@ -22,6 +22,7 @@ export interface CreateProductPayload {
   price: string;
   old_price: string | null;
   badge: ProductBadge | null;
+  is_popular: boolean;
   stock_status: StockStatus;
   availability_days?: number;
   sale_unit: "piece" | "meter" | "coil";
