@@ -2,7 +2,7 @@ import uuid
 
 import pytest
 from httpx import AsyncClient
-from sqlalchemy import select
+from sqlalchemy import select, update
 
 
 @pytest.mark.asyncio
@@ -131,19 +131,26 @@ class TestFilterByBadge:
 class TestPopularProducts:
     endpoint = "/api/v1/catalog/products"
 
+    @staticmethod
+    async def _only_popular(uow, product) -> None:
+        """The seed marks several products popular; isolate one for the test."""
+        from app.api.modules.catalog.models import Product
+
+        await uow.session.execute(update(Product).values(is_popular=False))
+        product.is_popular = True
+        await uow.commit()
+
     async def test_filters_popular_only(self, client: AsyncClient, uow):
         from app.api.modules.catalog.models import Product
 
         product = (await uow.session.execute(select(Product).limit(1))).scalar_one()
-        product.is_popular = True
-        await uow.commit()
+        await self._only_popular(uow, product)
 
         response = await client.get(self.endpoint, params={"is_popular": "true"})
 
         assert response.status_code == 200, response.text
         items = response.json()["items"]
-        assert items
-        assert str(product.id) in {item["id"] for item in items}
+        assert [item["id"] for item in items] == [str(product.id)]
 
     async def test_popular_sort_puts_flagged_products_first(
         self,
@@ -152,12 +159,12 @@ class TestPopularProducts:
     ):
         from app.api.modules.catalog.models import Product
 
-        rows = (await uow.session.execute(select(Product).limit(2))).scalars().all()
-        for row in rows:
-            row.is_popular = False
-        last = rows[-1]
-        last.is_popular = True
-        await uow.commit()
+        product = (
+            await uow.session.execute(
+                select(Product).order_by(Product.position.desc()).limit(1)
+            )
+        ).scalar_one()
+        await self._only_popular(uow, product)
 
         response = await client.get(
             self.endpoint, params={"sort": "popular", "page_size": 50}
@@ -165,7 +172,7 @@ class TestPopularProducts:
 
         assert response.status_code == 200, response.text
         ids = [item["id"] for item in response.json()["items"]]
-        assert ids[0] == str(last.id)
+        assert ids[0] == str(product.id)
 
     async def test_popularity_is_independent_of_the_badge(
         self,
@@ -176,7 +183,7 @@ class TestPopularProducts:
         from app.api.modules.catalog.models import Product
 
         product = (await uow.session.execute(select(Product).limit(1))).scalar_one()
-        product.is_popular = True
+        await self._only_popular(uow, product)
         product.badge = ProductBadge.SALE
         await uow.commit()
 

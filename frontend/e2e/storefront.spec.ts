@@ -6,11 +6,9 @@ test("public routes render and product navigation works", async ({ page }) => {
     "Правильна деталь",
   );
   await expect(page.getByText("Усі категорії", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Виробники" })).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "Бренди в каталозі" }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("heading", { name: "Що кажуть покупці" }),
+    page.getByRole("heading", { name: "Відгуки наших клієнтів" }),
   ).toBeVisible();
   const searchResponse = page.waitForResponse(
     (response) =>
