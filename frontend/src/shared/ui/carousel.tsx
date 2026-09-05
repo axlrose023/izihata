@@ -83,7 +83,14 @@ export function Carousel({
       >
         <ChevronLeft size={20} />
       </button>
-      <div aria-label={ariaLabel} className="carousel__rail" ref={railRef}>
+      {/* The rail scrolls, so it must be reachable and scrollable by keyboard. */}
+      <div
+        aria-label={ariaLabel}
+        className="carousel__rail"
+        ref={railRef}
+        role="group"
+        tabIndex={0}
+      >
         {children}
       </div>
       <button

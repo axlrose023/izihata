@@ -1171,6 +1171,10 @@ h2 {
 .carousel__rail::-webkit-scrollbar {
   display: none;
 }
+.carousel__rail:focus-visible {
+  outline: 3px solid var(--orange);
+  outline-offset: 3px;
+}
 .carousel__item {
   min-width: 0;
   scroll-snap-align: start;
