@@ -213,6 +213,7 @@ class ProductManagementService:
             price=request.price,
             old_price=request.old_price,
             badge=request.badge,
+            is_popular=request.is_popular,
             stock_status=request.stock_status,
             availability_days=request.availability_days,
             sale_unit=request.sale_unit,
