@@ -124,7 +124,8 @@ export function SiteHeader() {
             <Menu size={18} /> Усі товари
           </Link>
           <Link to="/catalog?sort=popular">Популярне</Link>
-          <Link to="/catalog?sort=newest">Новинки</Link>
+          <Link to="/catalog/new">Новинки</Link>
+          <Link to="/catalog/sale">Акції</Link>
           <Link to="/catalog?in_stock=true">В наявності</Link>
           <Link to="/advisors">Підбір товарів</Link>
           <Link to="/custom-boards">

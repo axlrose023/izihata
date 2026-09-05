@@ -27,3 +27,15 @@ export function pluralizeProducts(count: number): string {
   }
   return `${count} товарів`;
 }
+
+export function discountPercent(
+  price: string | number,
+  oldPrice: string | number | null | undefined,
+): number | null {
+  if (oldPrice === null || oldPrice === undefined) return null;
+  const current = Number(price);
+  const previous = Number(oldPrice);
+  if (!Number.isFinite(current) || !Number.isFinite(previous)) return null;
+  if (previous <= current || previous <= 0) return null;
+  return Math.round(((previous - current) / previous) * 100);
+}

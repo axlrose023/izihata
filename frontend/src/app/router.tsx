@@ -40,6 +40,19 @@ export const router = createBrowserRouter([
         }),
       },
       {
+        path: "catalog/sale",
+        lazy: async () => ({
+          Component: (await import("@/pages/store/catalog-page")).SalePage,
+        }),
+      },
+      {
+        path: "catalog/new",
+        lazy: async () => ({
+          Component: (await import("@/pages/store/catalog-page"))
+            .NewArrivalsPage,
+        }),
+      },
+      {
         path: "catalog/:category",
         lazy: async () => ({
           Component: (await import("@/pages/store/catalog-page")).CatalogPage,

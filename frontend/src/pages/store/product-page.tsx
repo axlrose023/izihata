@@ -14,7 +14,7 @@ import { ProductActions } from "@/modules/catalog/components/product-actions";
 import { ProductCard } from "@/modules/catalog/components/product-card";
 import { ProductMediaGallery } from "@/modules/catalog/components/product-media-gallery";
 import { ApiError } from "@/shared/api/errors";
-import { formatMoney } from "@/shared/lib/format";
+import { discountPercent, formatMoney } from "@/shared/lib/format";
 import { useDocumentTitle } from "@/shared/lib/use-document-title";
 import { usePageMeta } from "@/shared/lib/use-page-meta";
 import { ProductRating } from "@/shared/ui/product-rating";
@@ -56,6 +56,7 @@ export function ProductPage() {
   }
 
   const quickSpecs = Object.entries(product.specs).slice(0, 4);
+  const discount = discountPercent(product.price, product.old_price);
   const availabilityText = getAvailabilityText(product);
   return (
     <div className="container product-page">
@@ -92,7 +93,14 @@ export function ProductPage() {
             {product.old_price ? (
               <del>{formatMoney(product.old_price)}</del>
             ) : null}
+            {discount ? <b className="price-discount">−{discount}%</b> : null}
           </div>
+          {discount ? (
+            <p className="product-saving">
+              Ви економите{" "}
+              {formatMoney(Number(product.old_price) - Number(product.price))}
+            </p>
+          ) : null}
           <p className="product-sale-unit">
             Ціна за {saleUnitLabel(product.sale_unit)}.{" "}
             {product.wholesale_min_quantity
