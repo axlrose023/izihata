@@ -6,6 +6,7 @@ services:
     restart: unless-stopped
     volumes:
       - ./backend/src:/app/src
+      - media_data:/app/media
     ports:
       - "${API_HOST_PORT:-18000}:${APP__API__PORT}"
     env_file:
@@ -16,6 +17,7 @@ services:
       - APP__POSTGRES__HOST=db
       - APP__REDIS__HOST=cache
       - APP__API__ALLOWED_HOSTS=["app","localhost","127.0.0.1"]
+      - APP__MEDIA_ROOT=/app/media
     healthcheck:
       test: [ "CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:${APP__API__PORT}/health')\"" ]
       interval: 10s
@@ -159,6 +161,7 @@ services:
 volumes:
   db_data:
   cache_data:
+  media_data:
   prometheus_data:
   grafana_data:
   loki_data:
