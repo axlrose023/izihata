@@ -290,6 +290,7 @@ class ProductListParams(PaginationParams):
     section: str | None = Field(default=None, min_length=1, max_length=64)
     subcategory: str | None = Field(default=None, min_length=1, max_length=96)
     brand: list[str] = Field(default_factory=list)
+    badge: list[ProductBadge] = Field(default_factory=list, max_length=6)
     in_stock: bool = False
     availability: list[StockStatus] = Field(default_factory=list, max_length=4)
     sale_unit: list[SaleUnit] = Field(default_factory=list, max_length=3)

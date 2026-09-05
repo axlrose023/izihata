@@ -212,6 +212,8 @@ class ProductGateway:
                     Category.section.has(CatalogSection.slug == params.section)
                 )
             )
+        if params.badge:
+            conditions.append(Product.badge.in_(params.badge))
         if params.subcategory:
             conditions.append(
                 Product.subcategory.has(Subcategory.slug == params.subcategory)

@@ -96,3 +96,31 @@ class TestGetProducts:
         response = await client.get(self.endpoint, params={"spec": "invalid"})
 
         assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+class TestFilterByBadge:
+    endpoint = "/api/v1/catalog/products"
+
+    async def test_filters_a_single_badge(self, client: AsyncClient):
+        response = await client.get(self.endpoint, params={"badge": "top"})
+
+        assert response.status_code == 200, response.text
+        items = response.json()["items"]
+        assert items
+        assert {item["badge"] for item in items} == {"top"}
+
+    async def test_filters_several_badges(self, client: AsyncClient):
+        response = await client.get(
+            self.endpoint,
+            params={"badge": ["sale", "promotion", "clearance"]},
+        )
+
+        assert response.status_code == 200, response.text
+        badges = {item["badge"] for item in response.json()["items"]}
+        assert badges <= {"sale", "promotion", "clearance"}
+
+    async def test_rejects_an_unknown_badge(self, client: AsyncClient):
+        response = await client.get(self.endpoint, params={"badge": "nonsense"})
+
+        assert response.status_code == 422
