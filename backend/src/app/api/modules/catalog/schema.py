@@ -19,6 +19,7 @@ from app.api.modules.catalog.enums import (
     StockSubscriptionStatus,
 )
 from app.api.modules.catalog.models import (
+    Brand,
     CatalogAttribute,
     CatalogSection,
     Product,
@@ -93,6 +94,68 @@ class CatalogSectionResponse(CatalogReference):
             product_count=sum(category.product_count for category in categories),
             categories=categories,
         )
+
+
+class BrandResponse(StrictSchema):
+    id: UUID
+    slug: str
+    name: str
+    logo_url: str | None
+    description: str | None
+    product_count: int
+
+    @classmethod
+    def from_brand(cls, brand: Brand, product_count: int) -> "BrandResponse":
+        return cls(
+            id=brand.id,
+            slug=brand.slug,
+            name=brand.name,
+            logo_url=brand.logo_url,
+            description=brand.description,
+            product_count=product_count,
+        )
+
+
+class AdminBrandResponse(BrandResponse):
+    position: int
+    is_active: bool
+
+    @classmethod
+    def from_brand(cls, brand: Brand, product_count: int) -> "AdminBrandResponse":
+        return cls(
+            id=brand.id,
+            slug=brand.slug,
+            name=brand.name,
+            logo_url=brand.logo_url,
+            description=brand.description,
+            product_count=product_count,
+            position=brand.position,
+            is_active=brand.is_active,
+        )
+
+
+class UpdateBrandRequest(StrictSchema):
+    name: str | None = Field(default=None, min_length=1, max_length=120)
+    logo_url: str | None = Field(default=None, max_length=500)
+    description: str | None = Field(default=None, max_length=2000)
+    position: int | None = Field(default=None, ge=0, le=1000)
+    is_active: bool | None = None
+
+    @field_validator("name", "description", mode="before")
+    @classmethod
+    def normalize_text_fields(cls, value: object | None) -> str | None:
+        return normalize_optional_text(value)
+
+    @field_validator("logo_url", mode="before")
+    @classmethod
+    def validate_logo_url(cls, value: object | None) -> str | None:
+        return normalize_image_url(value)
+
+    @model_validator(mode="after")
+    def require_update(self) -> "UpdateBrandRequest":
+        if not self.model_fields_set:
+            raise ValueError("At least one field must be provided")
+        return self
 
 
 class ProductAvailabilityResponse(StrictSchema):

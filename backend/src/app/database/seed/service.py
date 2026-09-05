@@ -15,6 +15,7 @@ from app.api.modules.catalog.enums import (
     StockStatus,
 )
 from app.api.modules.catalog.models import (
+    Brand,
     CatalogSection,
     Category,
     Product,
@@ -25,6 +26,7 @@ from app.api.modules.catalog.models import (
     ProductReview,
     Subcategory,
 )
+from app.api.modules.catalog.utils import slugify
 from app.api.modules.checkout.models import Promotion
 
 CATALOG_DATA_PATH = Path(__file__).with_name("catalog.json")
@@ -213,6 +215,7 @@ async def seed_database(session: AsyncSession) -> None:
             )
             reviewed_product_ids.add(product.id)
 
+    await _seed_brands(session, products_by_sku)
     await _seed_catalog_demo_content(
         session, categories, subcategories, products_by_sku
     )
@@ -223,6 +226,32 @@ async def seed_database(session: AsyncSession) -> None:
     if promotion is None:
         session.add(Promotion(code="ZNIZKA10", discount_rate=Decimal("0.10")))
     await session.commit()
+
+
+async def _seed_brands(
+    session: AsyncSession,
+    products_by_sku: dict[str, Product],
+) -> None:
+    """Give every brand a row so the storefront can list manufacturers.
+
+    Production gets these from the migration backfill; a freshly bootstrapped
+    database needs them here.
+    """
+    known = set((await session.execute(select(Brand.name))).scalars().all())
+    taken = set((await session.execute(select(Brand.slug))).scalars().all())
+    position = len(known)
+    for name in sorted({product.brand for product in products_by_sku.values()}):
+        if name in known:
+            continue
+        base = slugify(name) or "brand"
+        slug, suffix = base, 2
+        while slug in taken:
+            slug = f"{base}-{suffix}"
+            suffix += 1
+        taken.add(slug)
+        session.add(Brand(slug=slug, name=name, position=position, is_active=True))
+        position += 1
+    await session.flush()
 
 
 async def _seed_catalog_demo_content(

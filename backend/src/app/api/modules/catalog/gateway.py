@@ -17,6 +17,7 @@ from app.api.modules.catalog.enums import (
     StockSubscriptionStatus,
 )
 from app.api.modules.catalog.models import (
+    Brand,
     CatalogAttribute,
     CatalogSection,
     Category,
@@ -29,6 +30,53 @@ from app.api.modules.catalog.models import (
     Subcategory,
 )
 from app.api.modules.catalog.schema import ProductListParams
+
+
+class BrandGateway:
+    def __init__(self, session: AsyncSession):
+        self._session = session
+
+    async def list(self, *, only_active: bool) -> Sequence[Brand]:
+        stmt = select(Brand).order_by(Brand.position, Brand.name)
+        if only_active:
+            stmt = stmt.where(Brand.is_active.is_(True))
+        return (await self._session.execute(stmt)).scalars().all()
+
+    async def get_by_id(self, brand_id: UUID) -> Brand | None:
+        stmt = select(Brand).where(Brand.id == brand_id)
+        return (await self._session.execute(stmt)).scalar_one_or_none()
+
+    async def get_by_slug(self, slug: str) -> Brand | None:
+        stmt = select(Brand).where(Brand.slug == slug, Brand.is_active.is_(True))
+        return (await self._session.execute(stmt)).scalar_one_or_none()
+
+    async def get_by_name(self, name: str) -> Brand | None:
+        stmt = select(Brand).where(Brand.name == name)
+        return (await self._session.execute(stmt)).scalar_one_or_none()
+
+    async def slug_taken(self, slug: str) -> bool:
+        stmt = select(Brand.id).where(Brand.slug == slug)
+        return (await self._session.execute(stmt)).first() is not None
+
+    async def create(self, brand: Brand) -> Brand:
+        self._session.add(brand)
+        await self._session.flush()
+        return brand
+
+    async def next_position(self) -> int:
+        stmt = select(func.coalesce(func.max(Brand.position), -1) + 1)
+        return int((await self._session.execute(stmt)).scalar_one())
+
+    async def product_counts(self) -> dict[str, int]:
+        stmt = (
+            select(Product.brand, func.count(Product.id))
+            .where(Product.is_active.is_(True))
+            .group_by(Product.brand)
+        )
+        return {
+            name: int(count)
+            for name, count in (await self._session.execute(stmt)).all()
+        }
 
 
 class CategoryGateway:

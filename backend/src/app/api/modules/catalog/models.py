@@ -84,6 +84,25 @@ class Subcategory(Base, UUIDIDMixin, DateTimeMixin):
     category: Mapped[Category] = relationship(back_populates="subcategories")
 
 
+class Brand(Base, UUIDIDMixin, DateTimeMixin):
+    """Presentation metadata for a manufacturer.
+
+    ``name`` matches ``Product.brand`` exactly and stays the single source of
+    truth for filtering, so this table only adds a logo, a slug and ordering.
+    A row is created automatically whenever staff save a product with a brand
+    that has not been seen before.
+    """
+
+    __tablename__ = "brands"
+
+    slug: Mapped[str] = mapped_column(String(96), unique=True, index=True)
+    name: Mapped[str] = mapped_column(String(120), unique=True, index=True)
+    logo_url: Mapped[str | None] = mapped_column(String(500))
+    description: Mapped[str | None] = mapped_column(Text)
+    position: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+
+
 class Product(Base, UUIDIDMixin, DateTimeMixin):
     __tablename__ = "products"
     __table_args__ = (

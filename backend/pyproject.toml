@@ -21,6 +21,7 @@ dependencies = [
     "prometheus-fastapi-instrumentator>=7.0.0",
     "typer>=0.20.0",
     "uvicorn[standard]>=0.38.0",
+    "python-multipart>=0.0.32",
 ]
 
 [project.scripts]

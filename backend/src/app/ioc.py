@@ -17,12 +17,15 @@ from app.api.modules.auth.service import (
     RefreshSessionService,
 )
 from app.api.modules.catalog.service import (
+    BrandManagementService,
+    BrandQueryService,
     CatalogAdministrationService,
     CatalogQueryService,
     ProductManagementService,
     ReviewSubmissionService,
     StockSubscriptionService,
 )
+from app.api.modules.catalog.services.media import MediaStorageService
 from app.api.modules.checkout.service import PricingService
 from app.api.modules.custom_boards.service import (
     BoardEstimationService,
@@ -114,6 +117,18 @@ class ServicesProvider(Provider):
         client: NovaPoshtaClient,
     ) -> DeliveryLocationService:
         return DeliveryLocationService(client)
+
+    @provide(scope=Scope.APP)
+    def get_media_storage_service(self, config: Config) -> MediaStorageService:
+        return MediaStorageService(config.media_root)
+
+    @provide(scope=Scope.REQUEST)
+    def get_brand_query_service(self, uow: UnitOfWork) -> BrandQueryService:
+        return BrandQueryService(uow)
+
+    @provide(scope=Scope.REQUEST)
+    def get_brand_management_service(self, uow: UnitOfWork) -> BrandManagementService:
+        return BrandManagementService(uow)
 
     @provide(scope=Scope.REQUEST)
     def get_visitor_tracking_service(self, uow: UnitOfWork) -> VisitorTrackingService:
