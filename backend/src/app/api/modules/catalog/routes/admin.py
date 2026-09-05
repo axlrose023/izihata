@@ -3,10 +3,11 @@ from uuid import UUID
 
 from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, File, Query, UploadFile, status
 
 from app.api.modules.auth.service import AuthenticateUser
 from app.api.modules.catalog.schema import (
+    AdminBrandResponse,
     AdminCatalogSectionResponse,
     AdminProductDetailResponse,
     AdminProductResponse,
@@ -19,14 +20,17 @@ from app.api.modules.catalog.schema import (
     ProductReviewListResponse,
     ReplaceCategoryAttributesRequest,
     ReviewModerationRequest,
+    UpdateBrandRequest,
     UpdateCatalogSectionRequest,
     UpdateCategorySectionRequest,
     UpdateProductRequest,
 )
 from app.api.modules.catalog.service import (
+    BrandManagementService,
     CatalogAdministrationService,
     ProductManagementService,
 )
+from app.api.modules.catalog.services.media import MediaStorageService
 from app.api.modules.users.models import User
 
 router = APIRouter(route_class=DishkaRoute)
@@ -97,6 +101,33 @@ async def assign_category_section(
     current_user: User = Depends(AuthenticateUser()),
 ) -> None:
     await service.assign_category_section(category_id, request)
+
+
+@router.post("/media", status_code=status.HTTP_201_CREATED)
+async def upload_media(
+    service: FromDishka[MediaStorageService],
+    file: UploadFile = File(),
+    current_user: User = Depends(AuthenticateUser()),
+) -> dict[str, str]:
+    return {"url": await service.store(file)}
+
+
+@router.get("/brands", response_model=list[AdminBrandResponse])
+async def get_brands(
+    service: FromDishka[BrandManagementService],
+    current_user: User = Depends(AuthenticateUser()),
+) -> list[AdminBrandResponse]:
+    return await service.list_brands()
+
+
+@router.patch("/brands/{brand_id}", response_model=AdminBrandResponse)
+async def update_brand(
+    brand_id: UUID,
+    request: UpdateBrandRequest,
+    service: FromDishka[BrandManagementService],
+    current_user: User = Depends(AuthenticateUser()),
+) -> AdminBrandResponse:
+    return await service.update_brand(brand_id, request)
 
 
 @router.get("/attributes", response_model=list[CatalogAttributeResponse])

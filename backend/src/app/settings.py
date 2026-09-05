@@ -108,6 +108,8 @@ class Config(BaseSettings):
 
     env: Literal["local", "dev", "prod"] = "local"
     database_url_override: str | None = None
+    # Staff uploads live outside the image so they survive a rebuild.
+    media_root: Path = Path("media")
     business_timezone: str = "Europe/Kyiv"
 
     api: APIConfig

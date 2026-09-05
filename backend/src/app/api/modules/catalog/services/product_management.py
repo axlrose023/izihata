@@ -28,6 +28,7 @@ from app.api.modules.catalog.schema import (
     ProductRelationInput,
     UpdateProductRequest,
 )
+from app.api.modules.catalog.services.brands import ensure_brand
 from app.api.modules.catalog.utils import product_slug_from_sku
 from app.database.uow import UnitOfWork
 
@@ -239,6 +240,7 @@ class ProductManagementService:
         if request.media:
             product.image_url = request.media[0].url
         try:
+            await ensure_brand(self._uow, product.brand)
             await self._uow.products.create(product)
             await self._replace_relations(product.id, request.relations)
             await self._uow.commit()
@@ -329,6 +331,7 @@ class ProductManagementService:
         if documents is not None:
             self._replace_documents(product, documents)
         try:
+            await ensure_brand(self._uow, product.brand)
             await self._uow.products.update(product)
             if relations is not None:
                 await self._replace_relations(product.id, relations)

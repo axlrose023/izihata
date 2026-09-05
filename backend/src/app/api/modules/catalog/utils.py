@@ -11,6 +11,48 @@ from app.api.common.utils import (
 _SKU_PATTERN = re.compile(r"[A-Z0-9][A-Z0-9._/-]*")
 _SLUG_SEPARATORS = re.compile(r"[._/]+")
 _REPEATED_DASHES = re.compile(r"-+")
+_NON_SLUG = re.compile(r"[^a-z0-9]+")
+_CYRILLIC = "абвгґдеєжзиіїйклмнопрстуфхцчшщьюяыэёъ"
+_LATIN = (
+    "a",
+    "b",
+    "v",
+    "h",
+    "g",
+    "d",
+    "e",
+    "ie",
+    "zh",
+    "z",
+    "y",
+    "i",
+    "i",
+    "i",
+    "k",
+    "l",
+    "m",
+    "n",
+    "o",
+    "p",
+    "r",
+    "s",
+    "t",
+    "u",
+    "f",
+    "kh",
+    "ts",
+    "ch",
+    "sh",
+    "shch",
+    "",
+    "iu",
+    "ia",
+    "y",
+    "e",
+    "e",
+    "",
+)
+_TRANSLITERATION = dict(zip(_CYRILLIC, _LATIN, strict=True))
 
 
 def normalize_sku(value: object) -> str:
@@ -25,6 +67,13 @@ def normalize_sku(value: object) -> str:
 def product_slug_from_sku(sku: str) -> str:
     slug = _SLUG_SEPARATORS.sub("-", sku.lower())
     return _REPEATED_DASHES.sub("-", slug).strip("-")
+
+
+def slugify(value: str) -> str:
+    """Latin, lowercase, dash-separated slug; Cyrillic is transliterated."""
+    lowered = "".join(_TRANSLITERATION.get(char, char) for char in value.lower())
+    slug = _NON_SLUG.sub("-", lowered).strip("-")
+    return _REPEATED_DASHES.sub("-", slug)
 
 
 def normalize_image_url(value: object | None) -> str | None:

@@ -6,7 +6,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.modules.activity.gateway import VisitorGateway
 from app.api.modules.admin.gateway import DashboardGateway
 from app.api.modules.auth.gateway import AuthSessionGateway
-from app.api.modules.catalog.gateway import CategoryGateway, ProductGateway
+from app.api.modules.catalog.gateway import (
+    BrandGateway,
+    CategoryGateway,
+    ProductGateway,
+)
 from app.api.modules.checkout.gateway import PromotionGateway
 from app.api.modules.custom_boards.gateway import CustomBoardGateway
 from app.api.modules.customers.gateway import CustomerGateway
@@ -21,6 +25,7 @@ class UnitOfWork:
     visitors: VisitorGateway
     auth_sessions: AuthSessionGateway
     users: UserGateway
+    brands: BrandGateway
     categories: CategoryGateway
     products: ProductGateway
     promotions: PromotionGateway
@@ -36,6 +41,7 @@ class UnitOfWork:
         self.visitors = VisitorGateway(session)
         self.auth_sessions = AuthSessionGateway(session)
         self.users = UserGateway(session)
+        self.brands = BrandGateway(session)
         self.categories = CategoryGateway(session)
         self.products = ProductGateway(session)
         self.promotions = PromotionGateway(session)

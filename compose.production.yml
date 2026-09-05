@@ -13,6 +13,9 @@ x-app: &app
     APP__API__ALLOWED_ORIGINS: '["https://izihata.com.ua","https://www.izihata.com.ua"]'
     APP__API__ALLOWED_HOSTS: '["izihata.com.ua","www.izihata.com.ua","app","localhost","127.0.0.1"]'
     APP__API__FORWARDED_ALLOW_IPS: '["172.29.0.0/24"]'
+    APP__MEDIA_ROOT: /app/media
+  volumes:
+    - media_data:/app/media
   logging: &default-logging
     driver: local
     options:
@@ -200,5 +203,6 @@ networks:
 
 volumes:
   traefik_data:
+  media_data:
   db_data:
   cache_data:

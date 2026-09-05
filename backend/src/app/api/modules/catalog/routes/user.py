@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, Path, Query
 
 from app.api.common.rate_limit import LEAD_RATE_LIMIT, RateLimit
 from app.api.modules.catalog.schema import (
+    BrandResponse,
     CatalogSectionResponse,
     CategoryResponse,
     CreateProductReviewRequest,
@@ -20,6 +21,7 @@ from app.api.modules.catalog.schema import (
     StockSubscriptionResponse,
 )
 from app.api.modules.catalog.service import (
+    BrandQueryService,
     CatalogQueryService,
     ReviewSubmissionService,
     StockSubscriptionService,
@@ -48,6 +50,24 @@ async def get_products(
     params: Annotated[ProductListParams, Query()],
 ) -> ProductListResponse:
     return await service.get_products(params)
+
+
+@router.get("/brands", response_model=list[BrandResponse])
+async def get_brands(
+    service: FromDishka[BrandQueryService],
+) -> list[BrandResponse]:
+    return await service.list_brands()
+
+
+@router.get("/brands/{brand_slug}", response_model=BrandResponse)
+async def get_brand(
+    brand_slug: Annotated[
+        str,
+        Path(min_length=1, max_length=96, pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$"),
+    ],
+    service: FromDishka[BrandQueryService],
+) -> BrandResponse:
+    return await service.get_brand(brand_slug)
 
 
 @router.get("/recommendations", response_model=list[ProductResponse])

@@ -13,9 +13,11 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.middleware.trustedhost import TrustedHostMiddleware
+from starlette.staticfiles import StaticFiles
 
 from app.api import register_routers
 from app.api.common.error_handlers import register_error_handlers
+from app.api.modules.catalog.services.media import MEDIA_URL_PREFIX
 from app.database.engine import engine
 from app.ioc import get_async_container
 from app.services.logging import setup_logging
@@ -79,6 +81,14 @@ def get_production_app() -> FastAPI:
     register_routers(api_router)
     app.include_router(api_router)
     app.include_router(router)
+
+    # Staff uploads are served straight from the volume they are written to.
+    config.media_root.mkdir(parents=True, exist_ok=True)
+    app.mount(
+        MEDIA_URL_PREFIX,
+        StaticFiles(directory=config.media_root),
+        name="media",
+    )
     register_error_handlers(app)
 
     setup_dishka(get_async_container(), app)
