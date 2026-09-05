@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { cartQuantityOf, useCartStore } from "@/modules/cart/store";
 import { useCollectionStore } from "@/modules/collections/store";
 import { LeadAction } from "@/modules/leads/components/lead-action";
-import { formatMoney } from "@/shared/lib/format";
+import { discountPercent, formatMoney } from "@/shared/lib/format";
 import type { Product } from "@/shared/types/api";
 import { ProductRating } from "@/shared/ui/product-rating";
 import { StatusBadge } from "@/shared/ui/status-badge";
@@ -20,13 +20,7 @@ const badgeLabels: Record<NonNullable<Product["badge"]>, string> = {
   recommended: "Рекомендуємо",
 };
 
-export function ProductCard({
-  product,
-  layout = "grid",
-}: {
-  product: Product;
-  layout?: "grid" | "list";
-}) {
+export function ProductCard({ product }: { product: Product }) {
   const add = useCartStore((state) => state.add);
   const openCart = useCartStore((state) => state.open);
   const inCart = useCartStore((state) =>
@@ -40,12 +34,12 @@ export function ProductCard({
   const isCompared = compare.includes(product.id);
   const specs = Object.entries(product.specs).slice(0, 2);
   const unavailable = product.stock_status === "out_of_stock";
+  const discount = discountPercent(product.price, product.old_price);
 
   return (
     <article
       className="product-card"
       data-in-cart={inCart ? "true" : undefined}
-      data-layout={layout}
     >
       <div className="product-card__visual">
         {product.badge ? (
@@ -110,7 +104,12 @@ export function ProductCard({
           <div className="price-stack">
             <strong>{formatMoney(product.price)}</strong>
             {product.old_price ? (
-              <del>{formatMoney(product.old_price)}</del>
+              <span className="price-stack__was">
+                <del>{formatMoney(product.old_price)}</del>
+                {discount ? (
+                  <b className="price-discount">−{discount}%</b>
+                ) : null}
+              </span>
             ) : null}
           </div>
           <div className="product-card__buy-actions">

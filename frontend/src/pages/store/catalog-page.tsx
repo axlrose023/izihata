@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { LayoutGrid, List, Search } from "lucide-react";
+import { Grid2x2, Grid3x3, Search } from "lucide-react";
 import { Form, Link, useParams, useSearchParams } from "react-router-dom";
 
 import {
@@ -12,7 +12,7 @@ import {
   type CatalogFilterQuery,
 } from "@/modules/catalog/components/catalog-filters";
 import { ProductCard } from "@/modules/catalog/components/product-card";
-import type { ProductSort } from "@/shared/types/api";
+import type { ProductBadge, ProductSort } from "@/shared/types/api";
 import { useDocumentTitle } from "@/shared/lib/use-document-title";
 import { usePageMeta } from "@/shared/lib/use-page-meta";
 import { EmptyState } from "@/shared/ui/empty-state";
@@ -36,7 +36,7 @@ function pageHref(params: URLSearchParams, page: number, category?: string) {
 
 function viewHref(
   params: URLSearchParams,
-  view: "grid" | "list",
+  view: "grid" | "large",
   category?: string,
 ) {
   const next = new URLSearchParams(params);
@@ -47,10 +47,40 @@ function viewHref(
   return `${category ? `/catalog/${category}` : "/catalog"}${query ? `?${query}` : ""}`;
 }
 
-export function CatalogPage() {
+const saleBadges: ProductBadge[] = ["sale", "promotion", "clearance"];
+
+export function SalePage() {
+  return (
+    <CatalogPage
+      presetBadges={saleBadges}
+      presetTitle="Акції та знижки"
+      presetDescription="Товари зі зниженою ціною. Стару ціну видно поруч з новою."
+    />
+  );
+}
+
+export function NewArrivalsPage() {
+  return (
+    <CatalogPage
+      presetBadges={["new"]}
+      presetTitle="Новинки"
+      presetDescription="Позиції, які нещодавно з’явилися в каталозі."
+    />
+  );
+}
+
+export function CatalogPage({
+  presetBadges,
+  presetTitle,
+  presetDescription,
+}: {
+  presetBadges?: ProductBadge[];
+  presetTitle?: string;
+  presetDescription?: string;
+} = {}) {
   const { category } = useParams<{ category?: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
-  const view = searchParams.get("view") === "list" ? "list" : "grid";
+  const view = searchParams.get("view") === "large" ? "large" : "grid";
   const query = {
     search: searchParams.get("search") ?? undefined,
     category: category ?? searchParams.get("category") ?? undefined,
@@ -63,6 +93,7 @@ export function CatalogPage() {
     min_price: searchParams.get("min_price") ?? undefined,
     max_price: searchParams.get("max_price") ?? undefined,
     spec: searchParams.getAll("spec"),
+    badge: presetBadges ?? searchParams.getAll("badge"),
     sort: searchParams.get("sort") ?? "popular",
     page: searchParams.get("page") ?? "1",
     page_size: 12,
@@ -72,12 +103,15 @@ export function CatalogPage() {
   const initialActiveCategory = categoriesResult.data?.find(
     (item) => item.slug === query.category,
   );
-  useDocumentTitle(initialActiveCategory?.name ?? "Каталог");
+  const pageTitle = presetTitle ?? initialActiveCategory?.name ?? "Каталог";
+  useDocumentTitle(pageTitle);
   usePageMeta({
-    title: initialActiveCategory?.name ?? "Каталог",
-    description: initialActiveCategory
-      ? `Купити ${initialActiveCategory.name.toLocaleLowerCase("uk-UA")} в IZI HATA: технічні параметри, ціни та наявність.`
-      : "Каталог електротоварів IZI HATA: перевіряйте характеристики, ціни та наявність.",
+    title: pageTitle,
+    description:
+      presetDescription ??
+      (initialActiveCategory
+        ? `Купити ${initialActiveCategory.name.toLocaleLowerCase("uk-UA")} в IZI HATA: технічні параметри, ціни та наявність.`
+        : "Каталог електротоварів IZI HATA: перевіряйте характеристики, ціни та наявність."),
   });
 
   const categories = categoriesResult.data;
@@ -120,7 +154,7 @@ export function CatalogPage() {
       <div className="catalog-title">
         <div>
           <span className="eyebrow">Каталог</span>
-          <h1>{activeCategory?.name ?? "Усі товари"}</h1>
+          <h1>{presetTitle ?? activeCategory?.name ?? "Усі товари"}</h1>
           <p>{products.total} позицій за поточними умовами</p>
         </div>
       </div>
@@ -172,18 +206,18 @@ export function CatalogPage() {
             </label>
             <div aria-label="Вигляд каталогу" className="catalog-view-toggle">
               <Link
-                aria-label="Показати плиткою"
+                aria-label="Дрібніша сітка"
                 aria-current={view === "grid" ? "true" : undefined}
                 to={viewHref(searchParams, "grid", category)}
               >
-                <LayoutGrid size={17} />
+                <Grid3x3 size={17} />
               </Link>
               <Link
-                aria-label="Показати списком"
-                aria-current={view === "list" ? "true" : undefined}
-                to={viewHref(searchParams, "list", category)}
+                aria-label="Більша сітка"
+                aria-current={view === "large" ? "true" : undefined}
+                to={viewHref(searchParams, "large", category)}
               >
-                <List size={18} />
+                <Grid2x2 size={17} />
               </Link>
             </div>
           </div>
@@ -193,7 +227,7 @@ export function CatalogPage() {
               data-view={view}
             >
               {products.items.map((product) => (
-                <ProductCard key={product.id} layout={view} product={product} />
+                <ProductCard key={product.id} product={product} />
               ))}
             </div>
           ) : (
