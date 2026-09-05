@@ -1,4 +1,6 @@
+import { formatDate } from "@/shared/lib/format";
 import type { ProductReview } from "@/shared/types/api";
+import { Carousel } from "@/shared/ui/carousel";
 
 import { ReviewStars } from "./review-stars";
 
@@ -10,18 +12,21 @@ export function TestimonialsSection({ reviews }: { reviews: ProductReview[] }) {
       <div className="section-heading">
         <div>
           <span className="eyebrow">Досвід клієнтів</span>
-          <h2>Що кажуть покупці</h2>
+          <h2>Відгуки наших клієнтів</h2>
         </div>
       </div>
-      <div className="testimonial-grid">
+      <Carousel ariaLabel="Відгуки клієнтів" autoplayMs={10_000}>
         {reviews.map((review) => (
-          <article key={review.id}>
-            <ReviewStars rating={review.rating} />
+          <article className="carousel__item testimonial" key={review.id}>
+            <div className="testimonial__head">
+              <strong>{review.author}</strong>
+              <span>{formatDate(review.created_at)}</span>
+              <ReviewStars rating={review.rating} />
+            </div>
             <p>{review.text}</p>
-            <strong>{review.author}</strong>
           </article>
         ))}
-      </div>
+      </Carousel>
     </section>
   );
 }

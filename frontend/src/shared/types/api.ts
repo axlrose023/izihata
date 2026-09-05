@@ -116,6 +116,7 @@ export interface AdminProductRelation {
 
 export interface AdminProductDetail extends Product {
   wholesale_price: string | null;
+  is_popular: boolean;
   description: string | null;
   relations: AdminProductRelation[];
 }

@@ -371,6 +371,33 @@ test("filters apply without a submit button", async ({ page }) => {
   await expect(page.locator(".product-card")).not.toHaveCount(0);
 });
 
+test("the home page rails popular products", async ({ page }) => {
+  await page.goto("/");
+  const rail = page.locator(".popular-products .carousel__rail");
+  await expect(rail).toBeVisible();
+  const shown = await rail.locator(".carousel__item").count();
+  expect(shown).toBeGreaterThan(0);
+  expect(shown).toBeLessThanOrEqual(5);
+
+  const more = page.locator(".popular-products .show-all-button");
+  if (await more.count()) {
+    await more.click();
+    await expect
+      .poll(() => rail.locator(".carousel__item").count())
+      .toBeGreaterThan(shown);
+  }
+});
+
+test("customer reviews are shown as a rail", async ({ page }) => {
+  await page.goto("/");
+  const reviews = page.locator(".testimonials-section");
+  if (!(await reviews.count())) return;
+  await expect(
+    reviews.getByRole("heading", { name: "Відгуки наших клієнтів" }),
+  ).toBeVisible();
+  await expect(reviews.locator(".testimonial").first()).toBeVisible();
+});
+
 test("sale and new arrivals are their own catalog sections", async ({
   page,
 }) => {

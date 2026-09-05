@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
-import { ProductCard } from "@/modules/catalog/components/product-card";
+import { PopularProducts } from "@/modules/catalog/components/popular-products";
 import { SectionCards } from "@/modules/catalog/components/section-cards";
 import {
   categoriesQuery,
@@ -172,22 +172,7 @@ export function HomePage() {
         </div>
       </section>
 
-      <section className="section section--tint">
-        <div className="container">
-          <div className="section-heading">
-            <div>
-              <span className="eyebrow">Вибір покупців</span>
-              <h2>Популярні товари</h2>
-            </div>
-            <Link to="/catalog?sort=popular">Увесь каталог →</Link>
-          </div>
-          <div className="product-grid">
-            {products?.items.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
-        </div>
-      </section>
+      <PopularProducts />
 
       {products?.facets.brands.length ? (
         <section className="section container brands-section">
