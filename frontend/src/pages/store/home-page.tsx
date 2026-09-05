@@ -9,11 +9,11 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
+import { BrandRail } from "@/modules/catalog/components/brand-rail";
 import { PopularProducts } from "@/modules/catalog/components/popular-products";
 import { SectionCards } from "@/modules/catalog/components/section-cards";
 import {
   categoriesQuery,
-  productsQuery,
   featuredReviewsQuery,
   sectionsQuery,
 } from "@/modules/catalog/api/catalog-queries";
@@ -25,22 +25,12 @@ import { TestimonialsSection } from "@/modules/reviews/components/testimonials-s
 export function HomePage() {
   const [allCategoriesShown, setAllCategoriesShown] = useState(false);
   useDocumentTitle();
-  const [sectionsResult, categoriesResult, productsResult, reviewsResult] =
-    useQueries({
-      queries: [
-        sectionsQuery(),
-        categoriesQuery(),
-        productsQuery({ page_size: 8, sort: "popular" }),
-        featuredReviewsQuery(),
-      ],
-    });
+  const [sectionsResult, categoriesResult, reviewsResult] = useQueries({
+    queries: [sectionsQuery(), categoriesQuery(), featuredReviewsQuery()],
+  });
   const sections = sectionsResult.data ?? [];
   const categories = categoriesResult.data ?? [];
-  const products = productsResult.data;
-  const unavailable =
-    sectionsResult.isError ||
-    categoriesResult.isError ||
-    productsResult.isError;
+  const unavailable = sectionsResult.isError || categoriesResult.isError;
 
   return (
     <>
@@ -174,27 +164,7 @@ export function HomePage() {
 
       <PopularProducts />
 
-      {products?.facets.brands.length ? (
-        <section className="section container brands-section">
-          <div className="section-heading">
-            <div>
-              <span className="eyebrow">Перевірені виробники</span>
-              <h2>Бренди в каталозі</h2>
-            </div>
-          </div>
-          <div className="brand-list">
-            {products.facets.brands.map((brand) => (
-              <Link
-                key={brand.value}
-                to={`/catalog?brand=${encodeURIComponent(brand.value)}`}
-              >
-                <strong>{brand.value}</strong>
-                <span>{brand.count} товарів</span>
-              </Link>
-            ))}
-          </div>
-        </section>
-      ) : null}
+      <BrandRail />
 
       <section className="section section--tint ordering-steps">
         <div className="container">

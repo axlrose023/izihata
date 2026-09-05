@@ -40,6 +40,19 @@ export const router = createBrowserRouter([
         }),
       },
       {
+        path: "brands",
+        lazy: async () => ({
+          Component: (await import("@/pages/store/brand-pages")).BrandsPage,
+        }),
+      },
+      {
+        path: "brands/:slug",
+        lazy: async () => ({
+          Component: (await import("@/pages/store/brand-pages"))
+            .BrandProductsPage,
+        }),
+      },
+      {
         path: "catalog/sale",
         lazy: async () => ({
           Component: (await import("@/pages/store/catalog-page")).SalePage,
@@ -174,6 +187,13 @@ export const router = createBrowserRouter([
             lazy: async () => ({
               Component: (await import("@/pages/admin/admin-pages"))
                 .AdminReviewsPage,
+            }),
+          },
+          {
+            path: "brands",
+            lazy: async () => ({
+              Component: (await import("@/pages/admin/admin-pages"))
+                .AdminBrandsPage,
             }),
           },
           {

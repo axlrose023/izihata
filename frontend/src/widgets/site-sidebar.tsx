@@ -12,6 +12,7 @@ import {
   Phone,
   ShoppingCart,
   Sparkles,
+  Tags,
   UserRound,
   X,
 } from "lucide-react";
@@ -30,6 +31,7 @@ import { Logo } from "@/shared/ui/logo";
 const shortcuts = [
   { to: "/catalog/sale", label: "Акції та знижки", icon: Percent },
   { to: "/catalog/new", label: "Новинки", icon: Sparkles },
+  { to: "/brands", label: "Виробники", icon: Tags },
   { to: "/catalog?in_stock=true", label: "В наявності", icon: PackageCheck },
   { to: "/advisors", label: "Підбір товарів", icon: LayoutGrid },
   { to: "/custom-boards", label: "Щити", icon: PanelsTopLeft },

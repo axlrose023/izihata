@@ -1,8 +1,9 @@
 import { apiClient } from "@/shared/api/client";
 import { buildQuery, type QueryValue } from "@/shared/api/query";
 import type {
-  Category,
+  Brand,
   CatalogSection,
+  Category,
   ProductDetail,
   ProductList,
   ProductReview,
@@ -22,6 +23,10 @@ export function fetchProducts(
   params: Record<string, QueryValue | QueryValue[]> = {},
 ): Promise<ProductList> {
   return apiClient(`/catalog/products${buildQuery(params)}`);
+}
+
+export function fetchBrands(): Promise<Brand[]> {
+  return apiClient("/catalog/brands");
 }
 
 export function fetchProduct(slug: string): Promise<ProductDetail> {
