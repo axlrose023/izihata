@@ -181,6 +181,9 @@ async def seed_database(session: AsyncSession) -> None:
                 badge=(
                     ProductBadge(raw_product["badge"]) if raw_product["badge"] else None
                 ),
+                # Mirrors the migration backfill so a freshly seeded database
+                # has a populated "popular" block too.
+                is_popular=raw_product["badge"] == ProductBadge.TOP.value,
                 stock_status=(
                     StockStatus.IN_STOCK
                     if raw_product["stock"] == "in"
