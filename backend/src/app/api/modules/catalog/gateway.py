@@ -29,7 +29,7 @@ from app.api.modules.catalog.models import (
     ProductStockSubscription,
     Subcategory,
 )
-from app.api.modules.catalog.schema import ProductListParams
+from app.api.modules.catalog.schema import AdminProductListParams, ProductListParams
 
 
 class BrandGateway:
@@ -296,6 +296,24 @@ class ProductGateway:
                 )
         return conditions
 
+    def _admin_conditions(
+        self,
+        params: AdminProductListParams,
+    ) -> list[ColumnElement[bool]]:
+        conditions: list[ColumnElement[bool]] = []
+        if params.is_active is not None:
+            conditions.append(Product.is_active.is_(params.is_active))
+        if params.search:
+            pattern = f"%{params.search.strip()}%"
+            conditions.append(
+                or_(
+                    Product.name.ilike(pattern),
+                    Product.brand.ilike(pattern),
+                    Product.sku.ilike(pattern),
+                )
+            )
+        return conditions
+
     def _ordered(self, stmt: Select, sort: ProductSort) -> Select:
         if sort == ProductSort.PRICE_ASC:
             return stmt.order_by(Product.price.asc(), Product.id)
@@ -345,6 +363,40 @@ class ProductGateway:
     async def count(self, params: ProductListParams) -> int:
         stmt = select(func.count(Product.id)).where(*self._conditions(params))
         return int((await self._session.execute(stmt)).scalar_one())
+
+    async def list_for_admin(
+        self,
+        params: AdminProductListParams,
+    ) -> Sequence[Product]:
+        stmt = (
+            select(Product)
+            .where(*self._admin_conditions(params))
+            .options(
+                joinedload(Product.category),
+                joinedload(Product.subcategory),
+                selectinload(Product.attributes),
+            )
+            .order_by(Product.created_at.desc(), Product.id)
+            .offset(params.offset)
+            .limit(params.page_size)
+        )
+        return (await self._session.execute(stmt)).scalars().unique().all()
+
+    async def count_for_admin(self, params: AdminProductListParams) -> int:
+        stmt = select(func.count(Product.id)).where(*self._admin_conditions(params))
+        return int((await self._session.execute(stmt)).scalar_one())
+
+    async def get_by_sku(self, sku: str) -> Product | None:
+        stmt = (
+            select(Product)
+            .where(Product.sku == sku)
+            .options(
+                joinedload(Product.category),
+                joinedload(Product.subcategory),
+                selectinload(Product.attributes),
+            )
+        )
+        return (await self._session.execute(stmt)).scalar_one_or_none()
 
     async def brand_facets(
         self,
@@ -424,7 +476,7 @@ class ProductGateway:
     async def get_by_id(self, product_id: UUID) -> Product | None:
         stmt = (
             select(Product)
-            .where(Product.id == product_id, Product.is_active.is_(True))
+            .where(Product.id == product_id)
             .options(
                 joinedload(Product.category),
                 joinedload(Product.subcategory),
@@ -438,7 +490,7 @@ class ProductGateway:
     async def get_by_id_for_update(self, product_id: UUID) -> Product | None:
         stmt = (
             select(Product)
-            .where(Product.id == product_id, Product.is_active.is_(True))
+            .where(Product.id == product_id)
             .options(
                 joinedload(Product.category),
                 joinedload(Product.subcategory),

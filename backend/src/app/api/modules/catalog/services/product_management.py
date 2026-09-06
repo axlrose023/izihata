@@ -21,6 +21,8 @@ from app.api.modules.catalog.models import (
 )
 from app.api.modules.catalog.schema import (
     AdminProductDetailResponse,
+    AdminProductListParams,
+    AdminProductListResponse,
     AdminProductResponse,
     CreateProductRequest,
     ProductDocumentInput,
@@ -36,6 +38,23 @@ from app.database.uow import UnitOfWork
 class ProductManagementService:
     def __init__(self, uow: UnitOfWork):
         self._uow = uow
+
+    async def list_products(
+        self,
+        params: AdminProductListParams,
+    ) -> AdminProductListResponse:
+        products = await self._uow.products.list_for_admin(params)
+        total = await self._uow.products.count_for_admin(params)
+        total_pages = (total + params.page_size - 1) // params.page_size
+        return AdminProductListResponse(
+            items=[AdminProductResponse.from_product(p) for p in products],
+            total=total,
+            page=params.page,
+            page_size=params.page_size,
+            total_pages=total_pages,
+            has_next=params.page < total_pages,
+            has_prev=params.page > 1,
+        )
 
     async def get_product(self, product_id: UUID) -> AdminProductDetailResponse:
         product = await self._uow.products.get_by_id(product_id)
@@ -215,6 +234,7 @@ class ProductManagementService:
             old_price=request.old_price,
             badge=request.badge,
             is_popular=request.is_popular,
+            is_active=request.is_active,
             stock_status=request.stock_status,
             availability_days=request.availability_days,
             sale_unit=request.sale_unit,

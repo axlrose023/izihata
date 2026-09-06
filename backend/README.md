@@ -104,6 +104,38 @@ docker compose --profile observability up --build -d
 
 That profile adds Prometheus, Loki, Promtail, and Grafana on port `3001`.
 
+## Importing a supplier catalogue
+
+Suppliers ship stock files in arbitrary spreadsheet formats, so the importer
+takes a normalised CSV and format conversion stays outside the API image.
+Export the supplier file to CSV, then:
+
+```bash
+# Dry run: reports what would change and writes nothing.
+uv run cli import-products /path/to/stock.csv --brand ETI
+
+# Apply once the report looks right.
+uv run cli import-products /path/to/stock.csv --brand ETI --apply
+```
+
+Recognised columns (case-insensitive, Ukrainian or English):
+`Артикул`/`sku`, `Найменування`/`name`, `Вільний залишок`/`stock`, `Ціна`/`price`.
+
+Rules the importer follows:
+
+- rows are matched on SKU, so re-running the same file only refreshes name,
+  price and stock — it never duplicates products;
+- the category of an existing product is never overwritten, because staff may
+  have corrected a mapping by hand;
+- **a row without a price is skipped**: `price` must be greater than zero, so a
+  stock file alone cannot create products;
+- categories are derived from the product name by the rules in
+  `app/database/imports/category_rules.py`; anything unrecognised lands in the
+  `other` category;
+- imported products are **hidden** (`is_active = false`) unless `--activate` is
+  passed, and even then only confidently mapped rows are published. Nothing
+  reaches the storefront until staff confirm it.
+
 ## Tests and quality gates
 
 ```bash

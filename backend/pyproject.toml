@@ -93,3 +93,5 @@ lint.ignore = [
 "src/app/api/modules/auth/schema.py" = ["S105"]
 "src/app/settings.py" = ["S104"]
 "src/cli/cli.py" = ["S603", "S607"]
+# A table of Ukrainian product-name patterns: the Cyrillic is deliberate.
+"src/app/database/imports/category_rules.py" = ["RUF001"]
