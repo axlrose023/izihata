@@ -565,3 +565,45 @@ class TestPublishingOnPriceArrival:
 
         assert outcome.published == 0
         assert (await self._by_sku(uow, "PUB-1")).is_active is False
+
+
+class TestKeywordFallbackRules:
+    """Ukrainian names often lead with an adjective, so the noun can be second."""
+
+    @pytest.mark.parametrize(
+        ("name", "category"),
+        [
+            ("Багатофункціональне реле (таблетка) SMR-T", "relay"),
+            ("Програмоване реле CLW-02 12HR-D 3RD", "relay"),
+            ("Сутінкове реле SOU-1 230V AC", "relay"),
+            ("Термодатчик TC-0 (0...+70)", "relay"),
+            ("Лічильник 3-фазн. DEC-2 CT (6А, з ТС)", "metering"),
+            ("Аналізатор мережі ENA3 (144x144мм)", "metering"),
+            ("Акумуляторна батарея HD12-120 SOC", "power"),
+            ("Інвертор гібридний TAB (3-фазн., 8,0кВт)", "power"),
+            ("Металевий щит внутрішнього монтажу 4XP160", "panels"),
+            ("Механічне блокування BECO", "lowvoltage"),
+            ("Марковання клем самоклеюче ES-TAP1640AW", "installation"),
+        ],
+    )
+    def test_keyword_anywhere_in_the_name_is_enough(self, name: str, category: str):
+        mapped, _, matched = classify(name)
+
+        assert (mapped, matched) == (category, True)
+
+    @pytest.mark.parametrize(
+        ("name", "category"),
+        [
+            # The leading-name rules must keep winning over the keyword pass.
+            ("Реле диференційне (ПЗВ) 2р EFI-P2 16/0,03", "lowvoltage"),
+            ("Авт. вимикач ETIMAT 6 1p C16", "lowvoltage"),
+            ("Щит зовнішн. розподільний ECT 18PT", "panels"),
+            ("Лампа сигнальна LED матова ECLI-16", "switching"),
+            ("Короб перфорований B 25x40 T", "cabletrays"),
+        ],
+    )
+    def test_leading_rules_still_take_precedence(self, name: str, category: str):
+        assert classify(name)[0] == category
+
+    def test_a_name_that_is_only_a_model_code_stays_unmapped(self):
+        assert classify("M-12N (Гайка для M-12G, ГК-16)")[2] is False
