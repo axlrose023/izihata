@@ -44,26 +44,28 @@ async def test_staff_login_endpoint_throttles_repeated_attempts():
 
     config = get_config()
     redis = Redis.from_url(config.redis_url, decode_responses=True)
-    identity = "testclient"
-    key = f"izihata:rate-limit:{STAFF_LOGIN_RATE_LIMIT.scope}:{identity}"
+    # The limiter keys on the client address, and TrustedHostMiddleware only
+    # accepts the configured hosts — both have to be set explicitly here.
+    client_host = "127.0.0.1"
+    key = f"izihata:rate-limit:{STAFF_LOGIN_RATE_LIMIT.scope}:{client_host}"
     await redis.delete(key)
 
-    payload = {"username": "no-such-user", "password": "wrong-password-value"}
+    payload = {"username": f"missing-{uuid.uuid4().hex[:8]}", "password": "wrong-pass"}
     statuses: list[int] = []
     try:
         async with AsyncClient(
-            transport=ASGITransport(app=get_production_app()),
-            base_url="http://test",
+            transport=ASGITransport(
+                app=get_production_app(), client=(client_host, 5000)
+            ),
+            base_url="http://localhost",
         ) as client:
-            for _ in range(STAFF_LOGIN_RATE_LIMIT.requests + 2):
+            for _ in range(STAFF_LOGIN_RATE_LIMIT.requests + 1):
                 response = await client.post("/api/v1/auth/login", json=payload)
                 statuses.append(response.status_code)
     finally:
         await redis.delete(key)
         await redis.aclose()
 
-    assert (
-        statuses[: STAFF_LOGIN_RATE_LIMIT.requests]
-        == [401] * STAFF_LOGIN_RATE_LIMIT.requests
-    )
-    assert statuses[-1] == 429
+    allowed = statuses[: STAFF_LOGIN_RATE_LIMIT.requests]
+    assert allowed == [401] * STAFF_LOGIN_RATE_LIMIT.requests, statuses
+    assert statuses[-1] == 429, statuses
