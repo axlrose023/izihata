@@ -175,10 +175,13 @@ test("staff can upload a product photo", async ({ page }) => {
     buffer: Buffer.from(PNG_BASE64, "base64"),
   });
 
+  // The product may already have a picture, so wait for the src to change
+  // rather than for the preview to merely appear.
   const preview = dialog.locator(".field-image-preview");
-  await expect(preview).toBeVisible({ timeout: 20_000 });
+  await expect(preview).toHaveAttribute("src", /^\/api\/v1\/media\//, {
+    timeout: 20_000,
+  });
   const src = await preview.getAttribute("src");
-  expect(src).toMatch(/^\/api\/v1\/media\//);
 
   const stored = await page.request.get(src!);
   expect(stored.status()).toBe(200);
