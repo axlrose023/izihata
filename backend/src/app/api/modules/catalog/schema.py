@@ -531,6 +531,7 @@ class AdminProductRelationResponse(StrictSchema):
 class AdminProductResponse(ProductResponse):
     wholesale_price: Decimal | None
     is_popular: bool
+    is_active: bool
 
     @classmethod
     def from_product(cls, product: Product) -> "AdminProductResponse":
@@ -538,6 +539,7 @@ class AdminProductResponse(ProductResponse):
             **ProductResponse.from_product(product).model_dump(),
             wholesale_price=product.wholesale_price,
             is_popular=product.is_popular,
+            is_active=product.is_active,
         )
 
 
@@ -560,6 +562,27 @@ class AdminProductDetailResponse(AdminProductResponse):
                 for relation, target in relations
             ],
         )
+
+
+class AdminProductListParams(PaginationParams):
+    search: str | None = Field(default=None, min_length=2, max_length=120)
+    is_active: bool | None = None
+
+    @field_validator("search", mode="before")
+    @classmethod
+    def normalize_search(cls, value: object | None) -> str | None:
+        text = str(value).strip() if value is not None else None
+        return text or None
+
+
+class AdminProductListResponse(StrictSchema):
+    items: list[AdminProductResponse]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+    has_next: bool
+    has_prev: bool
 
 
 class CreateCatalogSectionRequest(StrictSchema):
@@ -749,6 +772,8 @@ class CreateProductRequest(StrictSchema):
     )
     badge: ProductBadge | None = None
     is_popular: bool = False
+    # Imports land hidden so a wrong mapping never reaches the storefront.
+    is_active: bool = True
     stock_status: StockStatus = StockStatus.IN_STOCK
     availability_days: int | None = Field(default=None, ge=0, le=365)
     sale_unit: SaleUnit = SaleUnit.PIECE
@@ -835,6 +860,7 @@ class UpdateProductRequest(StrictSchema):
     )
     badge: ProductBadge | None = None
     is_popular: bool | None = None
+    is_active: bool | None = None
     stock_status: StockStatus | None = None
     availability_days: int | None = Field(default=None, ge=0, le=365)
     sale_unit: SaleUnit | None = None

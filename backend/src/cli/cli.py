@@ -13,6 +13,7 @@ from alembic.config import Config
 from app.api.modules.outbox.service import OutboxRecoveryService
 from app.api.modules.users.models import User
 from app.database.engine import SessionFactory
+from app.database.imports import import_products, read_rows
 from app.database.seed import seed_database
 from app.database.uow import UnitOfWork
 from app.ioc import get_async_container
@@ -89,6 +90,70 @@ def seed() -> None:
 
     anyio.run(_seed)
     typer.echo(typer.style("Database seed completed.", fg=typer.colors.GREEN))
+
+
+@app.command("import-products")
+def import_products_command(
+    path: Annotated[Path, typer.Argument(help="Supplier CSV file")],
+    brand: Annotated[str, typer.Option(help="Brand every row belongs to")],
+    apply: Annotated[
+        bool,
+        typer.Option("--apply", help="Write to the database (default: dry run)"),
+    ] = False,
+    activate: Annotated[
+        bool,
+        typer.Option(
+            "--activate",
+            help="Publish confidently mapped rows instead of importing them hidden",
+        ),
+    ] = False,
+) -> None:
+    """Create or refresh products from a supplier CSV.
+
+    Runs as a dry run unless --apply is given. Rows are matched on SKU, so
+    re-running the same file only refreshes name, price and stock.
+    """
+    if not path.exists():
+        typer.echo(typer.style(f"File not found: {path}", fg=typer.colors.RED))
+        raise typer.Exit(code=1)
+
+    rows = read_rows(path)
+    if not rows:
+        typer.echo(typer.style("No usable rows in the file.", fg=typer.colors.RED))
+        raise typer.Exit(code=1)
+
+    async def _run() -> None:
+        async with SessionFactory() as session:
+            outcome = await import_products(
+                session,
+                rows,
+                brand=brand,
+                activate=activate,
+                dry_run=not apply,
+            )
+            mode = "APPLIED" if apply else "DRY RUN (nothing written)"
+            typer.echo(typer.style(f"\n{mode}", fg=typer.colors.CYAN, bold=True))
+            typer.echo(f"rows read      : {len(rows)}")
+            typer.echo(f"to create      : {outcome.created}")
+            typer.echo(f"to update      : {outcome.updated}")
+            typer.echo(f"skipped, no price: {len(outcome.skipped_without_price)}")
+            typer.echo(f"unmapped category: {len(outcome.unmapped)}")
+            typer.echo("\nby category:")
+            for slug, count in sorted(
+                outcome.per_category.items(), key=lambda item: -item[1]
+            ):
+                typer.echo(f"  {count:>6}  {slug}")
+            if outcome.unmapped:
+                typer.echo(
+                    typer.style(
+                        "\nfirst unmapped rows (land in 'other', hidden):",
+                        fg=typer.colors.YELLOW,
+                    )
+                )
+                for line in outcome.unmapped[:15]:
+                    typer.echo(f"  {line[:90]}")
+
+    anyio.run(_run)
 
 
 @app.command("bootstrap")

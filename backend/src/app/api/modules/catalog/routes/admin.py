@@ -10,6 +10,8 @@ from app.api.modules.catalog.schema import (
     AdminBrandResponse,
     AdminCatalogSectionResponse,
     AdminProductDetailResponse,
+    AdminProductListParams,
+    AdminProductListResponse,
     AdminProductResponse,
     CatalogAttributeResponse,
     CategoryAttributeResponse,
@@ -47,6 +49,15 @@ async def create_product(
     current_user: User = Depends(AuthenticateUser()),
 ) -> AdminProductResponse:
     return await service.create_product(request)
+
+
+@router.get("/products", response_model=AdminProductListResponse)
+async def get_products(
+    service: FromDishka[ProductManagementService],
+    params: Annotated[AdminProductListParams, Query()],
+    current_user: User = Depends(AuthenticateUser()),
+) -> AdminProductListResponse:
+    return await service.list_products(params)
 
 
 @router.get("/products/{product_id}", response_model=AdminProductDetailResponse)
