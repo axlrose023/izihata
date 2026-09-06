@@ -127,8 +127,10 @@ Rules the importer follows:
   price and stock — it never duplicates products;
 - the category of an existing product is never overwritten, because staff may
   have corrected a mapping by hand;
-- **a row without a price is skipped**: `price` must be greater than zero, so a
-  stock file alone cannot create products;
+- **a row without a price is skipped** by default: `price` must be greater than
+  zero. Pass `--placeholder-price 0.01` to load a stock-only file anyway; those
+  products are forced hidden regardless of `--activate`, and a later import with
+  real prices never overwrites a price staff have set;
 - categories are derived from the product name by the rules in
   `app/database/imports/category_rules.py`; anything unrecognised lands in the
   `other` category;

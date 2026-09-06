@@ -1,6 +1,7 @@
 import subprocess
 from configparser import ConfigParser
 from dataclasses import asdict
+from decimal import Decimal
 from pathlib import Path
 from typing import Annotated
 
@@ -107,6 +108,16 @@ def import_products_command(
             help="Publish confidently mapped rows instead of importing them hidden",
         ),
     ] = False,
+    placeholder_price: Annotated[
+        str | None,
+        typer.Option(
+            "--placeholder-price",
+            help=(
+                "Import rows that carry no price using this value. Such products"
+                " are always hidden until a real price is set."
+            ),
+        ),
+    ] = None,
 ) -> None:
     """Create or refresh products from a supplier CSV.
 
@@ -128,6 +139,11 @@ def import_products_command(
                 session,
                 rows,
                 brand=brand,
+                placeholder_price=(
+                    Decimal(placeholder_price)
+                    if placeholder_price is not None
+                    else None
+                ),
                 activate=activate,
                 dry_run=not apply,
             )
@@ -137,6 +153,13 @@ def import_products_command(
             typer.echo(f"to create      : {outcome.created}")
             typer.echo(f"to update      : {outcome.updated}")
             typer.echo(f"skipped, no price: {len(outcome.skipped_without_price)}")
+            if outcome.needs_pricing:
+                typer.echo(
+                    typer.style(
+                        f"awaiting a real price (hidden): {outcome.needs_pricing}",
+                        fg=typer.colors.YELLOW,
+                    )
+                )
             typer.echo(f"unmapped category: {len(outcome.unmapped)}")
             typer.echo("\nby category:")
             for slug, count in sorted(
