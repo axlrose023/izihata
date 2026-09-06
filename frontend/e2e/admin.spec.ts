@@ -1,14 +1,17 @@
 import { expect, test, type Page, type TestInfo } from "@playwright/test";
 
-async function login(page: Page) {
-  const username = process.env.ADMIN_USERNAME;
-  const password = process.env.ADMIN_PASSWORD;
-  test.skip(!username || !password, "Admin credentials are not configured");
+import { ADMIN_STATE } from "./auth.setup";
 
-  await page.goto("/admin/login");
-  await page.getByLabel("Логін").fill(username!);
-  await page.getByLabel("Пароль").fill(password!);
-  await page.getByRole("button", { name: "Увійти" }).click();
+// Staff authentication is established once in the setup project: /auth/login is
+// rate limited per IP, and logging in per test trips that limit.
+test.use({ storageState: ADMIN_STATE });
+
+async function login(page: Page) {
+  test.skip(
+    !process.env.ADMIN_USERNAME || !process.env.ADMIN_PASSWORD,
+    "Admin credentials are not configured",
+  );
+  await page.goto("/admin");
   await expect(page).toHaveURL(/\/admin$/);
 }
 
