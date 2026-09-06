@@ -44,6 +44,7 @@ function productValues(
     old_price: product.old_price ?? "",
     badge: product.badge ?? "",
     is_popular: detail?.is_popular ?? false,
+    is_active: detail?.is_active ?? true,
     stock_status: product.stock_status,
     availability_days: product.availability.lead_time_days?.toString() ?? "",
     sale_unit: product.sale_unit,
@@ -143,6 +144,7 @@ export function ProductFormDialog({
         old_price: values.old_price || null,
         badge: values.badge || null,
         is_popular: values.is_popular,
+        is_active: values.is_active,
         stock_status: values.stock_status,
         ...(values.availability_days
           ? { availability_days: Number(values.availability_days) }
@@ -298,6 +300,16 @@ export function ProductFormDialog({
               <option value="clearance">Уцінка</option>
               <option value="recommended">Рекомендуємо</option>
             </select>
+          </label>
+          <label className="field field--checkbox">
+            <input type="checkbox" {...register("is_active")} />
+            <span>
+              Показувати на вітрині
+              <small className="field-hint">
+                Знятий прапорець ховає товар з каталогу й пошуку, але лишає його
+                в адмінці.
+              </small>
+            </span>
           </label>
           <label className="field field--checkbox">
             <input type="checkbox" {...register("is_popular")} />

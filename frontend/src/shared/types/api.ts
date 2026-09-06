@@ -128,9 +128,13 @@ export interface AdminProductRelation {
   sku: string;
 }
 
-export interface AdminProductDetail extends Product {
+export interface AdminProduct extends Product {
   wholesale_price: string | null;
   is_popular: boolean;
+  is_active: boolean;
+}
+
+export interface AdminProductDetail extends AdminProduct {
   description: string | null;
   relations: AdminProductRelation[];
 }
