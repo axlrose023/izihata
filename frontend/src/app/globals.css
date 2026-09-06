@@ -2956,6 +2956,28 @@ h2 {
   color: var(--danger);
   font-size: 0.68rem;
 }
+.field-with-upload {
+  display: flex;
+  gap: 8px;
+}
+.field-with-upload input {
+  flex: 1;
+  min-width: 0;
+}
+.field-with-upload .button {
+  flex-shrink: 0;
+  gap: 6px;
+  white-space: nowrap;
+}
+.field-image-preview {
+  max-width: 120px;
+  max-height: 90px;
+  margin-top: 8px;
+  object-fit: contain;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
 .field--checkbox {
   display: flex;
   align-items: flex-start;

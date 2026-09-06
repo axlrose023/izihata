@@ -25,6 +25,7 @@ import { useCollectionStore } from "@/modules/collections/store";
 import { useCustomerAuth } from "@/modules/customers/customer-auth-context";
 import { LeadAction } from "@/modules/leads/components/lead-action";
 import { storeInfo } from "@/shared/config/store-info";
+import { useBodyScrollLock } from "@/shared/lib/use-body-scroll-lock";
 import { CategoryIcon } from "@/shared/ui/category-icon";
 import { Logo } from "@/shared/ui/logo";
 
@@ -51,6 +52,7 @@ export function SiteSidebar({
   const favoriteCount = useCollectionStore((state) => state.favorites.length);
   const compareCount = useCollectionStore((state) => state.compare.length);
   const { status } = useCustomerAuth();
+  useBodyScrollLock(open);
   const authenticated = status === "authenticated";
 
   // The menu always reopens at the top level, so closing resets the drill-down.

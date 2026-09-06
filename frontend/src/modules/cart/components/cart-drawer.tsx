@@ -6,6 +6,7 @@ import { ProductVisual } from "@/modules/catalog/components/product-visual";
 import { apiClient } from "@/shared/api/client";
 import { buildQuery } from "@/shared/api/query";
 import { formatMoney } from "@/shared/lib/format";
+import { useBodyScrollLock } from "@/shared/lib/use-body-scroll-lock";
 import type { Product } from "@/shared/types/api";
 
 import { cartCount, useCartStore } from "../store";
@@ -17,6 +18,7 @@ export function CartDrawer() {
     if (!isOpen || !lines.length) return null;
     return lines.map((line) => line.product.id).join(",");
   }, [isOpen, lines]);
+  useBodyScrollLock(isOpen);
   const total = lines.reduce(
     (sum, line) => sum + Number(line.product.price) * line.quantity,
     0,

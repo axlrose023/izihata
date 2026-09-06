@@ -2,6 +2,7 @@ import { Filter, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 
+import { useBodyScrollLock } from "@/shared/lib/use-body-scroll-lock";
 import { useDebouncedValue } from "@/shared/lib/use-debounced-value";
 import type {
   Category,
@@ -57,6 +58,7 @@ export function CatalogFilters({
   const [searchParams, setSearchParams] = useSearchParams();
   const [isOpen, setIsOpen] = useState(false);
   const [moreFiltersOpen, setMoreFiltersOpen] = useState(false);
+  useBodyScrollLock(isOpen);
   const activeBrands = new Set(query.brand);
   const activeSpecs = new Set(query.spec);
   const activeAvailability = new Set(query.availability);

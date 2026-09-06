@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { LoaderCircle, Plus, Trash2 } from "lucide-react";
-import { useEffect } from "react";
+import { ImageUp, LoaderCircle, Plus, Trash2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
 
 import {
@@ -103,6 +103,30 @@ export function ProductFormDialog({
   );
   const categoryField = register("category_id");
   const relations = useWatch({ control, name: "relations" }) ?? [];
+  const imageUrl = useWatch({ control, name: "image_url" });
+  const imageInput = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  const uploadImage = async (file: File) => {
+    setUploadError(null);
+    setUploading(true);
+    const body = new FormData();
+    body.append("file", file);
+    try {
+      const { url } = await request<{ url: string }>("/admin/catalog/media", {
+        method: "POST",
+        body,
+      });
+      setValue("image_url", url, { shouldDirty: true, shouldValidate: true });
+    } catch (error) {
+      setUploadError(
+        getUserErrorMessage(error, "Не вдалося завантажити зображення"),
+      );
+    } finally {
+      setUploading(false);
+    }
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -386,16 +410,53 @@ export function ProductFormDialog({
           </label>
           <label className="field field--wide">
             <span>Зображення</span>
-            <input
-              autoComplete="url"
-              placeholder="https://… або /product-images/…"
-              {...register("image_url")}
-            />
+            <div className="field-with-upload">
+              <input
+                autoComplete="url"
+                placeholder="https://… або /product-images/…"
+                {...register("image_url")}
+              />
+              <button
+                className="button button--outline"
+                disabled={uploading}
+                onClick={() => imageInput.current?.click()}
+                type="button"
+              >
+                {uploading ? (
+                  <LoaderCircle className="spin" size={16} />
+                ) : (
+                  <ImageUp size={16} />
+                )}
+                Завантажити
+              </button>
+              <input
+                accept="image/png,image/jpeg,image/webp"
+                aria-label="Файл зображення товару"
+                hidden
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file) void uploadImage(file);
+                  event.target.value = "";
+                }}
+                ref={imageInput}
+                type="file"
+              />
+            </div>
+            {imageUrl ? (
+              <img
+                alt="Попередній перегляд"
+                className="field-image-preview"
+                src={imageUrl}
+              />
+            ) : null}
             {errors.image_url ? (
               <small>{errors.image_url.message}</small>
+            ) : uploadError ? (
+              <small>{uploadError}</small>
             ) : (
               <small className="field-hint">
-                Посилання на CDN або абсолютний шлях до статичного файлу.
+                Завантажте файл (PNG, JPEG або WebP до 2 МБ) або вкажіть
+                посилання.
               </small>
             )}
           </label>
