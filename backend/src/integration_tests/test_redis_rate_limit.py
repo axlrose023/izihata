@@ -28,3 +28,42 @@ async def test_redis_rate_limit_is_atomic_and_returns_retry_after():
     finally:
         await redis.delete(f"izihata:rate-limit:{policy.scope}:{identity}")
         await redis.aclose()
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_staff_login_endpoint_throttles_repeated_attempts():
+    """The limiter has to be wired to the route, not just exist as a service.
+
+    The unit suite runs with rate limiting disabled, so this is the only place
+    the guard on /auth/login is actually exercised.
+    """
+    from httpx import ASGITransport, AsyncClient
+
+    from app.api.common.rate_limit import STAFF_LOGIN_RATE_LIMIT
+    from app.application import get_production_app
+
+    config = get_config()
+    redis = Redis.from_url(config.redis_url, decode_responses=True)
+    identity = "testclient"
+    key = f"izihata:rate-limit:{STAFF_LOGIN_RATE_LIMIT.scope}:{identity}"
+    await redis.delete(key)
+
+    payload = {"username": "no-such-user", "password": "wrong-password-value"}
+    statuses: list[int] = []
+    try:
+        async with AsyncClient(
+            transport=ASGITransport(app=get_production_app()),
+            base_url="http://test",
+        ) as client:
+            for _ in range(STAFF_LOGIN_RATE_LIMIT.requests + 2):
+                response = await client.post("/api/v1/auth/login", json=payload)
+                statuses.append(response.status_code)
+    finally:
+        await redis.delete(key)
+        await redis.aclose()
+
+    assert (
+        statuses[: STAFF_LOGIN_RATE_LIMIT.requests]
+        == [401] * STAFF_LOGIN_RATE_LIMIT.requests
+    )
+    assert statuses[-1] == 429
