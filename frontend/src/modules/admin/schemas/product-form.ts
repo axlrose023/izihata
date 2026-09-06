@@ -63,6 +63,7 @@ export const productFormSchema = z
       "recommended",
     ]),
     is_popular: z.boolean(),
+    is_active: z.boolean(),
     stock_status: z.enum([
       "in_stock_today",
       "in_stock",
@@ -162,6 +163,7 @@ export const productFormDefaults: ProductFormValues = {
   old_price: "",
   badge: "",
   is_popular: false,
+  is_active: true,
   stock_status: "in_stock",
   availability_days: "",
   sale_unit: "piece",

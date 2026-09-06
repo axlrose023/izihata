@@ -96,6 +96,44 @@ async function createProduct(page: Page, testInfo: TestInfo) {
 const PNG_BASE64 =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
 
+test("hiding a product keeps it recoverable", async ({ page }) => {
+  await login(page);
+  await page
+    .locator(".admin-sidebar")
+    .getByRole("link", { name: "Товари" })
+    .click();
+
+  const row = page.locator(".admin-table tbody tr").first();
+  await expect(row).toBeVisible();
+  const name = (await row.locator("strong").innerText()).trim();
+
+  // Hide it…
+  await row.getByRole("button", { name: `Прибрати з вітрини ${name}` }).click();
+  const hiddenRow = page
+    .locator(".admin-table tbody tr")
+    .filter({ hasText: name })
+    .first();
+  await expect(hiddenRow).toHaveAttribute("data-hidden", "true");
+
+  // …it must still be listed for staff, otherwise hiding is a one-way door.
+  await page.getByLabel("Лише приховані").check();
+  await expect(
+    page.locator(".admin-table tbody tr").filter({ hasText: name }).first(),
+  ).toBeVisible();
+
+  // …and restoring it must work from the same place.
+  await page
+    .locator(".admin-table tbody tr")
+    .filter({ hasText: name })
+    .first()
+    .getByRole("button", { name: `Повернути на вітрину ${name}` })
+    .click();
+  await page.getByLabel("Лише приховані").uncheck();
+  await expect(
+    page.locator(".admin-table tbody tr").filter({ hasText: name }).first(),
+  ).not.toHaveAttribute("data-hidden", "true");
+});
+
 test("staff can upload a brand logo", async ({ page }) => {
   await login(page);
   await page

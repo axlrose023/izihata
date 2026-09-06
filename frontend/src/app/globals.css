@@ -1131,6 +1131,31 @@ h2 {
   gap: 14px;
   margin-top: 26px;
 }
+.admin-table tr[data-hidden] {
+  background: #fbfbfd;
+}
+.admin-table tr[data-hidden] > td:first-child strong {
+  color: var(--ink-soft);
+}
+.admin-hidden-flag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 7px;
+  color: #836108;
+  border-radius: 5px;
+  background: #fff4cf;
+  font-size: 0.62rem;
+  font-weight: 800;
+  vertical-align: middle;
+}
+.admin-products-toolbar__filter {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
 .admin-brand__logo {
   width: 72px;
   height: 44px;
