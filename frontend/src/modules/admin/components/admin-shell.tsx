@@ -11,7 +11,13 @@ import {
   Tags,
 } from "lucide-react";
 import { useEffect } from "react";
-import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
+import {
+  Link,
+  Outlet,
+  ScrollRestoration,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
 
 import { useAuth } from "@/modules/auth/auth-provider";
 import { ErrorNotice } from "@/shared/ui/error-notice";
@@ -52,6 +58,7 @@ export function AdminShell() {
 
   return (
     <div className="admin-layout">
+      <ScrollRestoration />
       <aside className="admin-sidebar">
         <Logo inverse />
         <div className="admin-sidebar__caption">Панель керування</div>

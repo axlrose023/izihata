@@ -134,6 +134,33 @@ test("hiding a product keeps it recoverable", async ({ page }) => {
   ).not.toHaveAttribute("data-hidden", "true");
 });
 
+test("staff can upload a product photo", async ({ page }) => {
+  await login(page);
+  await page
+    .locator(".admin-sidebar")
+    .getByRole("link", { name: "Товари" })
+    .click();
+  await page
+    .getByRole("button", { name: /^Редагувати/ })
+    .first()
+    .click();
+
+  const dialog = page.getByRole("dialog", { name: "Редагувати товар" });
+  await expect(dialog).toBeVisible();
+  await dialog.getByLabel("Файл зображення товару").setInputFiles({
+    name: "product.png",
+    mimeType: "image/png",
+    buffer: Buffer.from(PNG_BASE64, "base64"),
+  });
+
+  const field = dialog.getByRole("textbox", { name: /^Зображення/ });
+  await expect(field).toHaveValue(/^\/api\/v1\/media\//, { timeout: 20_000 });
+  await expect(dialog.locator(".field-image-preview")).toBeVisible();
+
+  const stored = await page.request.get(await field.inputValue());
+  expect(stored.status()).toBe(200);
+});
+
 test("staff can upload a brand logo", async ({ page }) => {
   await login(page);
   await page
