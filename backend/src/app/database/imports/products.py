@@ -45,6 +45,7 @@ class ImportOutcome:
     created: int = 0
     updated: int = 0
     needs_pricing: int = 0
+    recategorised: int = 0
     skipped_without_price: list[str] = field(default_factory=list)
     unmapped: list[str] = field(default_factory=list)
     per_category: dict[str, int] = field(default_factory=dict)
@@ -137,12 +138,17 @@ async def import_products(
     brand: str,
     placeholder_price: Decimal | None = None,
     activate: bool = False,
+    remap_categories: bool = False,
     dry_run: bool = True,
 ) -> ImportOutcome:
     """Create or refresh products from supplier rows.
 
     Imported products stay hidden unless ``activate`` is set, so a wrong
     category mapping never reaches the storefront.
+
+    ``remap_categories`` re-applies the mapping rules to products that already
+    exist. It is opt-in because it discards category corrections staff made by
+    hand — but without it, a fixed rule could never reach rows already imported.
 
     ``placeholder_price`` lets a stock file without prices land in the
     catalogue: ``price`` is required and must be positive, so such rows get the
@@ -188,6 +194,7 @@ async def import_products(
         stock_status = (
             StockStatus.IN_STOCK if row.stock > 0 else StockStatus.OUT_OF_STOCK
         )
+        classification = classify(row.name)
         product = existing.get(row.sku)
         if product is not None:
             # Refresh only what the supplier is authoritative about.
@@ -197,11 +204,23 @@ async def import_products(
                 product.price = row.price
             product.stock_status = stock_status
             outcome.updated += 1
-            slug = product.category.slug
+
+            category_slug, subcategory_name, matched = classification
+            if not matched:
+                outcome.unmapped.append(f"{row.sku} {row.name}")
+            target = categories.get(category_slug) or categories[FALLBACK_CATEGORY]
+            if remap_categories and product.category_id != target.id:
+                subcategory = subcategories.get((target.id.hex, subcategory_name or ""))
+                product.category_id = target.id
+                product.subcategory_id = subcategory.id if subcategory else None
+                outcome.recategorised += 1
+                slug = target.slug
+            else:
+                slug = product.category.slug
             outcome.per_category[slug] = outcome.per_category.get(slug, 0) + 1
             continue
 
-        category_slug, subcategory_name, matched = classify(row.name)
+        category_slug, subcategory_name, matched = classification
         category = categories.get(category_slug) or categories[FALLBACK_CATEGORY]
         if not matched:
             outcome.unmapped.append(f"{row.sku} {row.name}")

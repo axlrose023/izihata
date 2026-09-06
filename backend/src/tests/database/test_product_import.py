@@ -333,3 +333,119 @@ class TestPlaceholderPricing:
             await uow.session.execute(select(Product).where(Product.sku == "PLC-1"))
         ).scalar_one()
         assert refreshed.price == Decimal("249.00")
+
+
+@pytest.mark.asyncio
+class TestCategoryRemapping:
+    """Fixed rules have to be able to reach products that are already imported."""
+
+    @pytest_asyncio.fixture(autouse=True)
+    async def _clean_slate(self, uow):
+        async def purge() -> None:
+            await uow.session.execute(delete(Product).where(Product.sku.like("RMP-%")))
+            await uow.commit()
+
+        await purge()
+        yield
+        await purge()
+
+    @staticmethod
+    def _rows() -> list[ImportRow]:
+        return [ImportRow("RMP-1", "Авт. вимикач ETIMAT 6 1p C16", Decimal("10.00"), 1)]
+
+    async def _misplace(self, uow) -> Product:
+        await import_products(uow.session, self._rows(), brand="ETI", dry_run=False)
+        product = (
+            await uow.session.execute(select(Product).where(Product.sku == "RMP-1"))
+        ).scalar_one()
+        wrong = (
+            await uow.session.execute(select(Category).where(Category.slug == "light"))
+        ).scalar_one()
+        product.category_id = wrong.id
+        await uow.commit()
+        return product
+
+    async def test_categories_are_left_alone_by_default(self, uow):
+        product = await self._misplace(uow)
+        moved_to = product.category_id
+
+        outcome = await import_products(
+            uow.session, self._rows(), brand="ETI", dry_run=False
+        )
+
+        assert outcome.recategorised == 0
+        refreshed = (
+            await uow.session.execute(select(Product).where(Product.sku == "RMP-1"))
+        ).scalar_one()
+        assert refreshed.category_id == moved_to
+
+    async def test_remap_restores_the_rule_based_category(self, uow):
+        await self._misplace(uow)
+
+        outcome = await import_products(
+            uow.session,
+            self._rows(),
+            brand="ETI",
+            remap_categories=True,
+            dry_run=False,
+        )
+
+        assert outcome.recategorised == 1
+        refreshed = (
+            await uow.session.execute(select(Product).where(Product.sku == "RMP-1"))
+        ).scalar_one()
+        category = (
+            await uow.session.execute(
+                select(Category).where(Category.id == refreshed.category_id)
+            )
+        ).scalar_one()
+        assert category.slug == "lowvoltage"
+        assert refreshed.subcategory_id is not None
+
+    async def test_remap_is_a_no_op_when_the_category_already_matches(self, uow):
+        await import_products(uow.session, self._rows(), brand="ETI", dry_run=False)
+
+        outcome = await import_products(
+            uow.session,
+            self._rows(),
+            brand="ETI",
+            remap_categories=True,
+            dry_run=False,
+        )
+
+        assert outcome.recategorised == 0
+
+
+class TestRuleCorrections:
+    """Families that were mapped wrong in the first import."""
+
+    @pytest.mark.parametrize(
+        ("name", "category", "subcategory"),
+        [
+            (
+                "Реле диференційне (ПЗВ) 2р EFI-P2 16/0,03 тип AC (10kA)",
+                "lowvoltage",
+                "ПЗВ (УЗО)",
+            ),
+            (
+                "Повітр. авт. вим. викочувальний EPL-08 3H AD/M2C2S2",
+                "lowvoltage",
+                "Автоматичні вимикачі (модульні / корпусні / повітряні)",
+            ),
+            ("Короб перфорований B 25x40 T (ПВХ, Ш25xВ40, 2м)", "cabletrays", None),
+            ("Сальник M20 (еластичний, Ø8-13мм, IP67)", "installation", None),
+            ("Кабельний ввід M-50G (Ø20..37мм, IP68)", "installation", None),
+        ],
+    )
+    def test_family_lands_in_the_right_place(
+        self, name: str, category: str, subcategory: str | None
+    ):
+        mapped, sub, matched = classify(name)
+
+        assert (mapped, sub, matched) == (category, subcategory, True)
+
+    def test_a_plain_relay_is_still_a_relay(self):
+        assert classify("Реле контролю фаз")[0] == "relay"
+
+    def test_frequency_drives_have_no_home_yet(self):
+        assert classify("Перетворювач частоти CFW500 D 24P0")[0] == FALLBACK_CATEGORY

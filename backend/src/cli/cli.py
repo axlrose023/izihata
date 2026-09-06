@@ -108,6 +108,16 @@ def import_products_command(
             help="Publish confidently mapped rows instead of importing them hidden",
         ),
     ] = False,
+    remap_categories: Annotated[
+        bool,
+        typer.Option(
+            "--remap-categories",
+            help=(
+                "Re-apply category rules to products that already exist."
+                " Discards category corrections made by hand."
+            ),
+        ),
+    ] = False,
     placeholder_price: Annotated[
         str | None,
         typer.Option(
@@ -145,6 +155,7 @@ def import_products_command(
                     else None
                 ),
                 activate=activate,
+                remap_categories=remap_categories,
                 dry_run=not apply,
             )
             mode = "APPLIED" if apply else "DRY RUN (nothing written)"
@@ -161,6 +172,8 @@ def import_products_command(
                     )
                 )
             typer.echo(f"unmapped category: {len(outcome.unmapped)}")
+            if outcome.recategorised:
+                typer.echo(f"recategorised   : {outcome.recategorised}")
             typer.echo("\nby category:")
             for slug, count in sorted(
                 outcome.per_category.items(), key=lambda item: -item[1]
