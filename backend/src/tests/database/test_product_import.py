@@ -449,3 +449,119 @@ class TestRuleCorrections:
 
     def test_frequency_drives_have_no_home_yet(self):
         assert classify("Перетворювач частоти CFW500 D 24P0")[0] == FALLBACK_CATEGORY
+
+
+@pytest.mark.asyncio
+class TestPublishingOnPriceArrival:
+    """When the real price list lands, stubs should go live without hand work."""
+
+    @pytest_asyncio.fixture(autouse=True)
+    async def _clean_slate(self, uow):
+        async def purge() -> None:
+            await uow.session.execute(delete(Product).where(Product.sku.like("PUB-%")))
+            await uow.commit()
+
+        await purge()
+        yield
+        await purge()
+
+    @staticmethod
+    def _stock_only() -> list[ImportRow]:
+        return [
+            ImportRow("PUB-1", "Авт. вимикач ETIMAT 6 1p C16", None, 4),
+            ImportRow("PUB-2", "Щось геть невідоме", None, 4),
+        ]
+
+    @staticmethod
+    def _priced() -> list[ImportRow]:
+        return [
+            ImportRow("PUB-1", "Авт. вимикач ETIMAT 6 1p C16", Decimal("156.00"), 4),
+            ImportRow("PUB-2", "Щось геть невідоме", Decimal("99.00"), 4),
+        ]
+
+    async def _load_stubs(self, uow) -> None:
+        await import_products(
+            uow.session,
+            self._stock_only(),
+            brand="ETI",
+            placeholder_price=Decimal("0.01"),
+            dry_run=False,
+        )
+
+    async def _by_sku(self, uow, sku: str) -> Product:
+        return (
+            await uow.session.execute(select(Product).where(Product.sku == sku))
+        ).scalar_one()
+
+    async def test_real_price_publishes_the_stub(self, uow):
+        await self._load_stubs(uow)
+
+        outcome = await import_products(
+            uow.session,
+            self._priced(),
+            brand="ETI",
+            placeholder_price=Decimal("0.01"),
+            activate=True,
+            dry_run=False,
+        )
+
+        assert outcome.published == 1
+        product = await self._by_sku(uow, "PUB-1")
+        assert product.price == Decimal("156.00")
+        assert product.is_active is True
+
+    async def test_unmapped_products_stay_hidden_even_when_priced(self, uow):
+        await self._load_stubs(uow)
+
+        await import_products(
+            uow.session,
+            self._priced(),
+            brand="ETI",
+            placeholder_price=Decimal("0.01"),
+            activate=True,
+            dry_run=False,
+        )
+
+        product = await self._by_sku(uow, "PUB-2")
+        assert product.price == Decimal("99.00")
+        assert product.is_active is False
+
+    async def test_a_product_staff_hid_on_purpose_is_not_resurrected(self, uow):
+        await self._load_stubs(uow)
+        await import_products(
+            uow.session,
+            self._priced(),
+            brand="ETI",
+            placeholder_price=Decimal("0.01"),
+            activate=True,
+            dry_run=False,
+        )
+        product = await self._by_sku(uow, "PUB-1")
+        product.is_active = False
+        await uow.commit()
+
+        outcome = await import_products(
+            uow.session,
+            self._priced(),
+            brand="ETI",
+            placeholder_price=Decimal("0.01"),
+            activate=True,
+            dry_run=False,
+        )
+
+        assert outcome.published == 0
+        assert (await self._by_sku(uow, "PUB-1")).is_active is False
+
+    async def test_nothing_is_published_without_the_flag(self, uow):
+        await self._load_stubs(uow)
+
+        outcome = await import_products(
+            uow.session,
+            self._priced(),
+            brand="ETI",
+            placeholder_price=Decimal("0.01"),
+            dry_run=False,
+        )
+
+        assert outcome.published == 0
+        assert (await self._by_sku(uow, "PUB-1")).is_active is False

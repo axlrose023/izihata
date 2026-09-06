@@ -46,6 +46,7 @@ class ImportOutcome:
     updated: int = 0
     needs_pricing: int = 0
     recategorised: int = 0
+    published: int = 0
     skipped_without_price: list[str] = field(default_factory=list)
     unmapped: list[str] = field(default_factory=list)
     per_category: dict[str, int] = field(default_factory=dict)
@@ -146,6 +147,10 @@ async def import_products(
     Imported products stay hidden unless ``activate`` is set, so a wrong
     category mapping never reaches the storefront.
 
+    With ``activate``, a product that was imported as a priced placeholder and
+    now receives a real price is published. Anything else staff hid by hand
+    stays hidden: only stubs waiting for a price are released.
+
     ``remap_categories`` re-applies the mapping rules to products that already
     exist. It is opt-in because it discards category corrections staff made by
     hand — but without it, a fixed rule could never reach rows already imported.
@@ -200,10 +205,24 @@ async def import_products(
             # Refresh only what the supplier is authoritative about.
             product.name = row.name
             # A placeholder must never overwrite a price staff already set.
+            was_placeholder = (
+                placeholder_price is not None and product.price == placeholder_price
+            )
             if row.price is not None:
                 product.price = row.price
             product.stock_status = stock_status
             outcome.updated += 1
+
+            # Release stubs that were only hidden because they had no price.
+            if (
+                activate
+                and row.price is not None
+                and was_placeholder
+                and not product.is_active
+                and classification[2]
+            ):
+                product.is_active = True
+                outcome.published += 1
 
             category_slug, subcategory_name, matched = classification
             if not matched:

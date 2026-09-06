@@ -172,6 +172,13 @@ def import_products_command(
                     )
                 )
             typer.echo(f"unmapped category: {len(outcome.unmapped)}")
+            if outcome.published:
+                typer.echo(
+                    typer.style(
+                        f"published       : {outcome.published}",
+                        fg=typer.colors.GREEN,
+                    )
+                )
             if outcome.recategorised:
                 typer.echo(f"recategorised   : {outcome.recategorised}")
             typer.echo("\nby category:")
