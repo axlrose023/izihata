@@ -107,6 +107,32 @@ class TestMediaUpload:
         assert response.status_code == 201, response.text
         assert response.json()["url"].startswith("/api/v1/media/")
 
+    async def test_rejects_an_oversized_image(
+        self, client: AsyncClient, authenticated_user
+    ):
+        oversized = io.BytesIO(b"\x89PNG\r\n\x1a\n" + b"0" * (9 * 1024 * 1024))
+
+        response = await client.post(
+            self.endpoint,
+            headers={"Authorization": f"Bearer {authenticated_user['access_token']}"},
+            files={"file": ("big.png", oversized, "image/png")},
+        )
+
+        assert response.status_code == 422
+        assert response.json()["code"] == "media_too_large"
+
+    async def test_names_the_rejected_type(
+        self, client: AsyncClient, authenticated_user
+    ):
+        response = await client.post(
+            self.endpoint,
+            headers={"Authorization": f"Bearer {authenticated_user['access_token']}"},
+            files={"file": ("photo.heic", io.BytesIO(b"heic"), "image/heic")},
+        )
+
+        assert response.status_code == 422
+        assert "image/heic" in response.json()["detail"]
+
     async def test_rejects_svg(self, client: AsyncClient, authenticated_user):
         response = await client.post(
             self.endpoint,

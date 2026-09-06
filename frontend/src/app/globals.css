@@ -2956,23 +2956,55 @@ h2 {
   color: var(--danger);
   font-size: 0.68rem;
 }
-.field-with-upload {
+.field-upload {
   display: flex;
-  gap: 8px;
+  align-items: center;
+  gap: 14px;
 }
-.field-with-upload input {
-  flex: 1;
-  min-width: 0;
+.field-upload__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
 }
-.field-with-upload .button {
-  flex-shrink: 0;
+.field-upload .button {
   gap: 6px;
   white-space: nowrap;
 }
+.field-upload__clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0;
+  color: var(--ink-soft);
+  border: 0;
+  background: transparent;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+.field-upload__clear:hover {
+  color: var(--danger);
+}
+.field-error {
+  color: var(--danger);
+}
+.admin-product-name {
+  padding: 0;
+  color: var(--ink);
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-weight: 800;
+  text-align: left;
+}
+.admin-product-name:hover {
+  color: var(--blue);
+  text-decoration: underline;
+}
 .field-image-preview {
-  max-width: 120px;
-  max-height: 90px;
-  margin-top: 8px;
+  flex-shrink: 0;
+  width: 88px;
+  height: 88px;
   object-fit: contain;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -4509,11 +4541,11 @@ h2 {
 
 @media (max-width: 560px) {
   /* A phone cannot fit the URL field and the upload button side by side. */
-  .field-with-upload {
+  .field-upload {
+    align-items: flex-start;
     flex-direction: column;
-    align-items: stretch;
   }
-  .field-with-upload .button {
+  .field-upload .button {
     justify-content: center;
   }
   body {

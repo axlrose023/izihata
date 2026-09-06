@@ -21,6 +21,7 @@ import {
   categoriesQuery,
 } from "@/modules/catalog/api/catalog-queries";
 import { getUserErrorMessage } from "@/shared/api/errors";
+import { prepareImageUpload } from "@/shared/lib/prepare-image-upload";
 import type { AdminProductDetail, Product } from "@/shared/types/api";
 import { Modal } from "@/shared/ui/modal";
 
@@ -112,8 +113,8 @@ export function ProductFormDialog({
     setUploadError(null);
     setUploading(true);
     const body = new FormData();
-    body.append("file", file);
     try {
+      body.append("file", await prepareImageUpload(file));
       const { url } = await request<{ url: string }>("/admin/catalog/media", {
         method: "POST",
         body,
@@ -414,29 +415,44 @@ export function ProductFormDialog({
             <span>Повний опис</span>
             <textarea rows={4} {...register("description")} />
           </label>
-          <label className="field field--wide">
+          <div className="field field--wide">
             <span>Зображення</span>
-            <div className="field-with-upload">
+            <div className="field-upload">
+              {imageUrl ? (
+                <img
+                  alt="Зображення товару"
+                  className="field-image-preview"
+                  src={imageUrl}
+                />
+              ) : null}
+              <div className="field-upload__actions">
+                <button
+                  className="button button--outline"
+                  disabled={uploading}
+                  onClick={() => imageInput.current?.click()}
+                  type="button"
+                >
+                  {uploading ? (
+                    <LoaderCircle className="spin" size={16} />
+                  ) : (
+                    <ImageUp size={16} />
+                  )}
+                  {imageUrl ? "Замінити фото" : "Завантажити фото"}
+                </button>
+                {imageUrl ? (
+                  <button
+                    className="field-upload__clear"
+                    onClick={() =>
+                      setValue("image_url", "", { shouldDirty: true })
+                    }
+                    type="button"
+                  >
+                    <Trash2 size={15} /> Прибрати
+                  </button>
+                ) : null}
+              </div>
               <input
-                autoComplete="url"
-                placeholder="https://… або /product-images/…"
-                {...register("image_url")}
-              />
-              <button
-                className="button button--outline"
-                disabled={uploading}
-                onClick={() => imageInput.current?.click()}
-                type="button"
-              >
-                {uploading ? (
-                  <LoaderCircle className="spin" size={16} />
-                ) : (
-                  <ImageUp size={16} />
-                )}
-                Завантажити
-              </button>
-              <input
-                accept="image/png,image/jpeg,image/webp"
+                accept="image/*"
                 aria-label="Файл зображення товару"
                 hidden
                 onChange={(event) => {
@@ -448,24 +464,16 @@ export function ProductFormDialog({
                 type="file"
               />
             </div>
-            {imageUrl ? (
-              <img
-                alt="Попередній перегляд"
-                className="field-image-preview"
-                src={imageUrl}
-              />
-            ) : null}
             {errors.image_url ? (
               <small>{errors.image_url.message}</small>
             ) : uploadError ? (
-              <small>{uploadError}</small>
+              <small className="field-error">{uploadError}</small>
             ) : (
               <small className="field-hint">
-                Завантажте файл (PNG, JPEG або WebP до 2 МБ) або вкажіть
-                посилання.
+                Фото з телефона або компʼютера — зменшимо його автоматично.
               </small>
             )}
-          </label>
+          </div>
         </div>
 
         <ProductRelationsField
