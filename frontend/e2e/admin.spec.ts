@@ -1,5 +1,9 @@
 import { expect, test, type Page, type TestInfo } from "@playwright/test";
 
+// A 1x1 PNG, enough to prove the whole upload path works end to end.
+const PNG_BASE64 =
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+
 async function login(page: Page) {
   const username = process.env.ADMIN_USERNAME;
   const password = process.env.ADMIN_PASSWORD;
@@ -35,9 +39,15 @@ async function createProduct(page: Page, testInfo: TestInfo) {
     .getByRole("combobox", { name: /^Підкатегорія/ })
     .selectOption({ index: 1 });
   await dialog.getByRole("spinbutton", { name: /^Ціна/ }).fill("749.50");
-  await dialog
-    .getByRole("textbox", { name: /^Зображення/ })
-    .fill("/product-images/automation.svg");
+  // The picture is attached by upload; there is no URL field to type into.
+  await dialog.getByLabel("Файл зображення товару").setInputFiles({
+    name: "new-product.png",
+    mimeType: "image/png",
+    buffer: Buffer.from(PNG_BASE64, "base64"),
+  });
+  await expect(dialog.locator(".field-image-preview")).toBeVisible({
+    timeout: 20_000,
+  });
   await dialog.getByRole("button", { name: "Додати характеристику" }).click();
   await dialog.getByLabel("Характеристика 1").fill("Напруга котушки");
   await dialog.getByLabel("Значення характеристики 1").fill("230 В");
@@ -92,10 +102,6 @@ async function createProduct(page: Page, testInfo: TestInfo) {
   expect((await updatedResponse.json()).name).toBe(updatedName);
 }
 
-// A 1x1 PNG, enough to prove the whole upload path works end to end.
-const PNG_BASE64 =
-  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
-
 test("hiding a product keeps it recoverable", async ({ page }) => {
   await login(page);
   await page
@@ -105,7 +111,7 @@ test("hiding a product keeps it recoverable", async ({ page }) => {
 
   const row = page.locator(".admin-table tbody tr").first();
   await expect(row).toBeVisible();
-  const name = (await row.locator("strong").innerText()).trim();
+  const name = (await row.locator(".admin-product-name").innerText()).trim();
 
   // Hide it…
   await row.getByRole("button", { name: `Прибрати з вітрини ${name}` }).click();
@@ -169,12 +175,18 @@ test("staff can upload a product photo", async ({ page }) => {
     buffer: Buffer.from(PNG_BASE64, "base64"),
   });
 
-  const field = dialog.getByRole("textbox", { name: /^Зображення/ });
-  await expect(field).toHaveValue(/^\/api\/v1\/media\//, { timeout: 20_000 });
-  await expect(dialog.locator(".field-image-preview")).toBeVisible();
+  const preview = dialog.locator(".field-image-preview");
+  await expect(preview).toBeVisible({ timeout: 20_000 });
+  const src = await preview.getAttribute("src");
+  expect(src).toMatch(/^\/api\/v1\/media\//);
 
-  const stored = await page.request.get(await field.inputValue());
+  const stored = await page.request.get(src!);
   expect(stored.status()).toBe(200);
+
+  // Uploading is the only way in now: there is no pasted-URL field left.
+  await expect(
+    dialog.getByRole("textbox", { name: /^Зображення/ }),
+  ).toHaveCount(0);
 });
 
 test("staff can upload a brand logo", async ({ page }) => {
