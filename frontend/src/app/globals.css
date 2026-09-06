@@ -4508,6 +4508,14 @@ h2 {
 }
 
 @media (max-width: 560px) {
+  /* A phone cannot fit the URL field and the upload button side by side. */
+  .field-with-upload {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .field-with-upload .button {
+    justify-content: center;
+  }
   body {
     font-size: 14px;
   }
