@@ -44,6 +44,7 @@ class ImportRow:
 class ImportOutcome:
     created: int = 0
     updated: int = 0
+    needs_pricing: int = 0
     skipped_without_price: list[str] = field(default_factory=list)
     unmapped: list[str] = field(default_factory=list)
     per_category: dict[str, int] = field(default_factory=dict)
@@ -134,6 +135,7 @@ async def import_products(
     rows: list[ImportRow],
     *,
     brand: str,
+    placeholder_price: Decimal | None = None,
     activate: bool = False,
     dry_run: bool = True,
 ) -> ImportOutcome:
@@ -141,6 +143,11 @@ async def import_products(
 
     Imported products stay hidden unless ``activate`` is set, so a wrong
     category mapping never reaches the storefront.
+
+    ``placeholder_price`` lets a stock file without prices land in the
+    catalogue: ``price`` is required and must be positive, so such rows get the
+    placeholder and are forced hidden regardless of ``activate`` — nobody can
+    see or order them until staff set a real price.
     """
     outcome = ImportOutcome()
 
@@ -172,9 +179,11 @@ async def import_products(
     used_slugs = set((await session.execute(select(Product.slug))).scalars().all())
 
     for row in rows:
-        if row.price is None:
+        price = row.price if row.price is not None else placeholder_price
+        if price is None:
             outcome.skipped_without_price.append(row.sku)
             continue
+        awaiting_price = row.price is None
 
         stock_status = (
             StockStatus.IN_STOCK if row.stock > 0 else StockStatus.OUT_OF_STOCK
@@ -183,7 +192,9 @@ async def import_products(
         if product is not None:
             # Refresh only what the supplier is authoritative about.
             product.name = row.name
-            product.price = row.price
+            # A placeholder must never overwrite a price staff already set.
+            if row.price is not None:
+                product.price = row.price
             product.stock_status = stock_status
             outcome.updated += 1
             slug = product.category.slug
@@ -204,6 +215,8 @@ async def import_products(
         used_slugs.add(slug)
 
         outcome.created += 1
+        if awaiting_price:
+            outcome.needs_pricing += 1
         outcome.per_category[category.slug] = (
             outcome.per_category.get(category.slug, 0) + 1
         )
@@ -218,9 +231,9 @@ async def import_products(
                 slug=slug,
                 name=row.name,
                 brand=brand,
-                price=row.price,
+                price=price,
                 stock_status=stock_status,
-                is_active=activate and matched,
+                is_active=activate and matched and not awaiting_price,
                 position=0,
             )
         )

@@ -248,3 +248,88 @@ class TestImportProducts:
             )
         ).scalar_one()
         assert category.slug == FALLBACK_CATEGORY
+
+
+@pytest.mark.asyncio
+class TestPlaceholderPricing:
+    """A stock file with no prices still has to be loadable — but never visible."""
+
+    @pytest_asyncio.fixture(autouse=True)
+    async def _clean_slate(self, uow):
+        async def purge() -> None:
+            await uow.session.execute(delete(Product).where(Product.sku.like("PLC-%")))
+            await uow.commit()
+
+        await purge()
+        yield
+        await purge()
+
+    @staticmethod
+    def _rows() -> list[ImportRow]:
+        return [ImportRow("PLC-1", "Авт. вимикач ETIMAT 6 1p C16", None, 5)]
+
+    async def test_without_a_placeholder_the_row_is_skipped(self, uow):
+        outcome = await import_products(
+            uow.session, self._rows(), brand="ETI", dry_run=False
+        )
+
+        assert outcome.created == 0
+        assert outcome.skipped_without_price == ["PLC-1"]
+
+    async def test_placeholder_imports_the_row_hidden(self, uow):
+        outcome = await import_products(
+            uow.session,
+            self._rows(),
+            brand="ETI",
+            placeholder_price=Decimal("0.01"),
+            dry_run=False,
+        )
+
+        assert (outcome.created, outcome.needs_pricing) == (1, 1)
+        product = (
+            await uow.session.execute(select(Product).where(Product.sku == "PLC-1"))
+        ).scalar_one()
+        assert product.price == Decimal("0.01")
+        assert product.is_active is False
+
+    async def test_placeholder_rows_stay_hidden_even_with_activate(self, uow):
+        await import_products(
+            uow.session,
+            self._rows(),
+            brand="ETI",
+            placeholder_price=Decimal("0.01"),
+            activate=True,
+            dry_run=False,
+        )
+
+        product = (
+            await uow.session.execute(select(Product).where(Product.sku == "PLC-1"))
+        ).scalar_one()
+        assert product.is_active is False
+
+    async def test_a_placeholder_never_overwrites_a_real_price(self, uow):
+        await import_products(
+            uow.session,
+            self._rows(),
+            brand="ETI",
+            placeholder_price=Decimal("0.01"),
+            dry_run=False,
+        )
+        product = (
+            await uow.session.execute(select(Product).where(Product.sku == "PLC-1"))
+        ).scalar_one()
+        product.price = Decimal("249.00")
+        await uow.commit()
+
+        await import_products(
+            uow.session,
+            self._rows(),
+            brand="ETI",
+            placeholder_price=Decimal("0.01"),
+            dry_run=False,
+        )
+
+        refreshed = (
+            await uow.session.execute(select(Product).where(Product.sku == "PLC-1"))
+        ).scalar_one()
+        assert refreshed.price == Decimal("249.00")
