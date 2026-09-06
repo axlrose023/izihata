@@ -136,7 +136,10 @@ Rules the importer follows:
   `other` category;
 - imported products are **hidden** (`is_active = false`) unless `--activate` is
   passed, and even then only confidently mapped rows are published. Nothing
-  reaches the storefront until staff confirm it.
+  reaches the storefront until staff confirm it;
+- with `--activate`, a stub that was imported at the placeholder price and now
+  receives a real one is published automatically. Products staff hid by hand are
+  never resurrected: only price-less stubs are released.
 
 ## Tests and quality gates
 
