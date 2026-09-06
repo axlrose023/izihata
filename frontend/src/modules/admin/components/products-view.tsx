@@ -70,7 +70,13 @@ function ProductRow({
   return (
     <tr data-hidden={product.is_active ? undefined : "true"}>
       <td>
-        <strong>{product.name}</strong>
+        <button
+          className="admin-product-name"
+          onClick={() => onEdit(product)}
+          type="button"
+        >
+          {product.name}
+        </button>
         {product.is_active ? null : (
           <span className="admin-hidden-flag">Прихований</span>
         )}

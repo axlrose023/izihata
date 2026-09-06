@@ -6,7 +6,10 @@ from fastapi import UploadFile
 from app.api.common.exceptions import UnprocessableError
 
 MEDIA_URL_PREFIX = "/api/v1/media"
-MAX_UPLOAD_BYTES = 2 * 1024 * 1024
+# The browser downscales pictures before sending them, so anything arriving
+# here is small. The cap is generous enough for a client that could not decode
+# the file and had to send the original.
+MAX_UPLOAD_BYTES = 8 * 1024 * 1024
 # SVG is deliberately excluded: it is served from our own origin and can carry
 # scripts, so it would be a stored-XSS vector.
 ALLOWED_TYPES = {
@@ -26,14 +29,15 @@ class MediaStorageService:
         extension = ALLOWED_TYPES.get(upload.content_type or "")
         if extension is None:
             raise UnprocessableError(
-                "Only PNG, JPEG and WebP images are accepted",
+                f"Unsupported image type '{upload.content_type or 'unknown'}'."
+                " Use PNG, JPEG or WebP.",
                 code="unsupported_media_type",
             )
 
         payload = await upload.read(MAX_UPLOAD_BYTES + 1)
         if len(payload) > MAX_UPLOAD_BYTES:
             raise UnprocessableError(
-                "Image must be 2 MB or smaller",
+                "Image must be 8 MB or smaller",
                 code="media_too_large",
             )
         if not payload:

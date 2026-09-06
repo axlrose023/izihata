@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 
 import { useAuth } from "@/modules/auth/auth-provider";
 import { getUserErrorMessage } from "@/shared/api/errors";
+import { prepareImageUpload } from "@/shared/lib/prepare-image-upload";
 import type { AdminBrand } from "@/shared/types/api";
 import { ErrorNotice } from "@/shared/ui/error-notice";
 
@@ -30,8 +31,8 @@ function BrandRow({ brand }: { brand: AdminBrand }) {
   const pickLogo = async (file: File) => {
     setMessage(null);
     const body = new FormData();
-    body.append("file", file);
     try {
+      body.append("file", await prepareImageUpload(file));
       const { url } = await request<{ url: string }>("/admin/catalog/media", {
         method: "POST",
         body,
@@ -97,7 +98,7 @@ function BrandRow({ brand }: { brand: AdminBrand }) {
           Логотип
         </button>
         <input
-          accept="image/png,image/jpeg,image/webp"
+          accept="image/*"
           aria-label={`Логотип ${brand.name}`}
           hidden
           onChange={(event) => {

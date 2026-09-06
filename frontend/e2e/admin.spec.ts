@@ -134,16 +134,30 @@ test("hiding a product keeps it recoverable", async ({ page }) => {
   ).not.toHaveAttribute("data-hidden", "true");
 });
 
+test("clicking a product name opens the editor", async ({ page }) => {
+  await login(page);
+  await page
+    .locator(".admin-sidebar")
+    .getByRole("link", { name: "Товари" })
+    .click();
+
+  const name = (
+    await page.locator(".admin-product-name").first().innerText()
+  ).trim();
+  await page.locator(".admin-product-name").first().click();
+
+  const dialog = page.getByRole("dialog", { name: "Редагувати товар" });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByLabel("Назва")).toHaveValue(name);
+});
+
 test("staff can upload a product photo", async ({ page }) => {
   await login(page);
   await page
     .locator(".admin-sidebar")
     .getByRole("link", { name: "Товари" })
     .click();
-  await page
-    .getByRole("button", { name: /^Редагувати/ })
-    .first()
-    .click();
+  await page.locator(".admin-product-name").first().click();
 
   const dialog = page.getByRole("dialog", { name: "Редагувати товар" });
   await expect(dialog).toBeVisible();
