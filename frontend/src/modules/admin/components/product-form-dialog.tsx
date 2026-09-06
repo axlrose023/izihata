@@ -88,7 +88,7 @@ export function ProductFormDialog({
     reset,
     setError,
     setValue,
-    formState: { errors, isSubmitting },
+    formState: { errors, isDirty, isSubmitting },
   } = useForm<ProductFormValues>({
     resolver: zodResolver(productFormSchema),
     defaultValues: productFormDefaults,
@@ -134,7 +134,13 @@ export function ProductFormDialog({
       reset(productValues(null));
       return;
     }
+    // The full product arrives after the dialog opens. Seeding it must not wipe
+    // edits already made in the meantime — an uploaded photo, most visibly.
+    if (isDirty) return;
     reset(productValues(detail.data ?? product));
+    // `isDirty` intentionally stays out of the deps: it must gate the seeding,
+    // not retrigger it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [detail.data, open, product, reset]);
 
   const close = () => {

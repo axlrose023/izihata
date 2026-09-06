@@ -147,6 +147,8 @@ test("staff can upload a product photo", async ({ page }) => {
 
   const dialog = page.getByRole("dialog", { name: "Редагувати товар" });
   await expect(dialog).toBeVisible();
+  // Upload immediately: the full product loads a moment later and must not
+  // overwrite the photo that was just attached.
   await dialog.getByLabel("Файл зображення товару").setInputFiles({
     name: "product.png",
     mimeType: "image/png",
