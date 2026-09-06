@@ -1,8 +1,9 @@
 import { expect, test as setup } from "@playwright/test";
 
+import { ADMIN_STATE } from "./constants";
+
 // One staff login for the whole suite: /auth/login is rate limited per IP,
 // and every test shares the runner's address.
-export const ADMIN_STATE = "e2e/.auth/admin.json";
 
 setup("authenticate as staff", async ({ page }) => {
   const username = process.env.ADMIN_USERNAME;

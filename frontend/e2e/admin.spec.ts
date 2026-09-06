@@ -1,6 +1,6 @@
 import { expect, test, type Page, type TestInfo } from "@playwright/test";
 
-import { ADMIN_STATE } from "./auth.setup";
+import { ADMIN_STATE } from "./constants";
 
 // Staff authentication is established once in the setup project: /auth/login is
 // rate limited per IP, and logging in per test trips that limit.
