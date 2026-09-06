@@ -18,6 +18,10 @@ services:
       - APP__REDIS__HOST=cache
       - APP__API__ALLOWED_HOSTS=["app","localhost","127.0.0.1"]
       - APP__MEDIA_ROOT=/app/media
+      # Every e2e test signs in from the runner's single IP, which trips the
+      # per-IP login throttle. The throttle itself is covered by
+      # src/integration_tests/test_redis_rate_limit.py against real Redis.
+      - APP__RATE_LIMIT__ENABLED=false
     healthcheck:
       test: [ "CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:${APP__API__PORT}/health')\"" ]
       interval: 10s

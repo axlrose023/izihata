@@ -40,5 +40,3 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Playwright staff session reused across the e2e suite
-e2e/.auth/
