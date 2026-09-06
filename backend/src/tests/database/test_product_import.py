@@ -607,3 +607,106 @@ class TestKeywordFallbackRules:
 
     def test_a_name_that_is_only_a_model_code_stays_unmapped(self):
         assert classify("M-12N (Гайка для M-12G, ГК-16)")[2] is False
+
+
+@pytest.mark.asyncio
+class TestPublishingOnClassification:
+    """A product parked in the fallback goes live once the rules can place it."""
+
+    @pytest_asyncio.fixture(autouse=True)
+    async def _clean_slate(self, uow):
+        async def purge() -> None:
+            await uow.session.execute(delete(Product).where(Product.sku.like("CLS-%")))
+            await uow.commit()
+
+        await purge()
+        yield
+        await purge()
+
+    @staticmethod
+    def _rows(name: str) -> list[ImportRow]:
+        return [ImportRow("CLS-1", name, Decimal("120.00"), 3)]
+
+    async def _by_sku(self, uow) -> Product:
+        return (
+            await uow.session.execute(select(Product).where(Product.sku == "CLS-1"))
+        ).scalar_one()
+
+    async def test_priced_but_unclassified_products_stay_hidden(self, uow):
+        outcome = await import_products(
+            uow.session,
+            self._rows("Щось геть невідоме"),
+            brand="ETI",
+            activate=True,
+            dry_run=False,
+        )
+
+        assert outcome.published == 0
+        assert (await self._by_sku(uow)).is_active is False
+
+    async def test_leaving_the_fallback_publishes_the_product(self, uow):
+        await import_products(
+            uow.session,
+            self._rows("Щось геть невідоме"),
+            brand="ETI",
+            activate=True,
+            dry_run=False,
+        )
+
+        # The same SKU, now under a name the rules understand.
+        outcome = await import_products(
+            uow.session,
+            self._rows("Авт. вимикач ETIMAT 6 1p C16"),
+            brand="ETI",
+            activate=True,
+            remap_categories=True,
+            dry_run=False,
+        )
+
+        assert outcome.published == 1
+        product = await self._by_sku(uow)
+        assert product.is_active is True
+
+    async def test_nothing_is_published_without_remapping(self, uow):
+        await import_products(
+            uow.session,
+            self._rows("Щось геть невідоме"),
+            brand="ETI",
+            activate=True,
+            dry_run=False,
+        )
+
+        outcome = await import_products(
+            uow.session,
+            self._rows("Авт. вимикач ETIMAT 6 1p C16"),
+            brand="ETI",
+            activate=True,
+            dry_run=False,
+        )
+
+        assert outcome.published == 0
+        assert (await self._by_sku(uow)).is_active is False
+
+    async def test_a_classified_product_hidden_by_staff_is_not_resurrected(self, uow):
+        await import_products(
+            uow.session,
+            self._rows("Авт. вимикач ETIMAT 6 1p C16"),
+            brand="ETI",
+            activate=True,
+            dry_run=False,
+        )
+        product = await self._by_sku(uow)
+        product.is_active = False
+        await uow.commit()
+
+        outcome = await import_products(
+            uow.session,
+            self._rows("Авт. вимикач ETIMAT 6 1p C16"),
+            brand="ETI",
+            activate=True,
+            remap_categories=True,
+            dry_run=False,
+        )
+
+        assert outcome.published == 0
+        assert (await self._by_sku(uow)).is_active is False

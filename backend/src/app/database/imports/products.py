@@ -147,9 +147,10 @@ async def import_products(
     Imported products stay hidden unless ``activate`` is set, so a wrong
     category mapping never reaches the storefront.
 
-    With ``activate``, a product that was imported as a priced placeholder and
-    now receives a real price is published. Anything else staff hid by hand
-    stays hidden: only stubs waiting for a price are released.
+    With ``activate``, the import publishes what it can now vouch for: a hidden
+    product is released when it stops being a stub — either it finally has a
+    real price, or it leaves the fallback category because the rules learned to
+    place it. Anything else staff hid by hand stays hidden.
 
     ``remap_categories`` re-applies the mapping rules to products that already
     exist. It is opt-in because it discards category corrections staff made by
@@ -208,26 +209,22 @@ async def import_products(
             was_placeholder = (
                 placeholder_price is not None and product.price == placeholder_price
             )
+            was_unclassified = product.category_id == categories[FALLBACK_CATEGORY].id
             if row.price is not None:
                 product.price = row.price
             product.stock_status = stock_status
             outcome.updated += 1
 
-            # Release stubs that were only hidden because they had no price.
-            if (
-                activate
-                and row.price is not None
-                and was_placeholder
-                and not product.is_active
-                and classification[2]
-            ):
-                product.is_active = True
-                outcome.published += 1
-
             category_slug, subcategory_name, matched = classification
             if not matched:
                 outcome.unmapped.append(f"{row.sku} {row.name}")
             target = categories.get(category_slug) or categories[FALLBACK_CATEGORY]
+            left_fallback = (
+                remap_categories
+                and was_unclassified
+                and matched
+                and target.id != categories[FALLBACK_CATEGORY].id
+            )
             if remap_categories and product.category_id != target.id:
                 subcategory = subcategories.get((target.id.hex, subcategory_name or ""))
                 product.category_id = target.id
@@ -236,6 +233,19 @@ async def import_products(
                 slug = target.slug
             else:
                 slug = product.category.slug
+            # Release what the import itself had parked: stubs that were waiting
+            # for a price, and products that were sitting in the fallback until
+            # the rules could place them.
+            if (
+                activate
+                and matched
+                and row.price is not None
+                and not product.is_active
+                and (was_placeholder or left_fallback)
+            ):
+                product.is_active = True
+                outcome.published += 1
+
             outcome.per_category[slug] = outcome.per_category.get(slug, 0) + 1
             continue
 
