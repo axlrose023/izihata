@@ -424,6 +424,8 @@ test("a section card is clickable as a whole", async ({ page }) => {
 
   // The picture must open the section, not only the call to action.
   const image = card.locator("img");
+  // elementFromPoint only sees the viewport, so bring the card into it first.
+  await image.scrollIntoViewIfNeeded();
   const box = await image.boundingBox();
   const topmost = await page.evaluate(
     ([x, y]) => {
