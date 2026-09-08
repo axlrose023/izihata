@@ -10,18 +10,26 @@ export function SectionCards({ sections }: { sections: CatalogSection[] }) {
       {sections.map((section) => {
         const visual = sectionVisual(section);
         return (
-          <article className="section-card" key={section.id}>
+          // The whole card is the link, so the picture is clickable too. The
+          // call to action is plain text: an anchor inside an anchor is invalid.
+          <Link
+            className="section-card"
+            key={section.id}
+            to={`/sections/${section.slug}`}
+          >
             <img alt={visual.alt} fetchPriority="high" src={visual.image} />
             <div className="section-card__overlay" />
             <div className="section-card__content">
-              <span>{section.product_count} товарів</span>
+              <span className="section-card__count">
+                {section.product_count} товарів
+              </span>
               <h3>{section.name}</h3>
               <p>{visual.subtitle}</p>
-              <Link to={`/sections/${section.slug}`}>
+              <span className="section-card__cta">
                 Перейти <ArrowUpRight aria-hidden="true" size={18} />
-              </Link>
+              </span>
             </div>
-          </article>
+          </Link>
         );
       })}
     </div>

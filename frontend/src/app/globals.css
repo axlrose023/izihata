@@ -155,10 +155,22 @@ h2 {
 .section-card {
   position: relative;
   min-height: 390px;
+  display: block;
   overflow: hidden;
   border-radius: var(--radius);
   background: var(--navy);
   box-shadow: var(--shadow);
+  transition:
+    transform 0.18s,
+    box-shadow 0.18s;
+}
+.section-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 22px 55px rgba(15, 23, 42, 0.26);
+}
+.section-card:focus-visible {
+  outline: 3px solid var(--orange);
+  outline-offset: 3px;
 }
 .section-card > img,
 .section-hub__hero > img {
@@ -192,7 +204,7 @@ h2 {
   padding: 28px;
   color: #fff;
 }
-.section-card__content > span {
+.section-card__count {
   color: #d8e0ec;
   font-size: 0.78rem;
   font-weight: 750;
@@ -208,7 +220,7 @@ h2 {
   margin-bottom: 21px;
   color: #edf1f8;
 }
-.section-card__content a,
+.section-card__cta,
 .section-hub__category-link {
   display: inline-flex;
   align-items: center;
@@ -216,7 +228,7 @@ h2 {
   color: #fff;
   font-weight: 800;
 }
-.section-card__content a:hover,
+.section-card:hover .section-card__cta,
 .section-hub__category-link:hover {
   text-decoration: underline;
 }
