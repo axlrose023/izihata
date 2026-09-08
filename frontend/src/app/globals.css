@@ -22,7 +22,10 @@
   box-sizing: border-box;
 }
 html {
-  scroll-behavior: smooth;
+  /* Document scrolling stays instant: a smooth default animated the scroll
+     reset on every route change, so a new page visibly slid up from wherever
+     the previous one was. The back-to-top button asks for smooth itself. */
+  scroll-behavior: auto;
 }
 body {
   margin: 0;

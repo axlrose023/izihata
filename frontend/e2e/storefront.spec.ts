@@ -439,6 +439,15 @@ test("a section card is clickable as a whole", async ({ page }) => {
   await image.click();
   await expect(page).toHaveURL(/\/sections\/.+/);
   await expect(page.getByRole("heading", { level: 1 })).not.toBeEmpty();
+
+  // The reset to the top must be instant. A smooth document default made every
+  // new page slide up from the previous page's offset.
+  expect(
+    await page.evaluate(
+      () => getComputedStyle(document.documentElement).scrollBehavior,
+    ),
+  ).toBe("auto");
+  expect(await page.evaluate(() => Math.round(window.scrollY))).toBe(0);
 });
 
 test("sale and new arrivals are their own catalog sections", async ({
