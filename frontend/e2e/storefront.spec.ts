@@ -417,6 +417,28 @@ test("manufacturers get their own rail and pages", async ({ page }) => {
   await expect(page.getByRole("heading", { level: 1 })).not.toBeEmpty();
 });
 
+test("a section card is clickable as a whole", async ({ page }) => {
+  await page.goto("/");
+  const card = page.locator(".section-card").first();
+  await expect(card).toBeVisible();
+
+  // The picture must open the section, not only the call to action.
+  const image = card.locator("img");
+  const box = await image.boundingBox();
+  const topmost = await page.evaluate(
+    ([x, y]) => {
+      const element = document.elementFromPoint(x, y);
+      return element?.closest("a")?.getAttribute("href") ?? null;
+    },
+    [box!.x + box!.width / 2, box!.y + box!.height / 2],
+  );
+  expect(topmost).toMatch(/^\/sections\//);
+
+  await image.click();
+  await expect(page).toHaveURL(/\/sections\/.+/);
+  await expect(page.getByRole("heading", { level: 1 })).not.toBeEmpty();
+});
+
 test("sale and new arrivals are their own catalog sections", async ({
   page,
 }) => {
