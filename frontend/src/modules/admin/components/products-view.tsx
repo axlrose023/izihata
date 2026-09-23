@@ -23,6 +23,7 @@ import { getUserErrorMessage } from "@/shared/api/errors";
 import { useDebouncedValue } from "@/shared/lib/use-debounced-value";
 import type { AdminProduct, Paginated, StockStatus } from "@/shared/types/api";
 import { ErrorNotice } from "@/shared/ui/error-notice";
+import { AdminTableWrap } from "@/shared/ui/admin-table-wrap";
 
 function ProductRow({
   product,
@@ -224,7 +225,7 @@ export function ProductsView() {
           onRetry={() => void refetch()}
         />
       ) : (
-        <div className="admin-table-wrap">
+        <AdminTableWrap label="Товари">
           <table className="admin-table">
             <thead>
               <tr>
@@ -248,7 +249,7 @@ export function ProductsView() {
               ))}
             </tbody>
           </table>
-        </div>
+        </AdminTableWrap>
       )}
       <ProductFormDialog
         onClose={() => setFormOpen(false)}

@@ -10,6 +10,7 @@ import type {
 } from "@/shared/types/api";
 import { ErrorNotice } from "@/shared/ui/error-notice";
 import { StatusBadge } from "@/shared/ui/status-badge";
+import { AdminTableWrap } from "@/shared/ui/admin-table-wrap";
 
 const statuses: Array<{ value: BoardRequestStatus; label: string }> = [
   { value: "in_review", label: "Взяти в роботу" },
@@ -86,7 +87,7 @@ export function AdminBoardRequestsView() {
       />
     );
   return (
-    <div className="admin-table-wrap">
+    <AdminTableWrap label="Заявки на щити">
       <table className="admin-table">
         <thead>
           <tr>
@@ -127,6 +128,6 @@ export function AdminBoardRequestsView() {
           ))}
         </tbody>
       </table>
-    </div>
+    </AdminTableWrap>
   );
 }

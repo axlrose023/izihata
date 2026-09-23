@@ -7,6 +7,7 @@ import { getUserErrorMessage } from "@/shared/api/errors";
 import { prepareImageUpload } from "@/shared/lib/prepare-image-upload";
 import type { AdminBrand } from "@/shared/types/api";
 import { ErrorNotice } from "@/shared/ui/error-notice";
+import { AdminTableWrap } from "@/shared/ui/admin-table-wrap";
 
 function BrandRow({ brand }: { brand: AdminBrand }) {
   const { request } = useAuth();
@@ -135,7 +136,7 @@ export function AdminBrandsView() {
     );
 
   return (
-    <div className="admin-table-wrap">
+    <AdminTableWrap label="Бренди">
       <table className="admin-table admin-brands">
         <thead>
           <tr>
@@ -153,6 +154,6 @@ export function AdminBrandsView() {
           ))}
         </tbody>
       </table>
-    </div>
+    </AdminTableWrap>
   );
 }

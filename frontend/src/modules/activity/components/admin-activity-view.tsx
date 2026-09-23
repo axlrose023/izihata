@@ -7,6 +7,7 @@ import { buildQuery } from "@/shared/api/query";
 import { useDebouncedValue } from "@/shared/lib/use-debounced-value";
 import type { Paginated, SiteVisitor } from "@/shared/types/api";
 import { ErrorNotice } from "@/shared/ui/error-notice";
+import { AdminTableWrap } from "@/shared/ui/admin-table-wrap";
 
 function relativeTime(iso: string): string {
   const minutes = Math.max(
@@ -80,7 +81,7 @@ export function AdminActivityView() {
         />
       ) : (
         <>
-          <div className="admin-table-wrap">
+          <AdminTableWrap label="Активність відвідувачів">
             <table className="admin-table">
               <thead>
                 <tr>
@@ -132,7 +133,7 @@ export function AdminActivityView() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </AdminTableWrap>
           {result.data.items.length === 0 ? (
             <p className="admin-activity__empty">
               Поки немає відвідувачів за цими умовами.

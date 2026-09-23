@@ -26,3 +26,31 @@ test("lead dialog meets WCAG A/AA checks", async ({ page }) => {
   await expect(page.getByRole("dialog")).toBeVisible();
   await expectNoAccessibilityViolations(page);
 });
+
+test("signed-in admin screens meet WCAG A/AA checks", async ({ page }) => {
+  const username = process.env.ADMIN_USERNAME;
+  const password = process.env.ADMIN_PASSWORD;
+  test.skip(!username || !password, "Admin credentials are not configured");
+
+  await page.goto("/admin/login");
+  await page.getByLabel("Логін").fill(username!);
+  await page.getByLabel("Пароль").fill(password!);
+  await page.getByRole("button", { name: "Увійти" }).click();
+  await expect(page).toHaveURL(/\/admin$/);
+
+  // The tables, badges and the dark rail only render once signed in, so the
+  // public sweep above never reaches them.
+  for (const path of [
+    "/admin",
+    "/admin/products",
+    "/admin/orders",
+    "/admin/leads",
+    "/admin/reviews",
+    "/admin/brands",
+    "/admin/companies",
+  ]) {
+    await page.goto(path);
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    await expectNoAccessibilityViolations(page);
+  }
+});
