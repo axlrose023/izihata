@@ -7,6 +7,7 @@ import { ErrorNotice } from "@/shared/ui/error-notice";
 import { StatusBadge } from "@/shared/ui/status-badge";
 
 import { StatusAction } from "./status-action";
+import { AdminTableWrap } from "@/shared/ui/admin-table-wrap";
 
 const transitions: Record<LeadStatus, LeadStatus[]> = {
   new: ["contacted", "closed"],
@@ -67,7 +68,7 @@ export function LeadsView() {
       />
     );
   return (
-    <div className="admin-table-wrap">
+    <AdminTableWrap label="Звернення">
       <table className="admin-table">
         <thead>
           <tr>
@@ -106,6 +107,6 @@ export function LeadsView() {
           ))}
         </tbody>
       </table>
-    </div>
+    </AdminTableWrap>
   );
 }

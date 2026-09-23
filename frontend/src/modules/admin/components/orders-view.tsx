@@ -12,6 +12,7 @@ import { ErrorNotice } from "@/shared/ui/error-notice";
 import { StatusBadge } from "@/shared/ui/status-badge";
 
 import { StatusAction } from "./status-action";
+import { AdminTableWrap } from "@/shared/ui/admin-table-wrap";
 
 const transitions: Record<OrderStatus, OrderStatus[]> = {
   new: ["processing", "cancelled"],
@@ -75,7 +76,7 @@ export function OrdersView() {
       />
     );
   return (
-    <div className="admin-table-wrap">
+    <AdminTableWrap label="Замовлення">
       <table className="admin-table">
         <thead>
           <tr>
@@ -122,6 +123,6 @@ export function OrdersView() {
           ))}
         </tbody>
       </table>
-    </div>
+    </AdminTableWrap>
   );
 }

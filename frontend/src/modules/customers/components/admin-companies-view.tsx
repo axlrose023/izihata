@@ -10,6 +10,7 @@ import type {
 } from "@/shared/types/api";
 import { ErrorNotice } from "@/shared/ui/error-notice";
 import { StatusBadge } from "@/shared/ui/status-badge";
+import { AdminTableWrap } from "@/shared/ui/admin-table-wrap";
 
 const labels: Record<CompanyStatus, string> = {
   pending: "Очікує",
@@ -82,7 +83,7 @@ export function AdminCompaniesView() {
       />
     );
   return (
-    <div className="admin-table-wrap">
+    <AdminTableWrap label="Компанії">
       <table className="admin-table">
         <thead>
           <tr>
@@ -122,6 +123,6 @@ export function AdminCompaniesView() {
           ))}
         </tbody>
       </table>
-    </div>
+    </AdminTableWrap>
   );
 }

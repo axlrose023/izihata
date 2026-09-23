@@ -10,6 +10,7 @@ import type {
 } from "@/shared/types/api";
 import { ErrorNotice } from "@/shared/ui/error-notice";
 import { StatusBadge } from "@/shared/ui/status-badge";
+import { AdminTableWrap } from "@/shared/ui/admin-table-wrap";
 
 function ModerateReview({ review }: { review: AdminProductReview }) {
   const { request } = useAuth();
@@ -71,7 +72,7 @@ export function AdminReviewsView() {
       />
     );
   return (
-    <div className="admin-table-wrap">
+    <AdminTableWrap label="Відгуки">
       <table className="admin-table">
         <thead>
           <tr>
@@ -104,6 +105,6 @@ export function AdminReviewsView() {
           ))}
         </tbody>
       </table>
-    </div>
+    </AdminTableWrap>
   );
 }
