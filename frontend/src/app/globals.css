@@ -573,8 +573,8 @@ h2 {
   display: grid;
   place-items: center;
   padding: 0 4px;
-  color: #fff;
-  background: var(--orange);
+  color: var(--accent-ink);
+  background: var(--accent);
   border: 2px solid #fff;
   border-radius: var(--radius);
   font-size: 0.62rem;
@@ -1079,9 +1079,9 @@ h2 {
 .site-sidebar__links b {
   min-width: 20px;
   padding: 1px 6px;
-  color: #fff;
+  color: var(--accent-ink);
   border-radius: var(--radius);
-  background: var(--orange);
+  background: var(--accent);
   font-size: 0.62rem;
   text-align: center;
 }
@@ -1437,7 +1437,7 @@ h2 {
 .review-stars {
   display: inline-flex;
   gap: 2px;
-  color: var(--accent);
+  color: var(--accent-dark);
 }
 .business-banner {
   margin-block: 65px;
@@ -1649,7 +1649,7 @@ h2 {
 .product-rating__stars {
   display: inline-flex;
   gap: 1px;
-  color: var(--accent);
+  color: var(--accent-dark);
 }
 .product-rating small {
   color: var(--ink-soft);
@@ -1713,7 +1713,7 @@ h2 {
   padding: 2px 6px;
   color: #fff;
   border-radius: var(--radius);
-  background: var(--orange);
+  background: var(--danger);
   font-size: 0.66rem;
   font-weight: 850;
 }
@@ -2015,18 +2015,6 @@ h2 {
 .product-detail__visual .product-visual__image {
   min-height: 520px;
   border-radius: var(--radius);
-}
-.product-detail__visual > span {
-  position: absolute;
-  top: 22px;
-  left: 22px;
-  padding: 6px 10px;
-  color: #fff;
-  border-radius: var(--radius);
-  background: var(--orange);
-  font-size: 0.7rem;
-  font-weight: 800;
-  text-transform: uppercase;
 }
 .product-detail__visual small {
   letter-spacing: 0.1em;
@@ -4360,9 +4348,9 @@ h2 {
     display: grid;
     place-items: center;
     padding: 0 4px;
-    color: #fff;
+    color: var(--accent-ink);
     border-radius: var(--radius);
-    background: var(--orange);
+    background: var(--accent);
     font-size: 0.56rem;
   }
   .hero__grid {
