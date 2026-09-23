@@ -1198,6 +1198,7 @@ h2 {
 }
 .admin-hidden-flag {
   display: inline-block;
+  width: fit-content;
   margin-left: 8px;
   padding: 2px 7px;
   color: var(--accent-dark);
@@ -3706,7 +3707,7 @@ h2 {
   background: rgba(255, 255, 255, 0.1);
 }
 .admin-sidebar nav a[data-active] svg {
-  color: var(--lime);
+  color: var(--accent);
 }
 .admin-sidebar__bottom {
   display: grid;
@@ -4135,8 +4136,8 @@ h2 {
 }
 .admin-table th {
   padding: 13px 14px;
-  color: #6b788b;
-  background: #f8f9fc;
+  color: var(--muted);
+  background: var(--surface-2);
   font-size: 0.62rem;
   letter-spacing: 0.06em;
   text-align: left;
@@ -4154,7 +4155,7 @@ h2 {
 }
 .admin-table td small {
   margin-top: 3px;
-  color: #7b8799;
+  color: var(--muted);
   font-size: 0.62rem;
 }
 .admin-table input,
@@ -4162,7 +4163,7 @@ h2 {
   max-width: 150px;
   height: 35px;
   padding: 0 8px;
-  border: 1px solid #cdd6e3;
+  border: 1px solid var(--line);
   border-radius: var(--radius);
   background: #fff;
 }
