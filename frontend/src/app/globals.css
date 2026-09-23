@@ -392,7 +392,7 @@ h2 {
 /* Header */
 .top-strip {
   color: #dfe7f7;
-  background: #0d1a31;
+  background: var(--navy);
   font-size: 0.76rem;
 }
 .top-strip__inner {
@@ -1702,7 +1702,7 @@ h2 {
   font-size: 1.25rem;
 }
 .price-stack del {
-  color: #8c97a8;
+  color: var(--muted);
   font-size: 0.72rem;
 }
 .price-stack__was {
@@ -2678,7 +2678,7 @@ h2 {
   color: #fff;
 }
 .custom-boards-page__layout aside .eyebrow {
-  color: var(--lime);
+  color: var(--accent);
 }
 .custom-boards-page__layout ol {
   display: grid;
@@ -3503,7 +3503,7 @@ h2 {
 .site-footer {
   padding-top: 58px;
   color: #c8d3e7;
-  background: #0c192f;
+  background: var(--navy);
 }
 .site-footer__grid {
   display: grid;
@@ -3627,14 +3627,14 @@ h2 {
   justify-content: space-between;
   padding: 55px;
   color: #fff;
-  background: linear-gradient(145deg, #0c192f, #174483);
+  background: linear-gradient(145deg, var(--navy), var(--ink-panel));
 }
 .login-page__brand > div span,
 .login-page__brand > div strong {
   display: block;
 }
 .login-page__brand > div span {
-  color: var(--lime);
+  color: var(--accent);
   font-size: 0.7rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
