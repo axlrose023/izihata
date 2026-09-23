@@ -8,6 +8,7 @@ import { EmptyState } from "@/shared/ui/empty-state";
 import { ErrorNotice } from "@/shared/ui/error-notice";
 
 import { CatalogPage } from "./catalog-page";
+import { pluralizeProducts } from "@/shared/lib/format";
 
 export function BrandsPage() {
   const result = useQuery(brandsQuery());
@@ -56,7 +57,7 @@ export function BrandsPage() {
             ) : (
               <span className="brand-tile__fallback">{brand.name}</span>
             )}
-            <small>{brand.product_count} товарів</small>
+            <small>{pluralizeProducts(brand.product_count)}</small>
           </Link>
         ))}
       </div>

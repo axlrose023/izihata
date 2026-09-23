@@ -18,14 +18,30 @@ export function formatDate(value: string): string {
   return dateFormatter.format(new Date(value));
 }
 
-export function pluralizeProducts(count: number): string {
+// Українські числівники: 1 товар · 2 товари · 5 товарів, з винятком на 11-14.
+function pluralizeUk(
+  count: number,
+  forms: [one: string, few: string, many: string],
+): string {
   const mod10 = count % 10;
   const mod100 = count % 100;
-  if (mod10 === 1 && mod100 !== 11) return `${count} товар`;
+  if (mod10 === 1 && mod100 !== 11) return `${count} ${forms[0]}`;
   if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) {
-    return `${count} товари`;
+    return `${count} ${forms[1]}`;
   }
-  return `${count} товарів`;
+  return `${count} ${forms[2]}`;
+}
+
+export function pluralizeProducts(count: number): string {
+  return pluralizeUk(count, ["товар", "товари", "товарів"]);
+}
+
+export function pluralizePositions(count: number): string {
+  return pluralizeUk(count, ["позиція", "позиції", "позицій"]);
+}
+
+export function pluralizeReviews(count: number): string {
+  return pluralizeUk(count, ["відгук", "відгуки", "відгуків"]);
 }
 
 export function discountPercent(

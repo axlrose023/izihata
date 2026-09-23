@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 
 import { sectionVisual } from "@/modules/catalog/lib/section-presentation";
 import type { CatalogSection } from "@/shared/types/api";
+import { pluralizeProducts } from "@/shared/lib/format";
 
 export function SectionCards({ sections }: { sections: CatalogSection[] }) {
   return (
@@ -21,7 +22,7 @@ export function SectionCards({ sections }: { sections: CatalogSection[] }) {
             <div className="section-card__overlay" />
             <div className="section-card__content">
               <span className="section-card__count">
-                {section.product_count} товарів
+                {pluralizeProducts(section.product_count)}
               </span>
               <h3>{section.name}</h3>
               <p>{visual.subtitle}</p>

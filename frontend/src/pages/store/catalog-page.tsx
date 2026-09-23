@@ -17,6 +17,7 @@ import { useDocumentTitle } from "@/shared/lib/use-document-title";
 import { usePageMeta } from "@/shared/lib/use-page-meta";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { ErrorNotice } from "@/shared/ui/error-notice";
+import { pluralizePositions } from "@/shared/lib/format";
 
 const sorts: Array<{ value: ProductSort; label: string }> = [
   { value: "popular", label: "Популярні" },
@@ -157,7 +158,7 @@ export function CatalogPage({
         <div>
           <span className="eyebrow">Каталог</span>
           <h1>{presetTitle ?? activeCategory?.name ?? "Усі товари"}</h1>
-          <p>{products.total} позицій за поточними умовами</p>
+          <p>{pluralizePositions(products.total)} за поточними умовами</p>
         </div>
       </div>
 

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 
 import { brandsQuery } from "@/modules/catalog/api/catalog-queries";
 import { Carousel } from "@/shared/ui/carousel";
+import { pluralizeProducts } from "@/shared/lib/format";
 
 export function BrandRail() {
   const brands = useQuery(brandsQuery()).data ?? [];
@@ -22,7 +23,7 @@ export function BrandRail() {
           <Link
             className="carousel__item brand-tile"
             key={brand.id}
-            title={`${brand.name} · ${brand.product_count} товарів`}
+            title={`${brand.name} · ${pluralizeProducts(brand.product_count)}`}
             to={`/brands/${brand.slug}`}
           >
             {brand.logo_url ? (
@@ -35,7 +36,7 @@ export function BrandRail() {
             ) : (
               <span className="brand-tile__fallback">{brand.name}</span>
             )}
-            <small>{brand.product_count} товарів</small>
+            <small>{pluralizeProducts(brand.product_count)}</small>
           </Link>
         ))}
       </Carousel>

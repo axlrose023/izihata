@@ -7,6 +7,7 @@ import { sectionVisual } from "@/modules/catalog/lib/section-presentation";
 import { useDocumentTitle } from "@/shared/lib/use-document-title";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { ErrorNotice } from "@/shared/ui/error-notice";
+import { pluralizePositions, pluralizeProducts } from "@/shared/lib/format";
 
 export function SectionPage() {
   const { section: sectionSlug = "" } = useParams<{ section: string }>();
@@ -69,14 +70,14 @@ export function SectionPage() {
             <span className="eyebrow">Оберіть категорію</span>
             <h2>Товари за завданням</h2>
           </div>
-          <span>{section.product_count} позицій</span>
+          <span>{pluralizePositions(section.product_count)}</span>
         </div>
         <div className="section-hub__category-grid">
           {section.categories.map((category) => (
             <article key={category.id}>
               <Wrench aria-hidden="true" size={24} />
               <h3>{category.name}</h3>
-              <p>{category.product_count} товарів</p>
+              <p>{pluralizeProducts(category.product_count)}</p>
               {category.subcategories.length ? (
                 <ul>
                   {category.subcategories.map((subcategory) => (
