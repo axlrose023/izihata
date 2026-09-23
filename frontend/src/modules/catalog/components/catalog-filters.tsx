@@ -63,6 +63,12 @@ export function CatalogFilters({
   const activeSpecs = new Set(query.spec);
   const activeAvailability = new Set(query.availability);
   const activeSaleUnits = new Set(query.sale_unit);
+  const activeCount =
+    activeBrands.size +
+    activeSpecs.size +
+    activeAvailability.size +
+    activeSaleUnits.size +
+    (query.min_price || query.max_price ? 1 : 0);
 
   const update = (mutate: (params: URLSearchParams) => void) => {
     const next = new URLSearchParams(searchParams);
@@ -126,6 +132,7 @@ export function CatalogFilters({
         <div className="filters__title">
           <Filter size={18} />
           <strong>Фільтри</strong>
+          {activeCount ? <b className="filters__count">{activeCount}</b> : null}
           <Link to={action}>Скинути</Link>
           <button
             aria-label="Закрити фільтри"
@@ -261,13 +268,18 @@ export function CatalogFilters({
             {moreFiltersOpen ? "Менше фільтрів" : "Більше фільтрів"}
           </button>
         </div>
-        <button
-          className="filters__done"
-          onClick={() => setIsOpen(false)}
-          type="button"
-        >
-          Показати {total}
-        </button>
+        <div className="filters__footer">
+          <Link className="filters__footer-reset" to={action}>
+            Скинути
+          </Link>
+          <button
+            className="filters__done"
+            onClick={() => setIsOpen(false)}
+            type="button"
+          >
+            Показати {total}
+          </button>
+        </div>
       </aside>
     </>
   );
