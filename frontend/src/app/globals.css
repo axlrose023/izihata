@@ -211,7 +211,6 @@ h2 {
 }
 .section-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 22px 55px rgba(15, 23, 42, 0.26);
 }
 .section-card:focus-visible {
   outline: 3px solid var(--orange);
@@ -463,7 +462,7 @@ h2 {
   align-items: center;
   gap: 10px;
   padding-left: 15px;
-  border: 1px solid #ccd5e4;
+  border: 1px solid var(--line);
   border-radius: var(--radius);
   background: #fff;
 }
@@ -586,15 +585,15 @@ h2 {
   align-items: center;
   gap: 8px;
   padding: 0 15px;
-  color: #fff;
+  color: var(--accent-ink);
   border: 0;
-  border-radius: 10px;
-  background: var(--blue);
+  border-radius: var(--radius);
+  background: var(--accent);
   font-size: 0.76rem;
   font-weight: 800;
 }
 .menu-button:hover {
-  background: var(--blue-dark);
+  background: var(--accent-hover);
 }
 .header-actions__account {
   width: auto;
@@ -603,7 +602,7 @@ h2 {
   align-items: center;
   padding: 0 12px;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: var(--radius);
   font-size: 0.74rem;
   font-weight: 800;
 }
@@ -941,6 +940,7 @@ h2 {
 }
 .site-sidebar__panel {
   position: fixed;
+  box-shadow: 18px 0 45px rgba(12, 23, 42, 0.2);
   z-index: 121;
   top: 0;
   bottom: 0;
@@ -949,7 +949,6 @@ h2 {
   overflow-y: auto;
   overscroll-behavior: contain;
   background: #fff;
-  box-shadow: 18px 0 45px rgba(12, 23, 42, 0.2);
 }
 .site-sidebar__head {
   position: sticky;
@@ -1048,7 +1047,7 @@ h2 {
   padding: 0 8px;
   color: var(--ink);
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--radius);
   background: transparent;
   font-size: 0.78rem;
   font-weight: 650;
@@ -1081,7 +1080,7 @@ h2 {
   min-width: 20px;
   padding: 1px 6px;
   color: #fff;
-  border-radius: 10px;
+  border-radius: var(--radius);
   background: var(--orange);
   font-size: 0.62rem;
   text-align: center;
@@ -1116,16 +1115,16 @@ h2 {
   align-items: center;
   gap: 9px;
   padding: 0 20px;
-  color: #fff;
+  color: var(--accent-ink);
   border: 0;
-  border-radius: 25px;
-  background: var(--blue);
-  box-shadow: 0 14px 32px rgba(29, 93, 221, 0.38);
+  border-radius: var(--radius);
+  background: var(--accent);
+  box-shadow: 0 12px 28px rgba(16, 36, 67, 0.16);
   font-size: 0.76rem;
   font-weight: 800;
 }
 .support-button:hover {
-  background: var(--blue-dark);
+  background: var(--accent-hover);
 }
 .scroll-to-top {
   position: fixed;
@@ -1140,7 +1139,7 @@ h2 {
   border: 1px solid var(--line);
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.16);
+  box-shadow: 0 12px 28px rgba(16, 36, 67, 0.16);
   backdrop-filter: blur(10px);
 }
 .scroll-to-top:hover {
@@ -1192,7 +1191,7 @@ h2 {
   margin-top: 26px;
 }
 .admin-table tr[data-hidden] {
-  background: #fbfbfd;
+  background: var(--surface-2);
 }
 .admin-table tr[data-hidden] > td:first-child strong {
   color: var(--ink-soft);
@@ -1201,9 +1200,9 @@ h2 {
   display: inline-block;
   margin-left: 8px;
   padding: 2px 7px;
-  color: #836108;
-  border-radius: 5px;
-  background: #fff4cf;
+  color: var(--accent-dark);
+  border-radius: var(--radius);
+  background: var(--surface-accent);
   font-size: 0.62rem;
   font-weight: 800;
   vertical-align: middle;
@@ -1222,7 +1221,7 @@ h2 {
   display: grid;
   place-items: center;
   border: 1px solid var(--line);
-  border-radius: 7px;
+  border-radius: var(--radius);
   background: #fff;
 }
 .admin-brand__logo img {
@@ -1276,8 +1275,8 @@ h2 {
   border: 1px solid var(--line);
   border-radius: 50%;
   background: #fff;
-  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.14);
   transform: translateY(-50%);
+  box-shadow: 0 12px 28px rgba(16, 36, 67, 0.16);
 }
 .carousel__arrow[data-side="start"] {
   left: -18px;
@@ -1335,7 +1334,7 @@ h2 {
   margin-top: 16px;
   color: var(--blue);
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: var(--radius);
   background: #fff;
   font-size: 0.76rem;
   font-weight: 800;
@@ -1664,20 +1663,20 @@ h2 {
   padding: 4px 8px;
   color: var(--success);
   border-radius: var(--radius);
-  background: #eaf8f0;
+  background: var(--success-surface);
   font-size: 0.65rem;
   font-weight: 780;
 }
 .status-badge[data-status="preorder"],
 .status-badge[data-status="pending"],
 .status-badge[data-status="new"] {
-  color: #836108;
-  background: #fff4cf;
+  color: var(--accent-dark);
+  background: var(--surface-accent);
 }
 .status-badge[data-status="cancelled"],
 .status-badge[data-status="failed"] {
   color: var(--danger);
-  background: #fdecef;
+  background: var(--danger-surface);
 }
 .status-badge[data-status="processing"],
 .status-badge[data-status="contacted"] {
@@ -1713,7 +1712,7 @@ h2 {
 .price-discount {
   padding: 2px 6px;
   color: #fff;
-  border-radius: 5px;
+  border-radius: var(--radius);
   background: var(--orange);
   font-size: 0.66rem;
   font-weight: 850;
@@ -1869,7 +1868,7 @@ h2 {
 .filters input[type="number"] {
   width: 100%;
   height: 40px;
-  border: 1px solid #ccd5e4;
+  border: 1px solid var(--line);
   border-radius: var(--radius);
   background: #fff;
 }
@@ -3075,7 +3074,7 @@ h2 {
   height: 88px;
   object-fit: contain;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--radius);
   background: #fff;
 }
 .field--checkbox {
@@ -3085,7 +3084,7 @@ h2 {
   align-self: end;
   padding: 11px 12px;
   border: 1px solid var(--line);
-  border-radius: 9px;
+  border-radius: var(--radius);
   background: #fff;
 }
 .field--checkbox input {
@@ -3105,7 +3104,7 @@ h2 {
   margin: 0;
   padding: 9px 11px;
   border-radius: var(--radius);
-  background: #fdecef;
+  background: var(--danger-surface);
 }
 .form-note {
   color: var(--ink-soft);
@@ -3403,7 +3402,7 @@ h2 {
   margin-left: 8px;
   color: var(--ink-soft);
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--radius);
   background: #fff;
 }
 .order-summary__remove:hover {
@@ -3863,7 +3862,7 @@ h2 {
   height: 40px;
   padding-left: 11px;
   border: 1px solid var(--line);
-  border-radius: 9px;
+  border-radius: var(--radius);
   background: #fff;
 }
 .admin-activity__search svg {
@@ -3901,7 +3900,7 @@ h2 {
   padding: 7px 14px;
   color: var(--blue);
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--radius);
   background: #fff;
   font-size: 0.74rem;
   font-weight: 750;
@@ -3917,7 +3916,7 @@ h2 {
   margin-bottom: 16px;
   padding: 17px;
   border: 1px solid var(--line);
-  border-radius: 11px;
+  border-radius: var(--radius);
 }
 .product-relations legend {
   padding: 0;
@@ -3940,7 +3939,7 @@ h2 {
   padding: 0 12px;
   color: var(--ink);
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--radius);
   background: #fff;
   font-size: 0.72rem;
   font-weight: 750;
@@ -3956,8 +3955,8 @@ h2 {
   gap: 8px;
   height: 40px;
   padding-left: 10px;
-  border: 1px solid #ccd5e4;
-  border-radius: 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
   background: #fff;
 }
 .product-relations__search svg {
@@ -3977,7 +3976,7 @@ h2 {
   gap: 4px;
   padding: 8px;
   border: 1px solid var(--line);
-  border-radius: 9px;
+  border-radius: var(--radius);
   background: var(--surface);
 }
 .product-relations__results p {
@@ -3990,7 +3989,7 @@ h2 {
   align-items: center;
   gap: 10px;
   padding: 7px 9px;
-  border-radius: 7px;
+  border-radius: var(--radius);
   background: #fff;
 }
 .product-relations__results strong {
@@ -4013,16 +4012,16 @@ h2 {
   align-items: center;
   gap: 5px;
   padding: 0 11px;
-  color: #fff;
+  color: var(--accent-ink);
   border: 0;
-  border-radius: 7px;
-  background: var(--blue);
+  border-radius: var(--radius);
+  background: var(--accent);
   font-size: 0.7rem;
   font-weight: 750;
 }
 .product-relations__results button:disabled {
   color: var(--ink-soft);
-  background: #e3e9f2;
+  background: var(--line);
 }
 .product-relations__group > strong {
   display: block;
@@ -4042,7 +4041,7 @@ h2 {
   gap: 10px;
   padding: 8px 10px;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--radius);
   font-size: 0.75rem;
 }
 .product-relations__group li > span {
@@ -4060,7 +4059,7 @@ h2 {
   place-items: center;
   color: var(--ink-soft);
   border: 1px solid var(--line);
-  border-radius: 7px;
+  border-radius: var(--radius);
   background: #fff;
 }
 .product-relations__group li button:hover {
@@ -4414,11 +4413,11 @@ h2 {
     align-items: center;
     gap: 8px;
     padding: 0 18px;
-    color: #fff;
+    color: var(--accent-ink);
     border: 0;
-    border-radius: 23px;
-    background: var(--blue);
-    box-shadow: 0 10px 26px rgba(29, 93, 221, 0.35);
+    border-radius: var(--radius);
+    background: var(--accent);
+    box-shadow: 0 12px 28px rgba(16, 36, 67, 0.16);
     font-weight: 800;
   }
   .support-button {
@@ -4510,9 +4509,9 @@ h2 {
     min-height: 52px;
     display: block;
     padding-bottom: env(safe-area-inset-bottom);
-    color: #fff;
+    color: var(--accent-ink);
     border: 0;
-    background: var(--blue);
+    background: var(--accent);
     font-size: 0.82rem;
     font-weight: 850;
   }
