@@ -1,5 +1,7 @@
 import { Star } from "lucide-react";
 
+import { pluralizeReviews } from "@/shared/lib/format";
+
 export function ProductRating({
   rating,
   reviews,
@@ -12,7 +14,7 @@ export function ProductRating({
 
   return (
     <span
-      aria-label={`Рейтинг ${value.toFixed(1)} з 5, відгуків: ${reviews}`}
+      aria-label={`Рейтинг ${value.toFixed(1)} з 5, ${pluralizeReviews(reviews)}`}
       className="product-rating"
     >
       <span aria-hidden="true" className="product-rating__stars">

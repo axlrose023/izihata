@@ -21,6 +21,7 @@ import { LeadAction } from "@/modules/leads/components/lead-action";
 import { useDocumentTitle } from "@/shared/lib/use-document-title";
 import { CategoryIcon } from "@/shared/ui/category-icon";
 import { TestimonialsSection } from "@/modules/reviews/components/testimonials-section";
+import { pluralizeProducts } from "@/shared/lib/format";
 
 export function HomePage() {
   const [allCategoriesShown, setAllCategoriesShown] = useState(false);
@@ -126,7 +127,7 @@ export function HomePage() {
               >
                 <CategoryIcon size={38} slug={category.slug} />
                 <strong>{category.name}</strong>
-                <span>{category.product_count} товарів</span>
+                <span>{pluralizeProducts(category.product_count)}</span>
               </Link>
             ),
           )}
