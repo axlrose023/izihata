@@ -6,6 +6,7 @@ import {
   pluralizePositions,
   pluralizeProducts,
   pluralizeReviews,
+  pluralizeSubcategories,
 } from "./format";
 
 describe("format helpers", () => {
@@ -43,6 +44,15 @@ describe("format helpers", () => {
     [104, "104 позиції"],
   ])("uses Ukrainian position plurals for %i", (count, expected) => {
     expect(pluralizePositions(count)).toBe(expected);
+  });
+
+  it.each([
+    [1, "1 підкатегорія"],
+    [2, "2 підкатегорії"],
+    [5, "5 підкатегорій"],
+    [13, "13 підкатегорій"],
+  ])("uses Ukrainian subcategory plurals for %i", (count, expected) => {
+    expect(pluralizeSubcategories(count)).toBe(expected);
   });
 
   it.each([

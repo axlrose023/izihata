@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { Grid2x2, Grid3x3, Search } from "lucide-react";
 import { Form, Link, useParams, useSearchParams } from "react-router-dom";
 
@@ -11,13 +12,17 @@ import {
   CatalogFilters,
   type CatalogFilterQuery,
 } from "@/modules/catalog/components/catalog-filters";
+import { ActiveFilters } from "@/modules/catalog/components/active-filters";
 import { ProductCard } from "@/modules/catalog/components/product-card";
 import type { ProductBadge, ProductSort } from "@/shared/types/api";
 import { useDocumentTitle } from "@/shared/lib/use-document-title";
 import { usePageMeta } from "@/shared/lib/use-page-meta";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { ErrorNotice } from "@/shared/ui/error-notice";
-import { pluralizePositions } from "@/shared/lib/format";
+import {
+  pluralizePositions,
+  pluralizeSubcategories,
+} from "@/shared/lib/format";
 
 const sorts: Array<{ value: ProductSort; label: string }> = [
   { value: "popular", label: "Популярні" },
@@ -33,6 +38,19 @@ function pageHref(params: URLSearchParams, page: number, category?: string) {
   next.set("page", String(page));
   next.delete("category");
   return `${category ? `/catalog/${category}` : "/catalog"}?${next}`;
+}
+
+function subcategoryHref(
+  params: URLSearchParams,
+  slug: string,
+  category?: string,
+) {
+  const next = new URLSearchParams(params);
+  next.delete("page");
+  if (next.get("subcategory") === slug) next.delete("subcategory");
+  else next.set("subcategory", slug);
+  const search = next.toString();
+  return `${category ? `/catalog/${category}` : "/catalog"}${search ? `?${search}` : ""}`;
 }
 
 function viewHref(
@@ -101,11 +119,22 @@ export function CatalogPage({
     page: searchParams.get("page") ?? "1",
     page_size: 12,
   };
+  const [allSubcategoriesShown, setAllSubcategoriesShown] = useState(false);
   const categoriesResult = useQuery(categoriesQuery());
   const productsResult = useQuery(productsQuery(query));
   const initialActiveCategory = categoriesResult.data?.find(
     (item) => item.slug === query.category,
   );
+  // Порожні підкатегорії нічого не дають, а решту показуємо за спаданням —
+  // артборд Catalog показує кілька найбільших і ховає хвіст за «ще N».
+  const rankedSubcategories = [...(initialActiveCategory?.subcategories ?? [])]
+    .filter((item) => item.product_count > 0)
+    .sort((a, b) => b.product_count - a.product_count);
+  const visibleSubcategories = allSubcategoriesShown
+    ? rankedSubcategories
+    : rankedSubcategories.slice(0, 6);
+  const hiddenSubcategories =
+    rankedSubcategories.length - visibleSubcategories.length;
   const pageTitle = presetTitle ?? initialActiveCategory?.name ?? "Каталог";
   useDocumentTitle(pageTitle);
   usePageMeta({
@@ -161,6 +190,31 @@ export function CatalogPage({
           <p>{pluralizePositions(products.total)} за поточними умовами</p>
         </div>
       </div>
+      {visibleSubcategories.length ? (
+        <nav aria-label="Підкатегорії" className="subcategory-chips">
+          {visibleSubcategories.map((item) => (
+            <Link
+              data-active={query.subcategory === item.slug ? "true" : undefined}
+              key={item.id}
+              to={subcategoryHref(searchParams, item.slug, category)}
+            >
+              {item.name}
+              <small>{item.product_count}</small>
+            </Link>
+          ))}
+          {hiddenSubcategories ? (
+            <button
+              aria-expanded={allSubcategoriesShown}
+              onClick={() => setAllSubcategoriesShown((value) => !value)}
+              type="button"
+            >
+              {allSubcategoriesShown
+                ? "Згорнути"
+                : `Ще ${pluralizeSubcategories(hiddenSubcategories)}`}
+            </button>
+          ) : null}
+        </nav>
+      ) : null}
 
       <Form action={basePath} className="catalog-mobile-search" method="get">
         <Search size={18} />
@@ -224,6 +278,7 @@ export function CatalogPage({
               </Link>
             </div>
           </div>
+          <ActiveFilters resetHref={basePath} />
           {products.items.length ? (
             <div
               className="product-grid product-grid--catalog"

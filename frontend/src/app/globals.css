@@ -1979,6 +1979,84 @@ h2 {
   margin: 17px 0;
   font-weight: 720;
 }
+/* Чіпи підкатегорій під заголовком (артборд Catalog) */
+.subcategory-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+.subcategory-chips button {
+  padding: 8px 13px;
+  color: var(--accent-dark);
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+.subcategory-chips a {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 13px;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+.subcategory-chips a small {
+  color: var(--muted);
+  font-family: var(--font-mono), ui-monospace, Menlo, monospace;
+  font-size: 0.66rem;
+}
+.subcategory-chips a:hover {
+  border-color: var(--ink);
+}
+.subcategory-chips a[data-active] {
+  color: #fff;
+  border-color: var(--ink);
+  background: var(--ink);
+}
+.subcategory-chips a[data-active] small {
+  color: var(--muted-2);
+}
+/* Активні фільтри окремими плашками з хрестиком (артборд Catalog) */
+.active-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.active-filters__caption {
+  color: var(--muted);
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.active-filters button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 11px;
+  color: #fff;
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--ink);
+  font-size: 0.73rem;
+  font-weight: 600;
+}
+.active-filters button:hover {
+  background: var(--ink-panel);
+}
+.active-filters__reset {
+  color: var(--accent-dark);
+  font-size: 0.73rem;
+  font-weight: 600;
+}
 .catalog-toolbar {
   min-height: 52px;
   display: flex;
