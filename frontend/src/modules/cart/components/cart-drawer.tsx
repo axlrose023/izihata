@@ -163,20 +163,22 @@ export function CartDrawer() {
               Почніть з категорії або підберіть номінал автомата за
               навантаженням.
             </p>
-            <Link
-              className="button button--primary"
-              to="/catalog"
-              onClick={close}
-            >
-              Перейти в каталог
-            </Link>
-            <Link
-              className="button button--outline"
-              to="/advisors"
-              onClick={close}
-            >
-              Підібрати за параметрами
-            </Link>
+            <div className="drawer__empty-actions">
+              <Link
+                className="button button--primary"
+                to="/catalog"
+                onClick={close}
+              >
+                Перейти в каталог
+              </Link>
+              <Link
+                className="button button--outline"
+                to="/advisors"
+                onClick={close}
+              >
+                Підібрати за параметрами
+              </Link>
+            </div>
           </div>
         )}
       </aside>
