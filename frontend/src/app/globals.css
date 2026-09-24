@@ -635,6 +635,9 @@ h2 {
 .section-hub .breadcrumbs {
   padding-top: 24px;
   padding-bottom: 24px;
+  /* Keep standalone section breadcrumbs on the shared storefront grid. */
+  margin-right: auto;
+  margin-left: auto;
 }
 .section-hub__hero {
   position: relative;

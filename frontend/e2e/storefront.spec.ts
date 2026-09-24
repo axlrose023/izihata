@@ -140,6 +140,14 @@ test("section hubs and customer tools use the versioned API", async ({
   await expect(
     page.getByRole("link", { name: "Усі товари розділу" }),
   ).toBeVisible();
+  const [headerGrid, sectionBreadcrumbs] = await Promise.all([
+    page.locator(".header-main").boundingBox(),
+    page.locator(".section-hub .breadcrumbs").boundingBox(),
+  ]);
+  expect(headerGrid).not.toBeNull();
+  expect(sectionBreadcrumbs).not.toBeNull();
+  expect(sectionBreadcrumbs?.x).toBeCloseTo(headerGrid?.x ?? 0, 0);
+  expect(sectionBreadcrumbs?.width).toBeCloseTo(headerGrid?.width ?? 0, 0);
 
   await page.goto("/advisors");
   await expect(
