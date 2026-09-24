@@ -1,5 +1,4 @@
 import { useQueries } from "@tanstack/react-query";
-import { BadgeCheck, Calculator, CreditCard, Truck } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import { PopularProducts } from "@/modules/catalog/components/popular-products";
@@ -100,39 +99,6 @@ export function HomePage() {
           <Link to="/catalog">Дивитися все →</Link>
         </div>
         <SectionCards sections={sections} />
-      </section>
-
-      <section aria-label="Переваги оформлення" className="trust-strip">
-        <div className="container trust-strip__grid">
-          <div>
-            <Truck />
-            <p>
-              <strong>Відправимо сьогодні</strong>
-              <span>замовлення до [час відсічення]</span>
-            </p>
-          </div>
-          <div>
-            <Calculator />
-            <p>
-              <strong>Гуртові ціни</strong>
-              <span>B2B-кабінет</span>
-            </p>
-          </div>
-          <div>
-            <BadgeCheck />
-            <p>
-              <strong>Паспорти й сертифікати</strong>
-              <span>PDF у картці товару</span>
-            </p>
-          </div>
-          <div>
-            <CreditCard />
-            <p>
-              <strong>Картка, рахунок, післяплата</strong>
-              <span>без комісії</span>
-            </p>
-          </div>
-        </div>
       </section>
 
       <PopularProducts />

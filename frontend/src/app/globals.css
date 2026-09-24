@@ -1746,27 +1746,6 @@ h2 {
   border-color: var(--blue);
   background: var(--surface);
 }
-.trust-strip {
-  color: #e2e8f0;
-  background: var(--navy);
-}
-.trust-strip__grid {
-  min-height: 84px;
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  align-items: center;
-  gap: 24px;
-}
-.trust-strip__grid span {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 0.76rem;
-  font-weight: 650;
-}
-.trust-strip__grid svg {
-  color: var(--ink);
-}
 .brand-list {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
@@ -5897,10 +5876,6 @@ h2 {
   .ordering-steps__grid {
     grid-template-columns: repeat(2, 1fr);
   }
-  .trust-strip__grid {
-    grid-template-columns: repeat(2, 1fr);
-    padding-block: 20px;
-  }
   .brand-list,
   .brand-grid {
     grid-template-columns: repeat(3, 1fr);
@@ -6219,8 +6194,7 @@ h2 {
   .category-grid {
     grid-template-columns: repeat(2, 1fr);
   }
-  .ordering-steps__grid,
-  .trust-strip__grid {
+  .ordering-steps__grid {
     grid-template-columns: 1fr;
   }
   .brand-list,
@@ -6842,60 +6816,6 @@ h1 {
 
 .hero__directory li a {
   font-size: 13.5px;
-}
-
-.trust-strip {
-  color: var(--ink);
-  border-bottom: 1px solid var(--line);
-  background: #fff;
-}
-
-.trust-strip__grid {
-  min-height: 0;
-  padding-block: 18px;
-  gap: 0;
-}
-
-.trust-strip__grid > div {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  min-height: 42px;
-  padding: 0 22px;
-  border-right: 1px solid var(--line-2);
-}
-
-.trust-strip__grid > div:first-child {
-  padding-left: 0;
-}
-
-.trust-strip__grid > div:last-child {
-  padding-right: 0;
-  border-right: 0;
-}
-
-.trust-strip__grid svg {
-  color: var(--ink);
-}
-
-.trust-strip__grid p {
-  margin: 0;
-}
-
-.trust-strip__grid strong,
-.trust-strip__grid span {
-  display: block;
-}
-
-.trust-strip__grid strong {
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.trust-strip__grid span {
-  color: var(--muted);
-  font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: 11.5px;
 }
 
 .popular-products {
@@ -7621,18 +7541,6 @@ h1 {
 
   .hero__directory {
     display: none;
-  }
-
-  .trust-strip__grid {
-    grid-template-columns: 1fr 1fr;
-    padding-block: 12px;
-  }
-
-  .trust-strip__grid > div,
-  .trust-strip__grid > div:first-child,
-  .trust-strip__grid > div:last-child {
-    padding: 10px;
-    border: 0;
   }
 
   .home-entry-points {
