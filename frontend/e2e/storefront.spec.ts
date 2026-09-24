@@ -518,3 +518,23 @@ test("empty checkout and staff login route have safe states", async ({
     "Вхід до панелі",
   );
 });
+
+test("every overlay closes with Escape and announces itself as a dialog", async ({
+  page,
+}) => {
+  await page.goto("/catalog");
+
+  // Кошик: відкривається сам після додавання товару.
+  await page.locator(".cart-add").first().click();
+  const cart = page.getByRole("dialog", { name: "Кошик" });
+  await expect(cart).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(cart).toBeHidden();
+
+  // Бічне меню.
+  await page.getByRole("button", { name: "Відкрити меню" }).click();
+  const menu = page.getByRole("dialog", { name: "Головне меню" });
+  await expect(menu).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(menu).toBeHidden();
+});
