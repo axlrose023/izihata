@@ -1557,6 +1557,16 @@ h2 {
   height: 34px;
   background: rgba(255, 255, 255, 0.92);
 }
+/* Артикул у кутку картинки, як на артборді Catalog */
+.product-card__sku {
+  position: absolute;
+  bottom: 10px;
+  left: 12px;
+  color: var(--muted);
+  font-family: var(--font-mono), ui-monospace, Menlo, monospace;
+  font-size: 0.66rem;
+  letter-spacing: 0.04em;
+}
 .product-card__body {
   flex: 1;
   display: flex;
@@ -1677,6 +1687,8 @@ h2 {
 .status-badge {
   width: fit-content;
   display: inline-flex;
+  align-items: center;
+  gap: 6px;
   margin-top: 12px;
   padding: 4px 8px;
   color: var(--success);
@@ -1684,6 +1696,13 @@ h2 {
   background: var(--success-surface);
   font-size: 0.65rem;
   font-weight: 780;
+}
+.status-badge i {
+  width: 6px;
+  height: 6px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: currentcolor;
 }
 .status-badge[data-status="preorder"],
 .status-badge[data-status="pending"],
@@ -1703,9 +1722,9 @@ h2 {
 }
 .product-card__footer {
   display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 10px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
   margin-top: auto;
   padding-top: 18px;
 }
@@ -1716,7 +1735,16 @@ h2 {
   display: block;
 }
 .price-stack strong {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
   font-size: 1.25rem;
+}
+.price-stack strong small {
+  color: var(--muted);
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: 0.66rem;
+  font-weight: 500;
 }
 .price-stack del {
   color: var(--muted);
@@ -1760,13 +1788,18 @@ h2 {
   background: var(--accent);
 }
 .cart-add span {
-  display: none;
+  display: inline;
+  font-size: 0.72rem;
 }
 .product-card__buy-actions {
   position: relative;
   z-index: 2;
   display: flex;
-  gap: 6px;
+  gap: 8px;
+}
+.product-card__buy-actions .cart-add {
+  flex: 1;
+  padding-inline: 12px;
 }
 .quick-buy-button {
   height: 42px;
