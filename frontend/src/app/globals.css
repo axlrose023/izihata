@@ -1948,6 +1948,84 @@ h2 {
   grid-template-columns: 1fr 1fr;
   gap: 8px;
 }
+/* Повзунок ціни двома ручками (артборд Catalog) */
+.price-slider {
+  position: relative;
+  height: 30px;
+  margin-top: 14px;
+}
+.price-slider input[type="range"] {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 18px;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  pointer-events: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.price-slider input[type="range"]::-webkit-slider-runnable-track {
+  height: 3px;
+  border-radius: 2px;
+  background: var(--line);
+}
+.price-slider input[type="range"]::-moz-range-track {
+  height: 3px;
+  border-radius: 2px;
+  background: var(--line);
+}
+.price-slider input[type="range"]::-webkit-slider-thumb {
+  width: 16px;
+  height: 16px;
+  margin-top: -7px;
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+  background: #fff;
+  pointer-events: auto;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.price-slider input[type="range"]::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+  background: #fff;
+  pointer-events: auto;
+}
+.price-slider input[type="range"]:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 4px rgba(242, 163, 11, 0.32);
+}
+.price-slider__bounds {
+  position: absolute;
+  top: 20px;
+  right: 0;
+  left: 0;
+  display: flex;
+  justify-content: space-between;
+  color: var(--muted);
+  font-family: var(--font-mono), ui-monospace, Menlo, monospace;
+  font-size: 0.66rem;
+}
+/* Пошук усередині довгого фасета */
+.facet-search {
+  width: 100%;
+  height: 36px;
+  margin-bottom: 10px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+  font-size: 0.76rem;
+}
+.filter-options__empty {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.73rem;
+}
 .filter-options {
   max-height: 185px;
   overflow: auto;

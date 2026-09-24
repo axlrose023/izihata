@@ -293,6 +293,15 @@ function PriceFilter({
     max: query.max_price ?? "",
   });
   const debounced = useDebouncedValue(range, 500);
+  // Межі приходять із фасетів; без них повзунок не має шкали й не малюється.
+  const lo = Number(facets.price.minimum);
+  const hi = Number(facets.price.maximum);
+  const bounds =
+    Number.isFinite(lo) && Number.isFinite(hi) && hi > lo
+      ? { min: Math.floor(lo), max: Math.ceil(hi) }
+      : null;
+  const minValue = range.min === "" ? (bounds?.min ?? 0) : Number(range.min);
+  const maxValue = range.max === "" ? (bounds?.max ?? 0) : Number(range.max);
 
   useEffect(() => {
     if (
@@ -333,6 +342,40 @@ function PriceFilter({
           value={range.max}
         />
       </div>
+      {bounds ? (
+        <div className="price-slider">
+          <input
+            aria-label="Мінімальна ціна, повзунок"
+            max={bounds.max}
+            min={bounds.min}
+            onChange={(event) =>
+              setRange((value) => ({
+                ...value,
+                min: String(Math.min(Number(event.target.value), maxValue)),
+              }))
+            }
+            type="range"
+            value={minValue}
+          />
+          <input
+            aria-label="Максимальна ціна, повзунок"
+            max={bounds.max}
+            min={bounds.min}
+            onChange={(event) =>
+              setRange((value) => ({
+                ...value,
+                max: String(Math.max(Number(event.target.value), minValue)),
+              }))
+            }
+            type="range"
+            value={maxValue}
+          />
+          <div className="price-slider__bounds">
+            <span>{bounds.min}</span>
+            <span>{bounds.max}</span>
+          </div>
+        </div>
+      ) : null}
     </fieldset>
   );
 }
@@ -352,12 +395,32 @@ function FacetOptions({
   optionLabel?: (value: string) => string;
   options: ProductList["facets"]["brands"];
 }) {
+  const [search, setSearch] = useState("");
   if (!options.length) return null;
+  // Брендів десятки, тож довгий список отримує власний пошук (артборд Catalog).
+  const searchable = options.length > 8;
+  const shown = searchable
+    ? options.filter((option) =>
+        option.value
+          .toLocaleLowerCase("uk")
+          .includes(search.toLocaleLowerCase("uk")),
+      )
+    : options;
   return (
     <fieldset>
       <legend>{label}</legend>
+      {searchable ? (
+        <input
+          aria-label={`Пошук: ${label.toLocaleLowerCase("uk")}`}
+          className="facet-search"
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder={`Пошук: ${label.toLocaleLowerCase("uk")}`}
+          type="search"
+          value={search}
+        />
+      ) : null}
       <div className="filter-options">
-        {options.map((option) => (
+        {shown.map((option) => (
           <label key={option.value}>
             <input
               checked={activeValues.has(option.value)}
@@ -370,6 +433,9 @@ function FacetOptions({
             <small>{option.count}</small>
           </label>
         ))}
+        {searchable && !shown.length ? (
+          <p className="filter-options__empty">Нічого не знайдено</p>
+        ) : null}
       </div>
     </fieldset>
   );
