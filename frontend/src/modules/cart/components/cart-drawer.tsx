@@ -9,8 +9,6 @@ import {
 } from "@/shared/lib/format";
 import { useBodyScrollLock } from "@/shared/lib/use-body-scroll-lock";
 import { useCloseOnEscape } from "@/shared/lib/use-close-on-escape";
-import type { Product } from "@/shared/types/api";
-
 import { cartCount, useCartStore } from "../store";
 
 export function CartDrawer() {

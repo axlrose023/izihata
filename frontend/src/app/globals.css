@@ -549,15 +549,17 @@ h2 {
   min-height: 390px;
   display: block;
   overflow: hidden;
-  border-radius: var(--radius);
-  background: var(--navy);
-  box-shadow: var(--shadow);
+  /* This storefront section intentionally keeps its original visual style. */
+  border-radius: 16px;
+  background: #0f172a;
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.11);
   transition:
     transform 0.18s,
     box-shadow 0.18s;
 }
 .section-card:hover {
   transform: translateY(-4px);
+  box-shadow: 0 22px 55px rgba(15, 23, 42, 0.26);
 }
 .section-card:focus-visible {
   outline: 3px solid var(--orange);
@@ -594,6 +596,9 @@ h2 {
   justify-content: flex-end;
   padding: 28px;
   color: #fff;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.55;
 }
 .section-card__count {
   color: #d8e0ec;
@@ -604,7 +609,11 @@ h2 {
 }
 .section-card__content h3 {
   margin: 8px 0 10px;
+  font-family: ui-sans-serif, system-ui, sans-serif;
   font-size: clamp(1.6rem, 2.5vw, 2.1rem);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1.05;
 }
 .section-card__content p {
   max-width: 28ch;

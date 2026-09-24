@@ -167,9 +167,13 @@ export function CustomBoardForm() {
   const [contactOpen, setContactOpen] = useState(false);
   const [sent, setSent] = useState(false);
   const selectedBox = boxes.find((box) => box.sku === boxSku) ?? boxes[0];
-  const chosen = parts
-    .filter((part) => (quantities[part.sku] ?? 0) > 0)
-    .map((part) => ({ part, quantity: quantities[part.sku] }));
+  const chosen = useMemo(
+    () =>
+      parts
+        .filter((part) => (quantities[part.sku] ?? 0) > 0)
+        .map((part) => ({ part, quantity: quantities[part.sku] })),
+    [quantities],
+  );
   const used = chosen.reduce(
     (sum, item) => sum + item.part.modules * item.quantity,
     0,
@@ -217,8 +221,9 @@ export function CustomBoardForm() {
     setQuantities((current) => {
       const next = Math.max(0, (current[sku] ?? 0) + delta);
       if (!next) {
-        const { [sku]: _, ...rest } = current;
-        return rest;
+        return Object.fromEntries(
+          Object.entries(current).filter(([key]) => key !== sku),
+        );
       }
       return { ...current, [sku]: next };
     });

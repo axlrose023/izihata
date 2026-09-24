@@ -20,6 +20,12 @@ type Calculation = {
   breaker: BreakerResult;
 };
 
+type CalculationState = {
+  requestKey: string;
+  result: Calculation | null;
+  error: boolean;
+};
+
 const presets = [
   { label: "розетки", value: 2 },
   { label: "бойлер", value: 3.5 },
@@ -40,9 +46,11 @@ export function LoadAdvisor() {
   const [power, setPower] = useState(3.5);
   const [length, setLength] = useState(20);
   const [phase, setPhase] = useState<"single" | "three">("single");
-  const [result, setResult] = useState<Calculation | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(false);
+  const [calculation, setCalculation] = useState<CalculationState>({
+    requestKey: "",
+    result: null,
+    error: false,
+  });
   const add = useCartStore((state) => state.add);
 
   const voltage = phase === "single" ? 230 : 400;
@@ -53,11 +61,10 @@ export function LoadAdvisor() {
         : (power * 1000) / (Math.sqrt(3) * voltage * 0.95),
     [phase, power, voltage],
   );
+  const requestKey = `${current.toFixed(1)}:${length}`;
 
   useEffect(() => {
     let currentRequest = true;
-    setIsLoading(true);
-    setError(false);
     void Promise.all([
       calculateCable({
         current_a: current.toFixed(1),
@@ -70,18 +77,31 @@ export function LoadAdvisor() {
       }),
     ])
       .then(([cable, breaker]) => {
-        if (currentRequest) setResult({ cable, breaker });
+        if (currentRequest) {
+          setCalculation({
+            requestKey,
+            result: { cable, breaker },
+            error: false,
+          });
+        }
       })
       .catch(() => {
-        if (currentRequest) setError(true);
-      })
-      .finally(() => {
-        if (currentRequest) setIsLoading(false);
+        if (currentRequest) {
+          setCalculation((previous) => ({
+            requestKey,
+            result: previous.result,
+            error: true,
+          }));
+        }
       });
     return () => {
       currentRequest = false;
     };
-  }, [current, length]);
+  }, [current, length, requestKey]);
+
+  const isLoading = calculation.requestKey !== requestKey;
+  const error = !isLoading && calculation.error;
+  const result = calculation.result;
 
   const section = Number(result?.cable.recommended_cross_section_mm2 ?? 0);
   const voltageDrop = section
