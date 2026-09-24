@@ -55,3 +55,13 @@ export function discountPercent(
   if (previous <= current || previous <= 0) return null;
   return Math.round(((previous - current) / previous) * 100);
 }
+
+const saleUnitLabels = {
+  piece: "шт",
+  meter: "м",
+  coil: "бухта",
+} as const;
+
+export function saleUnitLabel(unit: keyof typeof saleUnitLabels): string {
+  return saleUnitLabels[unit] ?? "шт";
+}

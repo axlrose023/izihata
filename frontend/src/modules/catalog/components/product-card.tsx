@@ -4,7 +4,11 @@ import { Link } from "react-router-dom";
 import { cartQuantityOf, useCartStore } from "@/modules/cart/store";
 import { useCollectionStore } from "@/modules/collections/store";
 import { LeadAction } from "@/modules/leads/components/lead-action";
-import { discountPercent, formatMoney } from "@/shared/lib/format";
+import {
+  discountPercent,
+  formatMoney,
+  saleUnitLabel,
+} from "@/shared/lib/format";
 import type { Product } from "@/shared/types/api";
 import { ProductRating } from "@/shared/ui/product-rating";
 import { StatusBadge } from "@/shared/ui/status-badge";
@@ -32,7 +36,7 @@ export function ProductCard({ product }: { product: Product }) {
   const toggleCompare = useCollectionStore((state) => state.toggleCompare);
   const isFavorite = favorites.includes(product.id);
   const isCompared = compare.includes(product.id);
-  const specs = Object.entries(product.specs).slice(0, 2);
+  const specs = Object.entries(product.specs).slice(0, 4);
   const unavailable = product.stock_status === "out_of_stock";
   const discount = discountPercent(product.price, product.old_price);
 
@@ -70,12 +74,11 @@ export function ProductCard({ product }: { product: Product }) {
           </button>
         </div>
         <ProductVisual iconSize={72} product={product} />
+        <span className="product-card__sku">{product.sku}</span>
       </div>
       <div className="product-card__body">
         <div className="product-card__meta">
-          <span className="eyebrow">
-            {product.brand} · {product.sku}
-          </span>
+          <span className="eyebrow">{product.brand}</span>
           <StatusBadge status={product.stock_status} />
         </div>
         <h3 className="product-card__name">
@@ -102,7 +105,10 @@ export function ProductCard({ product }: { product: Product }) {
         />
         <div className="product-card__footer">
           <div className="price-stack">
-            <strong>{formatMoney(product.price)}</strong>
+            <strong>
+              {formatMoney(product.price)}
+              <small>/ {saleUnitLabel(product.sale_unit)}</small>
+            </strong>
             {product.old_price ? (
               <span className="price-stack__was">
                 <del>{formatMoney(product.old_price)}</del>
@@ -123,7 +129,7 @@ export function ProductCard({ product }: { product: Product }) {
                   type="button"
                 >
                   {inCart ? <Check size={19} /> : <ShoppingCart size={19} />}
-                  <span>{inCart ? "У кошику" : "В кошик"}</span>
+                  <span>{inCart ? "У кошику" : "У кошик"}</span>
                 </button>
                 <LeadAction
                   className="quick-buy-button"

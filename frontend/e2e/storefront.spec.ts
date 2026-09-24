@@ -305,9 +305,12 @@ test("catalog keeps every relevant facet", async ({ page }) => {
     await page.getByRole("button", { name: "Фільтри" }).click();
     await page.getByRole("button", { name: "Більше фільтрів" }).click();
   }
-  await expect(page.getByText("Полюси", { exact: true })).toBeVisible();
+  // Картки теж друкують «Полюси» у таблиці характеристик, тож фасет
+  // шукаємо саме в панелі фільтрів.
+  const filters = page.locator(".filters");
+  await expect(filters.getByText("Полюси", { exact: true })).toBeVisible();
   await expect(
-    page.getByText("Вибір серії покаже всі сумісні елементи цього дизайну."),
+    filters.getByText("Вибір серії покаже всі сумісні елементи цього дизайну."),
   ).toBeVisible();
 });
 
