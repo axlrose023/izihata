@@ -3,6 +3,7 @@ import { BadgeCheck, Calculator, CreditCard, Truck } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import { PopularProducts } from "@/modules/catalog/components/popular-products";
+import { SectionCards } from "@/modules/catalog/components/section-cards";
 import {
   brandsQuery,
   categoriesQuery,
@@ -89,6 +90,17 @@ export function HomePage() {
           трохи пізніше.
         </div>
       ) : null}
+
+      <section className="section container">
+        <div className="section-heading">
+          <div>
+            <span className="eyebrow">Оберіть напрям</span>
+            <h2>За чим підбираємо рішення</h2>
+          </div>
+          <Link to="/catalog">Дивитися все →</Link>
+        </div>
+        <SectionCards sections={sections} />
+      </section>
 
       <section aria-label="Переваги оформлення" className="trust-strip">
         <div className="container trust-strip__grid">
