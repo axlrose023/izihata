@@ -29,7 +29,7 @@ export function CollectionPage({ mode }: { mode: "favorites" | "compare" }) {
   if (!ids.length) {
     return (
       <EmptyState
-        actionHref="/catalog"
+        actionHref="/#catalog"
         actionLabel="Перейти до каталогу"
         description={
           mode === "favorites"
@@ -67,7 +67,7 @@ export function CollectionPage({ mode }: { mode: "favorites" | "compare" }) {
   if (products.length < 2) {
     return (
       <EmptyState
-        actionHref="/catalog"
+        actionHref="/#catalog"
         actionLabel="Додати ще товар"
         description="Для змістовного порівняння потрібні щонайменше два товари."
         title="Додайте ще один товар"

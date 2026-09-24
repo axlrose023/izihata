@@ -11,7 +11,7 @@ export function NotFoundPage() {
       </div>
       <h1>Сторінку не знайдено</h1>
       <p>Перевірте адресу або поверніться до каталогу.</p>
-      <Link className="button button--primary" to="/catalog">
+      <Link className="button button--primary" to="/#catalog">
         До каталогу
       </Link>
     </div>

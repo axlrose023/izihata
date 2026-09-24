@@ -130,6 +130,39 @@ test("guest storefront does not restore a customer session", async ({
   expect(customerRefreshRequests).toHaveLength(0);
 });
 
+test("catalog CTAs reuse the category directory on the home page", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const categoryDirectory = page.locator("#catalog");
+  const homeCatalogCta = page.getByRole("link", {
+    name: "Перейти в каталог",
+    exact: true,
+  });
+  await expect(homeCatalogCta).toHaveAttribute("href", "/#catalog");
+  await homeCatalogCta.click();
+  await expect(page).toHaveURL(/\/#catalog$/);
+  await expect(categoryDirectory).toBeInViewport();
+
+  await page.getByRole("button", { name: "Кошик: 0" }).click();
+  await expect(
+    page
+      .locator(".drawer__empty")
+      .getByRole("link", { name: "Перейти в каталог" }),
+  ).toHaveAttribute("href", "/#catalog");
+
+  await page.goto("/checkout");
+  await expect(
+    page.getByRole("link", { name: "Перейти до каталогу" }),
+  ).toHaveAttribute("href", "/#catalog");
+
+  await page.goto("/not-a-real-page");
+  await expect(page.getByRole("link", { name: "До каталогу" })).toHaveAttribute(
+    "href",
+    "/#catalog",
+  );
+});
+
 test("section hubs and customer tools use the versioned API", async ({
   page,
 }) => {
