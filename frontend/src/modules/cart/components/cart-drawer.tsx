@@ -164,7 +164,7 @@ export function CartDrawer() {
             <div className="drawer__empty-actions">
               <Link
                 className="button button--primary"
-                to="/catalog"
+                to="/#catalog"
                 onClick={close}
               >
                 Перейти в каталог

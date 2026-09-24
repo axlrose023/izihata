@@ -183,7 +183,7 @@ export function CheckoutForm() {
   if (!lines.length) {
     return (
       <EmptyState
-        actionHref="/catalog"
+        actionHref="/#catalog"
         actionLabel="Перейти до каталогу"
         description="Спочатку додайте хоча б один товар."
         title="Немає що оформлювати"

@@ -360,7 +360,7 @@ function ProductNotFound() {
       </div>
       <h1>Товар не знайдено</h1>
       <p>Посилання застаріло або товар більше не доступний.</p>
-      <Link className="button button--primary" to="/catalog">
+      <Link className="button button--primary" to="/#catalog">
         До каталогу
       </Link>
     </div>

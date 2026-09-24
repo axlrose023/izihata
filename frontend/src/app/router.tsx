@@ -15,7 +15,7 @@ function RouteErrorPage() {
       </div>
       <h1>Не вдалося відкрити сторінку</h1>
       <p>Оновіть сторінку або поверніться до каталогу.</p>
-      <Link className="button button--primary" to="/catalog">
+      <Link className="button button--primary" to="/#catalog">
         До каталогу
       </Link>
     </main>

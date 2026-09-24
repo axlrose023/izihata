@@ -46,7 +46,7 @@ export function OrderSuccessPage() {
               <Link className="button button--dark" to="/account">
                 Відстежити замовлення
               </Link>
-              <Link className="button button--outline" to="/catalog">
+              <Link className="button button--outline" to="/#catalog">
                 Повернутися в каталог
               </Link>
             </div>

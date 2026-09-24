@@ -35,7 +35,7 @@ export function HomePage() {
               термін відправлення видно ще в каталозі.
             </p>
             <div className="hero__actions">
-              <Link className="button button--primary" to="/catalog">
+              <Link className="button button--primary" to="/#catalog">
                 Перейти в каталог
               </Link>
               <Link className="button button--outline" to="/advisors">
@@ -90,7 +90,7 @@ export function HomePage() {
         </div>
       ) : null}
 
-      <section className="section container">
+      <section className="section container" id="catalog">
         <div className="section-heading">
           <div>
             <span className="eyebrow">Оберіть напрям</span>

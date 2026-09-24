@@ -31,7 +31,7 @@ export function SectionPage() {
   if (!section) {
     return (
       <EmptyState
-        actionHref="/catalog"
+        actionHref="/#catalog"
         actionLabel="Відкрити каталог"
         description="Можливо, посилання застаріло або розділ тимчасово недоступний."
         title="Розділ не знайдено"
