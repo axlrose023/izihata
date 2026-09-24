@@ -41,19 +41,11 @@ export function SiteHeader() {
   const { pathname } = useLocation();
   const isCatalogRoute =
     pathname === "/catalog" || pathname.startsWith("/catalog/");
-  const toolTitle =
-    pathname === "/advisors"
-      ? "Підбір товарів"
-      : pathname === "/custom-boards"
-        ? "Щити на замовлення"
-        : null;
-  const headerVariant = toolTitle
-    ? "tool"
-    : pathname.startsWith("/products/")
-      ? "product"
-      : isCatalogRoute
-        ? "catalog"
-        : "store";
+  const headerVariant = pathname.startsWith("/products/")
+    ? "product"
+    : isCatalogRoute
+      ? "catalog"
+      : "store";
 
   return (
     <header className="site-header" data-variant={headerVariant}>
@@ -85,160 +77,137 @@ export function SiteHeader() {
           <span>Меню</span>
         </button>
         <Logo inverse />
-        {toolTitle ? (
-          <span className="tool-header__title">{toolTitle}</span>
-        ) : (
-          <>
-            <Link
-              aria-label="Відкрити пошук товарів"
-              className="mobile-search-button"
-              to="/catalog"
-            >
-              <Search size={20} />
-            </Link>
-            <ProductSearch />
-          </>
-        )}
-        {toolTitle ? (
-          <span className="tool-header__scenario">
-            {pathname === "/advisors"
-              ? "сценарій 4 · калькулятор"
-              : "сценарій 5 · конструктор"}
-          </span>
-        ) : (
-          <div className="header-actions">
-            <Link
-              aria-label={
-                customerStatus === "authenticated"
-                  ? "Особистий кабінет"
-                  : "Увійти до кабінету"
-              }
-              className="header-actions__account"
-              to={
-                customerStatus === "authenticated"
-                  ? "/account"
-                  : "/account/login"
-              }
-            >
-              <UserRound />
-              <span>
-                {customerStatus === "authenticated" ? "Кабінет" : "Увійти"}
-              </span>
-            </Link>
-            <Link
-              aria-label="Підбір товарів і калькулятори"
-              className="header-actions__advisors"
-              title="Підбір товарів"
-              to="/advisors"
-            >
-              <Calculator />
-              <span>Підбір</span>
-            </Link>
-            <Link
-              aria-label={`Обране: ${favoriteCount}`}
-              className="header-actions__favorites"
-              to="/favorites"
-            >
-              <Heart />
-              <span>Обране</span>
-              {favoriteCount ? <b>{favoriteCount}</b> : null}
-            </Link>
-            <Link
-              aria-label={`Порівняння: ${compareCount}`}
-              className="header-actions__compare"
-              to="/compare"
-            >
-              <GitCompareArrows />
-              <span>Порівняння</span>
-              {compareCount ? <b>{compareCount}</b> : null}
-            </Link>
-            <button
-              aria-label={`Кошик: ${cartCount(lines)}`}
-              className="header-cart"
-              onClick={openCart}
-              type="button"
-            >
-              <ShoppingCart />
-              {lines.length ? (
-                <span className="header-cart__summary">
-                  <span>{pluralizePositions(cartCount(lines))}</span>
-                  <strong>{formatMoney(cartTotal)}</strong>
-                </span>
-              ) : (
-                <span className="header-cart__label">Кошик</span>
-              )}
-              {lines.length ? <b>{cartCount(lines)}</b> : null}
-            </button>
-          </div>
-        )}
-      </div>
-      <SiteSidebar onClose={() => setMenuOpen(false)} open={menuOpen} />
-      {!toolTitle ? (
-        <nav className="catalog-nav">
-          <div className="container catalog-nav__inner">
-            <Link className="catalog-nav__primary" to="/catalog">
-              <Menu size={18} /> Усі товари
-            </Link>
-            <Link to="/catalog?sort=popular">Популярне</Link>
-            <Link to="/catalog/new">Новинки</Link>
-            <Link className="catalog-nav__sale" to="/catalog/sale">
-              Акції
-            </Link>
-            <Link to="/catalog?in_stock=true">В наявності</Link>
-            <Link to="/advisors">Підбір товарів</Link>
-            <Link to="/custom-boards">
-              <PanelsTopLeft size={17} /> Щити
-            </Link>
-            <LeadAction
-              className="nav-callback"
-              label="Замовити дзвінок"
-              type="callback"
-            />
-            <Link className="nav-b2b" to="/account">
-              Для бізнесу · B2B
-            </Link>
-          </div>
-        </nav>
-      ) : null}
-      {!toolTitle ? (
-        <nav aria-label="Мобільна навігація" className="mobile-bottom-nav">
-          <Link aria-current={pathname === "/" ? "page" : undefined} to="/">
-            <House size={20} />
-            <span>Головна</span>
-          </Link>
+        <Link
+          aria-label="Відкрити пошук товарів"
+          className="mobile-search-button"
+          to="/catalog"
+        >
+          <Search size={20} />
+        </Link>
+        <ProductSearch />
+        <div className="header-actions">
           <Link
-            aria-current={isCatalogRoute ? "page" : undefined}
-            to="/catalog"
+            aria-label={
+              customerStatus === "authenticated"
+                ? "Особистий кабінет"
+                : "Увійти до кабінету"
+            }
+            className="header-actions__account"
+            to={
+              customerStatus === "authenticated" ? "/account" : "/account/login"
+            }
           >
-            <LayoutGrid size={20} />
-            <span>Каталог</span>
+            <UserRound />
+            <span>
+              {customerStatus === "authenticated" ? "Кабінет" : "Увійти"}
+            </span>
           </Link>
           <Link
-            aria-current={pathname === "/favorites" ? "page" : undefined}
+            aria-label="Підбір товарів і калькулятори"
+            className="header-actions__advisors"
+            title="Підбір товарів"
+            to="/advisors"
+          >
+            <Calculator />
+            <span>Підбір</span>
+          </Link>
+          <Link
+            aria-label={`Обране: ${favoriteCount}`}
+            className="header-actions__favorites"
             to="/favorites"
           >
-            <Heart size={20} />
+            <Heart />
             <span>Обране</span>
             {favoriteCount ? <b>{favoriteCount}</b> : null}
           </Link>
           <Link
-            aria-current={pathname.startsWith("/account") ? "page" : undefined}
-            to="/account"
+            aria-label={`Порівняння: ${compareCount}`}
+            className="header-actions__compare"
+            to="/compare"
           >
-            <UserRound size={20} />
-            <span>Кабінет</span>
+            <GitCompareArrows />
+            <span>Порівняння</span>
+            {compareCount ? <b>{compareCount}</b> : null}
           </Link>
           <button
             aria-label={`Кошик: ${cartCount(lines)}`}
+            className="header-cart"
             onClick={openCart}
             type="button"
           >
-            <ShoppingCart size={20} />
-            <span>Кошик</span>
+            <ShoppingCart />
+            {lines.length ? (
+              <span className="header-cart__summary">
+                <span>{pluralizePositions(cartCount(lines))}</span>
+                <strong>{formatMoney(cartTotal)}</strong>
+              </span>
+            ) : (
+              <span className="header-cart__label">Кошик</span>
+            )}
             {lines.length ? <b>{cartCount(lines)}</b> : null}
           </button>
-        </nav>
-      ) : null}
+        </div>
+      </div>
+      <SiteSidebar onClose={() => setMenuOpen(false)} open={menuOpen} />
+      <nav className="catalog-nav">
+        <div className="container catalog-nav__inner">
+          <Link className="catalog-nav__primary" to="/catalog">
+            <Menu size={18} /> Усі товари
+          </Link>
+          <Link to="/catalog?sort=popular">Популярне</Link>
+          <Link to="/catalog/new">Новинки</Link>
+          <Link className="catalog-nav__sale" to="/catalog/sale">
+            Акції
+          </Link>
+          <Link to="/catalog?in_stock=true">В наявності</Link>
+          <Link to="/advisors">Підбір товарів</Link>
+          <Link to="/custom-boards">
+            <PanelsTopLeft size={17} /> Щити
+          </Link>
+          <LeadAction
+            className="nav-callback"
+            label="Замовити дзвінок"
+            type="callback"
+          />
+          <Link className="nav-b2b" to="/account">
+            Для бізнесу · B2B
+          </Link>
+        </div>
+      </nav>
+      <nav aria-label="Мобільна навігація" className="mobile-bottom-nav">
+        <Link aria-current={pathname === "/" ? "page" : undefined} to="/">
+          <House size={20} />
+          <span>Головна</span>
+        </Link>
+        <Link aria-current={isCatalogRoute ? "page" : undefined} to="/catalog">
+          <LayoutGrid size={20} />
+          <span>Каталог</span>
+        </Link>
+        <Link
+          aria-current={pathname === "/favorites" ? "page" : undefined}
+          to="/favorites"
+        >
+          <Heart size={20} />
+          <span>Обране</span>
+          {favoriteCount ? <b>{favoriteCount}</b> : null}
+        </Link>
+        <Link
+          aria-current={pathname.startsWith("/account") ? "page" : undefined}
+          to="/account"
+        >
+          <UserRound size={20} />
+          <span>Кабінет</span>
+        </Link>
+        <button
+          aria-label={`Кошик: ${cartCount(lines)}`}
+          onClick={openCart}
+          type="button"
+        >
+          <ShoppingCart size={20} />
+          <span>Кошик</span>
+          {lines.length ? <b>{cartCount(lines)}</b> : null}
+        </button>
+      </nav>
     </header>
   );
 }
