@@ -79,7 +79,6 @@ export function ProductCard({ product }: { product: Product }) {
       <div className="product-card__body">
         <div className="product-card__meta">
           <span className="eyebrow">{product.brand}</span>
-          <StatusBadge status={product.stock_status} />
         </div>
         <h3 className="product-card__name">
           <Link to={`/products/${product.slug}`}>{product.name}</Link>
@@ -103,6 +102,7 @@ export function ProductCard({ product }: { product: Product }) {
           rating={product.rating}
           reviews={product.reviews_count}
         />
+        <StatusBadge status={product.stock_status} />
         <div className="product-card__footer">
           <div className="price-stack">
             <strong>

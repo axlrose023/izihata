@@ -1,24 +1,50 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
+
+async function continueToCheckout(page: Page) {
+  const checkout = page.getByRole("link", { name: "Оформити замовлення" });
+
+  if ((page.viewportSize()?.width ?? 1000) > 820) {
+    await checkout.click();
+    return;
+  }
+
+  // The full-screen mobile drawer is fixed. Chromium's automatic scrolling can
+  // misidentify its preceding text as an overlap, while a real tap at the
+  // button's visible centre works as expected.
+  await checkout.scrollIntoViewIfNeeded();
+  const box = await checkout.boundingBox();
+  if (!box) throw new Error("Checkout button has no visible bounding box");
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+}
 
 test("public routes render and product navigation works", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1 })).toContainText(
-    "Правильна деталь",
+    "Все для щита, кабелю й освітлення",
   );
-  await expect(page.getByText("Усі категорії", { exact: true })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Виробники" })).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "Відгуки наших клієнтів" }),
+    page.getByRole("heading", { name: "Часто купують" }),
   ).toBeVisible();
+  await expect(page.getByText("Гуртові ціни", { exact: true })).toBeVisible();
   const searchResponse = page.waitForResponse(
     (response) =>
       response.url().includes("/api/v1/catalog/products?") &&
       response.url().includes("search=AX-10014") &&
       response.status() === 200,
   );
-  await page.getByLabel("Пошук товарів").fill("AX-10014");
+  if ((page.viewportSize()?.width ?? 1000) <= 820) {
+    await page.getByRole("link", { name: "Відкрити пошук товарів" }).click();
+    await page.getByLabel("Пошук у каталозі").fill("AX-10014");
+    await page.getByRole("button", { name: "Знайти" }).click();
+  } else {
+    await page
+      .getByRole("combobox", { name: "Пошук товарів" })
+      .fill("AX-10014");
+  }
   await searchResponse;
-  await expect(page.locator(".search-suggestions a")).toHaveCount(1);
+  if ((page.viewportSize()?.width ?? 1000) > 820) {
+    await expect(page.locator(".search-suggestions a")).toHaveCount(1);
+  }
 
   await page.goto("/catalog");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
@@ -137,7 +163,7 @@ test("cart receives an authoritative quote and creates an order", async ({
   await page.goto("/catalog");
   await page.getByRole("button", { name: "Додати в кошик" }).first().click();
   await expect(page.getByRole("heading", { name: /Кошик/ })).toBeVisible();
-  await page.getByRole("link", { name: "Оформити замовлення" }).click();
+  await continueToCheckout(page);
 
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     "Оформлення замовлення",
@@ -150,7 +176,7 @@ test("cart receives an authoritative quote and creates an order", async ({
 
   await expect(page).toHaveURL(/\/order\/success/);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    "Дякуємо за замовлення!",
+    "Замовлення прийнято",
   );
 });
 
@@ -183,7 +209,7 @@ test("checkout explains an invalid promo and suggests Nova Poshta addresses", as
 
   await page.goto("/catalog");
   await page.getByRole("button", { name: "Додати в кошик" }).first().click();
-  await page.getByRole("link", { name: "Оформити замовлення" }).click();
+  await continueToCheckout(page);
 
   await page.getByLabel("Промокод").fill("incorrect");
   await page.getByRole("button", { name: "Застосувати" }).click();
@@ -243,8 +269,13 @@ test("favourites and comparison survive route navigation", async ({ page }) => {
 });
 
 test("callback validation and submission work", async ({ page }) => {
-  await page.goto("/");
-  await page.getByRole("button", { name: "Потрібна консультація" }).click();
+  await page.goto("/catalog");
+  if ((page.viewportSize()?.width ?? 1000) <= 820) {
+    await page.locator(".product-card__name a").first().click();
+    await page.getByRole("button", { name: "Купити в один клік" }).click();
+  } else {
+    await page.getByRole("button", { name: "1 клік" }).first().click();
+  }
   const dialog = page.getByRole("dialog");
   const box = await dialog.boundingBox();
   const viewport = page.viewportSize();
@@ -327,20 +358,18 @@ test("mobile storefront keeps search, navigation and filters accessible", async 
   );
 
   await page.goto("/");
-  await expect(page.locator(".header-search")).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Відкрити меню" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Пошук товарів" }),
+  ).toHaveAttribute("href", "/catalog");
   const mobileNavigation = page.getByRole("navigation", {
     name: "Мобільна навігація",
   });
-  await expect(mobileNavigation).toBeVisible();
-  await expect(mobileNavigation.getByRole("link")).toHaveCount(4);
-  await expect(
-    mobileNavigation.getByRole("button", { name: /Кошик/ }),
-  ).toBeVisible();
+  await expect(mobileNavigation).toBeHidden();
 
   await page.goto("/catalog");
-  await expect(
-    mobileNavigation.getByRole("link", { name: "Каталог" }),
-  ).toHaveAttribute("aria-current", "page");
   await expect(page.getByRole("heading", { name: "Усі товари" })).toBeVisible();
   const filters = page.locator(".filters");
   await page.getByRole("button", { name: "Фільтри" }).click();
@@ -404,11 +433,6 @@ test("customer reviews are shown as a rail", async ({ page }) => {
 });
 
 test("manufacturers get their own rail and pages", async ({ page }) => {
-  await page.goto("/");
-  const rail = page.locator(".brands-section .carousel__rail");
-  await expect(rail).toBeVisible();
-  await expect(rail.locator(".brand-tile").first()).toBeVisible();
-
   await page.goto("/brands");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Виробники");
   const tiles = page.locator(".brand-grid .brand-tile");
@@ -424,26 +448,18 @@ test("manufacturers get their own rail and pages", async ({ page }) => {
   await expect(page.getByRole("heading", { level: 1 })).not.toBeEmpty();
 });
 
-test("a section card is clickable as a whole", async ({ page }) => {
-  await page.goto("/");
-  const card = page.locator(".section-card").first();
-  await expect(card).toBeVisible();
-
-  // The picture must open the section, not only the call to action.
-  const image = card.locator("img");
-  // elementFromPoint only sees the viewport, so bring the card into it first.
-  await image.scrollIntoViewIfNeeded();
-  const box = await image.boundingBox();
-  const topmost = await page.evaluate(
-    ([x, y]) => {
-      const element = document.elementFromPoint(x, y);
-      return element?.closest("a")?.getAttribute("href") ?? null;
-    },
-    [box!.x + box!.width / 2, box!.y + box!.height / 2],
+test("a section is reachable from the home directory", async ({ page }) => {
+  test.skip(
+    (page.viewportSize()?.width ?? 1000) <= 820,
+    "The approved mobile artboard deliberately omits the desktop category directory.",
   );
-  expect(topmost).toMatch(/^\/sections\//);
-
-  await image.click();
+  await page.goto("/");
+  const section = page
+    .getByRole("navigation", { name: "Розділи каталогу" })
+    .getByRole("link")
+    .first();
+  await expect(section).toHaveAttribute("href", /^\/sections\//);
+  await section.click();
   await expect(page).toHaveURL(/\/sections\/.+/);
   await expect(page.getByRole("heading", { level: 1 })).not.toBeEmpty();
 
@@ -494,6 +510,12 @@ test("the catalog offers two grid densities", async ({ page }) => {
 
 test("the sidebar opens the catalog one level down", async ({ page }) => {
   await page.goto("/");
+  if ((page.viewportSize()?.width ?? 1000) > 820) {
+    await expect(
+      page.getByRole("banner").getByRole("link", { name: "Усі товари" }),
+    ).toHaveAttribute("href", "/catalog");
+    return;
+  }
   await page.getByRole("button", { name: "Відкрити меню" }).click();
   const panel = page.locator(".site-sidebar__panel");
   await expect(panel).toBeVisible();
@@ -538,10 +560,11 @@ test("every overlay closes with Escape and announces itself as a dialog", async 
   await page.keyboard.press("Escape");
   await expect(cart).toBeHidden();
 
-  // Бічне меню.
-  await page.getByRole("button", { name: "Відкрити меню" }).click();
-  const menu = page.getByRole("dialog", { name: "Головне меню" });
-  await expect(menu).toBeVisible();
-  await page.keyboard.press("Escape");
-  await expect(menu).toBeHidden();
+  if ((page.viewportSize()?.width ?? 1000) <= 820) {
+    await page.getByRole("button", { name: "Відкрити меню" }).click();
+    const menu = page.getByRole("dialog", { name: "Головне меню" });
+    await expect(menu).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(menu).toBeHidden();
+  }
 });

@@ -9,10 +9,10 @@ import {
   MessageCircle,
   PanelsTopLeft,
   Phone,
+  Search,
   ShoppingCart,
   UserRound,
 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 
@@ -20,7 +20,6 @@ import { SiteSidebar } from "./site-sidebar";
 
 import { cartCount, useCartStore } from "@/modules/cart/store";
 import { ProductSearch } from "@/modules/catalog/components/product-search";
-import { categoriesQuery } from "@/modules/catalog/api/catalog-queries";
 import { useCollectionStore } from "@/modules/collections/store";
 import { LeadAction } from "@/modules/leads/components/lead-action";
 import { useCustomerAuth } from "@/modules/customers/customer-auth-context";
@@ -34,7 +33,6 @@ export function SiteHeader() {
   const openCart = useCartStore((state) => state.open);
   const favoriteCount = useCollectionStore((state) => state.favorites.length);
   const compareCount = useCollectionStore((state) => state.compare.length);
-  const categories = useQuery(categoriesQuery()).data ?? [];
   const { status: customerStatus } = useCustomerAuth();
   const cartTotal = lines.reduce(
     (sum, line) => sum + Number(line.product.price) * line.quantity,
@@ -43,9 +41,14 @@ export function SiteHeader() {
   const { pathname } = useLocation();
   const isCatalogRoute =
     pathname === "/catalog" || pathname.startsWith("/catalog/");
+  const headerVariant = pathname.startsWith("/products/")
+    ? "product"
+    : isCatalogRoute
+      ? "catalog"
+      : "store";
 
   return (
-    <header className="site-header">
+    <header className="site-header" data-variant={headerVariant}>
       <div className="top-strip">
         <div className="container top-strip__inner">
           <div>
@@ -74,6 +77,13 @@ export function SiteHeader() {
           <span>Меню</span>
         </button>
         <Logo inverse />
+        <Link
+          aria-label="Відкрити пошук товарів"
+          className="mobile-search-button"
+          to="/catalog"
+        >
+          <Search size={20} />
+        </Link>
         <ProductSearch />
         <div className="header-actions">
           <Link
@@ -146,7 +156,9 @@ export function SiteHeader() {
           </Link>
           <Link to="/catalog?sort=popular">Популярне</Link>
           <Link to="/catalog/new">Новинки</Link>
-          <Link to="/catalog/sale">Акції</Link>
+          <Link className="catalog-nav__sale" to="/catalog/sale">
+            Акції
+          </Link>
           <Link to="/catalog?in_stock=true">В наявності</Link>
           <Link to="/advisors">Підбір товарів</Link>
           <Link to="/custom-boards">
@@ -162,17 +174,6 @@ export function SiteHeader() {
           </Link>
         </div>
       </nav>
-      {categories.length ? (
-        <nav aria-label="Категорії товарів" className="category-quick-nav">
-          <div className="container">
-            {categories.map((category) => (
-              <Link key={category.id} to={`/catalog/${category.slug}`}>
-                {category.name}
-              </Link>
-            ))}
-          </div>
-        </nav>
-      ) : null}
       <nav aria-label="Мобільна навігація" className="mobile-bottom-nav">
         <Link aria-current={pathname === "/" ? "page" : undefined} to="/">
           <House size={20} />

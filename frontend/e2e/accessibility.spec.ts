@@ -21,8 +21,13 @@ test("key public and staff pages meet WCAG A/AA checks", async ({ page }) => {
 });
 
 test("lead dialog meets WCAG A/AA checks", async ({ page }) => {
-  await page.goto("/");
-  await page.getByRole("button", { name: "Потрібна консультація" }).click();
+  await page.goto("/catalog");
+  if ((page.viewportSize()?.width ?? 1000) <= 820) {
+    await page.locator(".product-card__name a").first().click();
+    await page.getByRole("button", { name: "Купити в один клік" }).click();
+  } else {
+    await page.getByRole("button", { name: "1 клік" }).first().click();
+  }
   await expect(page.getByRole("dialog")).toBeVisible();
   await expectNoAccessibilityViolations(page);
 });

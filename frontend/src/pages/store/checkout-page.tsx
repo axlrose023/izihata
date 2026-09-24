@@ -5,8 +5,7 @@ export function CheckoutPage() {
   useDocumentTitle("Оформлення замовлення");
   return (
     <div className="container checkout-page">
-      <span className="eyebrow">Безпечний розрахунок</span>
-      <h1>Оформлення замовлення</h1>
+      <h1 className="sr-only">Оформлення замовлення</h1>
       <CheckoutForm />
     </div>
   );
