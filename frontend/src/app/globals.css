@@ -891,6 +891,35 @@ h2 {
 .section {
   padding-block: 82px;
 }
+/* Табы добірок у заголовку блока (артборд Main) */
+.home-rail-tabs {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+}
+.home-rail-tabs button {
+  min-height: 34px;
+  padding: 0 14px;
+  color: var(--ink-soft);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+.home-rail-tabs button[aria-selected="true"] {
+  color: #fff;
+  background: var(--ink);
+}
+.home-rail-empty {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
 .section--tint {
   background: var(--surface);
 }
