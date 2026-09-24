@@ -5,6 +5,7 @@ import {
   House,
   LayoutGrid,
   Menu,
+  MapPin,
   MessageCircle,
   PanelsTopLeft,
   Phone,
@@ -23,6 +24,7 @@ import { categoriesQuery } from "@/modules/catalog/api/catalog-queries";
 import { useCollectionStore } from "@/modules/collections/store";
 import { LeadAction } from "@/modules/leads/components/lead-action";
 import { useCustomerAuth } from "@/modules/customers/customer-auth-context";
+import { formatMoney, pluralizePositions } from "@/shared/lib/format";
 import { Logo } from "@/shared/ui/logo";
 import { storeInfo } from "@/shared/config/store-info";
 
@@ -34,6 +36,10 @@ export function SiteHeader() {
   const compareCount = useCollectionStore((state) => state.compare.length);
   const categories = useQuery(categoriesQuery()).data ?? [];
   const { status: customerStatus } = useCustomerAuth();
+  const cartTotal = lines.reduce(
+    (sum, line) => sum + Number(line.product.price) * line.quantity,
+    0,
+  );
   const { pathname } = useLocation();
   const isCatalogRoute =
     pathname === "/catalog" || pathname.startsWith("/catalog/");
@@ -43,8 +49,11 @@ export function SiteHeader() {
       <div className="top-strip">
         <div className="container top-strip__inner">
           <div>
+            <span className="top-strip__address">
+              <MapPin size={13} /> {storeInfo.address}
+            </span>
             <a href={storeInfo.phone.href}>
-              <Phone size={13} /> {storeInfo.phone.label} — безкоштовно
+              <Phone size={13} /> {storeInfo.phone.label}
             </a>
             <span>
               <MessageCircle size={13} /> {storeInfo.messengers}
@@ -64,7 +73,7 @@ export function SiteHeader() {
           <Menu size={20} />
           <span>Меню</span>
         </button>
-        <Logo />
+        <Logo inverse />
         <ProductSearch />
         <div className="header-actions">
           <Link
@@ -90,6 +99,7 @@ export function SiteHeader() {
             to="/advisors"
           >
             <Calculator />
+            <span>Підбір</span>
           </Link>
           <Link
             aria-label={`Обране: ${favoriteCount}`}
@@ -97,6 +107,7 @@ export function SiteHeader() {
             to="/favorites"
           >
             <Heart />
+            <span>Обране</span>
             {favoriteCount ? <b>{favoriteCount}</b> : null}
           </Link>
           <Link
@@ -105,14 +116,24 @@ export function SiteHeader() {
             to="/compare"
           >
             <GitCompareArrows />
+            <span>Порівняння</span>
             {compareCount ? <b>{compareCount}</b> : null}
           </Link>
           <button
             aria-label={`Кошик: ${cartCount(lines)}`}
+            className="header-cart"
             onClick={openCart}
             type="button"
           >
             <ShoppingCart />
+            {lines.length ? (
+              <span className="header-cart__summary">
+                <span>{pluralizePositions(cartCount(lines))}</span>
+                <strong>{formatMoney(cartTotal)}</strong>
+              </span>
+            ) : (
+              <span className="header-cart__label">Кошик</span>
+            )}
             {lines.length ? <b>{cartCount(lines)}</b> : null}
           </button>
         </div>
@@ -131,12 +152,14 @@ export function SiteHeader() {
           <Link to="/custom-boards">
             <PanelsTopLeft size={17} /> Щити
           </Link>
-          <Link to="/account">Для бізнесу</Link>
           <LeadAction
             className="nav-callback"
             label="Замовити дзвінок"
             type="callback"
           />
+          <Link className="nav-b2b" to="/account">
+            Для бізнесу · B2B
+          </Link>
         </div>
       </nav>
       {categories.length ? (
