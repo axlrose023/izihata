@@ -41,14 +41,9 @@ export function SiteHeader() {
   const { pathname } = useLocation();
   const isCatalogRoute =
     pathname === "/catalog" || pathname.startsWith("/catalog/");
-  const headerVariant = pathname.startsWith("/products/")
-    ? "product"
-    : isCatalogRoute
-      ? "catalog"
-      : "store";
 
   return (
-    <header className="site-header" data-variant={headerVariant}>
+    <header className="site-header" data-variant="store">
       <div className="top-strip">
         <div className="container top-strip__inner">
           <div>
