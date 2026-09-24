@@ -19,7 +19,11 @@ export function ProductTabs({ tabs }: { tabs: ProductTab[] }) {
 
   return (
     <div className="product-tabs">
-      <div aria-label="Розділи товару" className="product-tabs__list" role="tablist">
+      <div
+        aria-label="Розділи товару"
+        className="product-tabs__list"
+        role="tablist"
+      >
         {tabs.map((tab) => (
           <button
             aria-controls={`${base}-${tab.id}-panel`}
