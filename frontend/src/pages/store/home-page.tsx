@@ -1,18 +1,13 @@
 import { useQueries } from "@tanstack/react-query";
 import { useState } from "react";
-import {
-  Calculator,
-  PackageCheck,
-  ShieldCheck,
-  ShoppingBag,
-  Truck,
-} from "lucide-react";
+import { Calculator, PackageCheck, ShoppingBag, Truck } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import { BrandRail } from "@/modules/catalog/components/brand-rail";
 import { PopularProducts } from "@/modules/catalog/components/popular-products";
 import { SectionCards } from "@/modules/catalog/components/section-cards";
 import {
+  brandsQuery,
   categoriesQuery,
   featuredReviewsQuery,
   sectionsQuery,
@@ -26,11 +21,22 @@ import { pluralizeProducts } from "@/shared/lib/format";
 export function HomePage() {
   const [allCategoriesShown, setAllCategoriesShown] = useState(false);
   useDocumentTitle();
-  const [sectionsResult, categoriesResult, reviewsResult] = useQueries({
-    queries: [sectionsQuery(), categoriesQuery(), featuredReviewsQuery()],
-  });
+  const [sectionsResult, categoriesResult, reviewsResult, brandsResult] =
+    useQueries({
+      queries: [
+        sectionsQuery(),
+        categoriesQuery(),
+        featuredReviewsQuery(),
+        brandsQuery(),
+      ],
+    });
   const sections = sectionsResult.data ?? [];
   const categories = categoriesResult.data ?? [];
+  const brands = brandsResult.data ?? [];
+  const productTotal = sections.reduce(
+    (sum, section) => sum + section.product_count,
+    0,
+  );
   const unavailable = sectionsResult.isError || categoriesResult.isError;
 
   return (
@@ -39,7 +45,8 @@ export function HomePage() {
         <div className="container hero__grid">
           <div className="hero__content">
             <span className="hero__kicker">
-              Інтернет-магазин електротоварів
+              {categories.length} категорій · {brands.length} брендів · склад у
+              Києві
             </span>
             <h1>
               Правильна деталь для вашої мережі — <em>без зайвих кроків</em>
@@ -54,39 +61,42 @@ export function HomePage() {
               </Link>
               <LeadAction label="Потрібна консультація" type="callback" />
             </div>
-            <div className="hero__facts">
-              <span>
-                <ShieldCheck /> Актуальна наявність
-              </span>
-              <span>
-                <Truck /> Нова пошта / самовивіз
-              </span>
-              <span>
-                <Calculator /> Ціна рахується сервером
-              </span>
-            </div>
-          </div>
-          <div className="hero__visual" aria-hidden="true">
-            <div className="hero-panel">
-              <div className="hero-panel__rail" />
-              <div className="hero-panel__modules">
-                <span data-size="wide" />
-                <span />
-                <span data-accent />
-                <span />
-                <span data-size="wide" />
+            <dl className="hero__metrics">
+              <div>
+                <dt>{productTotal.toLocaleString("uk-UA")}</dt>
+                <dd>товарів у наявності</dd>
               </div>
-              <div className="hero-panel__wires">
-                <i />
-                <i />
-                <i />
+              <div>
+                <dt>{brands.length}</dt>
+                <dd>брендів на складі</dd>
               </div>
-            </div>
-            <div className="hero__label">
-              <strong>{categories.length} напрямів</strong>
-              <span>Від автоматики до зарядних станцій</span>
-            </div>
+              <div>
+                <dt>B2B</dt>
+                <dd>гуртові ціни</dd>
+              </div>
+            </dl>
           </div>
+          <nav aria-label="Розділи каталогу" className="hero__directory">
+            {sections.map((section) => (
+              <div key={section.id}>
+                <Link
+                  className="hero__directory-heading"
+                  to={`/sections/${section.slug}`}
+                >
+                  {section.name}
+                </Link>
+                <ul>
+                  {section.categories.map((category) => (
+                    <li key={category.id}>
+                      <Link to={`/catalog/${category.slug}`}>
+                        {category.name}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </nav>
         </div>
       </section>
 
