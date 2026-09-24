@@ -1,19 +1,13 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery } from "@tanstack/react-query";
-import {
-  Check,
-  LoaderCircle,
-  Minus,
-  Plus,
-  ShoppingBag,
-  Trash2,
-} from "lucide-react";
+import { Check, LoaderCircle, ShoppingBag } from "lucide-react";
 import { useDeferredValue, useEffect, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
 
 import { useCartStore } from "@/modules/cart/store";
+import { ProductVisual } from "@/modules/catalog/components/product-visual";
 import { DeliveryAutocomplete } from "@/modules/checkout/components/delivery-autocomplete";
 import { apiClient } from "@/shared/api/client";
 import { getUserErrorMessage } from "@/shared/api/errors";
@@ -100,8 +94,6 @@ export function CheckoutForm() {
   const navigate = useNavigate();
   const lines = useCartStore((state) => state.lines);
   const clearCart = useCartStore((state) => state.clear);
-  const setQuantity = useCartStore((state) => state.setQuantity);
-  const removeLine = useCartStore((state) => state.remove);
   const [promoInput, setPromoInput] = useState("");
   const [promoCode, setPromoCode] = useState<string | null>(null);
   const [selectedCityRef, setSelectedCityRef] = useState<string | null>(null);
@@ -262,8 +254,8 @@ export function CheckoutForm() {
 
   return (
     <div className="checkout-layout">
-      <form className="checkout-form" onSubmit={submit}>
-        <section className="checkout-card">
+      <form className="checkout-form" id="checkout-form" onSubmit={submit}>
+        <section className="checkout-card checkout-card--contacts">
           <span className="checkout-step">01</span>
           <div>
             <h2>Контактні дані</h2>
@@ -288,7 +280,7 @@ export function CheckoutForm() {
           </div>
         </section>
 
-        <section className="checkout-card">
+        <section className="checkout-card checkout-card--delivery">
           <span className="checkout-step">02</span>
           <div>
             <h2>Доставка</h2>
@@ -408,7 +400,7 @@ export function CheckoutForm() {
           </div>
         </section>
 
-        <section className="checkout-card">
+        <section className="checkout-card checkout-card--payment">
           <span className="checkout-step">03</span>
           <div>
             <h2>Оплата</h2>
@@ -465,25 +457,6 @@ export function CheckoutForm() {
             ) : null}
           </div>
         </section>
-        {submitError ? (
-          <p className="form-error" role="alert">
-            {submitError}
-          </p>
-        ) : null}
-        <button
-          className="button button--primary button--wide checkout-submit"
-          disabled={
-            isSubmitting || quote.isLoading || !quote.data || quoteIsStale
-          }
-          type="submit"
-        >
-          {isSubmitting || quoteIsStale ? (
-            <LoaderCircle className="spin" size={19} />
-          ) : (
-            <Check size={19} />
-          )}
-          {isSubmitting ? "Створюємо замовлення…" : "Підтвердити замовлення"}
-        </button>
       </form>
 
       <aside className="order-summary">
@@ -494,41 +467,19 @@ export function CheckoutForm() {
         <div className="order-summary__items">
           {lines.map((line) => (
             <div className="order-summary__line" key={line.product.id}>
+              <span className="order-summary__visual">
+                <ProductVisual iconSize={20} product={line.product} />
+              </span>
               <span className="order-summary__line-name">
                 {line.product.name}
+                <small>
+                  {formatMoney(line.product.price)} × {line.quantity}
+                  {line.product.sale_unit === "meter" ? " м" : " шт"}
+                </small>
               </span>
-              <div className="quantity-control">
-                <button
-                  aria-label={`Зменшити кількість: ${line.product.name}`}
-                  onClick={() =>
-                    setQuantity(line.product.id, line.quantity - 1)
-                  }
-                  type="button"
-                >
-                  <Minus size={14} />
-                </button>
-                <span>{line.quantity}</span>
-                <button
-                  aria-label={`Збільшити кількість: ${line.product.name}`}
-                  onClick={() =>
-                    setQuantity(line.product.id, line.quantity + 1)
-                  }
-                  type="button"
-                >
-                  <Plus size={14} />
-                </button>
-              </div>
               <strong>
                 {formatMoney(Number(line.product.price) * line.quantity)}
               </strong>
-              <button
-                aria-label={`Видалити товар: ${line.product.name}`}
-                className="order-summary__remove"
-                onClick={() => removeLine(line.product.id)}
-                type="button"
-              >
-                <Trash2 size={15} />
-              </button>
             </div>
           ))}
         </div>
@@ -575,11 +526,42 @@ export function CheckoutForm() {
                 Знижка <b>−{formatMoney(quote.data.discount)}</b>
               </span>
             ) : null}
+            <span>
+              Доставка <b>за тарифом</b>
+            </span>
             <strong>
-              Разом <b>{formatMoney(quote.data.total)}</b>
+              До сплати <b>{formatMoney(quote.data.total)}</b>
             </strong>
           </div>
         ) : null}
+        {submitError ? (
+          <p className="form-error" role="alert">
+            {submitError}
+          </p>
+        ) : null}
+        <button
+          className="button button--primary button--wide checkout-submit"
+          disabled={
+            isSubmitting || quote.isLoading || !quote.data || quoteIsStale
+          }
+          form="checkout-form"
+          type="submit"
+        >
+          {isSubmitting || quoteIsStale ? (
+            <LoaderCircle className="spin" size={19} />
+          ) : (
+            <Check size={19} />
+          )}
+          {isSubmitting ? "Створюємо замовлення…" : "Підтвердити замовлення"}
+        </button>
+        <p className="checkout-consent">
+          Натискаючи кнопку, ви погоджуєтесь з умовами доставки, оплати та
+          повернення.
+        </p>
+        <div className="checkout-assurances">
+          <span>Гарантія виробника, повернення [строк]</span>
+          <span>Оплата через захищений шлюз</span>
+        </div>
       </aside>
     </div>
   );

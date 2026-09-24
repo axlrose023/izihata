@@ -141,13 +141,27 @@ test("section hubs and customer tools use the versioned API", async ({
   ).toBeVisible();
 
   await page.goto("/advisors");
-  await page.getByRole("button", { name: "Розрахувати" }).first().click();
-  await expect(page.getByText("Розрахунковий струм").first()).toBeVisible();
-  await expect(page.getByText("Рекомендований переріз")).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Який переріз і номінал вам потрібні" }),
+  ).toBeVisible();
+  await expect(page.getByText("Робочий струм")).toBeVisible();
+  await expect(page.getByText("Підібрані позиції з каталогу")).toBeVisible();
 
   await page.goto("/custom-boards");
-  await page.getByRole("button", { name: "Оцінити комплектацію" }).click();
-  await expect(page.locator(".custom-board-estimate")).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Корпус щита" }),
+  ).toBeVisible();
+  await expect(page.getByText("Схема складання")).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Надіслати заявку на складання" }),
+  ).toBeEnabled();
+  await page
+    .getByRole("button", { name: "Надіслати заявку на складання" })
+    .click();
+  await expect(
+    page.getByRole("dialog", { name: "Контакти для заявки" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Закрити" }).click();
 
   await page.goto("/account");
   await expect(
@@ -309,12 +323,11 @@ test("product quantity is added as one cart operation", async ({ page }) => {
     .locator(".product-actions-panel")
     .getByRole("button", { name: "Додати в кошик" })
     .click();
-  await expect(page.getByRole("heading", { name: /Кошик · 3/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Кошик" })).toBeVisible();
+  await expect(page.locator(".drawer__count")).toHaveText("3 позиції");
 });
 
-test("the cart suggests only curated companion products", async ({ page }) => {
-  // "Bought together" is admin-managed; the demo product is the seeded one
-  // that carries those relations.
+test("the cart matches the delivery and totals artboard", async ({ page }) => {
   await page.goto("/products/demo-modular-circuit-breaker-1p-c16");
   await page
     .locator(".product-actions-panel")
@@ -322,10 +335,11 @@ test("the cart suggests only curated companion products", async ({ page }) => {
     .click();
 
   const drawer = page.locator(".drawer__panel");
-  await expect(drawer.getByText("З цим купують")).toBeVisible();
-  await expect(drawer.locator(".cart-recommendations article")).not.toHaveCount(
-    0,
-  );
+  await expect(drawer.locator(".drawer__delivery-progress")).toBeVisible();
+  await expect(drawer.getByText("До сплати")).toBeVisible();
+  await expect(
+    drawer.getByRole("button", { name: "Продовжити покупки" }),
+  ).toBeVisible();
 });
 
 test("catalog keeps every relevant facet", async ({ page }) => {

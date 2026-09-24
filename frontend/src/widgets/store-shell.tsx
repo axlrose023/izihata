@@ -14,6 +14,7 @@ export function StoreShell() {
   const { pathname } = useLocation();
   const checkoutFlow =
     pathname === "/checkout" || pathname.startsWith("/order/success");
+  const toolFlow = pathname === "/advisors" || pathname === "/custom-boards";
 
   return (
     <>
@@ -28,10 +29,10 @@ export function StoreShell() {
       <main>
         <Outlet />
       </main>
-      {!checkoutFlow ? <SiteFooter /> : null}
+      {!checkoutFlow && !toolFlow ? <SiteFooter /> : null}
       <CartDrawer />
-      {!checkoutFlow ? <SupportButton /> : null}
-      {!checkoutFlow ? <ScrollToTop /> : null}
+      {!checkoutFlow && !toolFlow ? <SupportButton /> : null}
+      {!checkoutFlow && !toolFlow ? <ScrollToTop /> : null}
     </>
   );
 }
