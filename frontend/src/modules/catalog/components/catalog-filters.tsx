@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 
 import { useBodyScrollLock } from "@/shared/lib/use-body-scroll-lock";
+import { useCloseOnEscape } from "@/shared/lib/use-close-on-escape";
 import { useDebouncedValue } from "@/shared/lib/use-debounced-value";
 import type {
   Category,
@@ -93,14 +94,7 @@ export function CatalogFilters({
       if (checked) params.append(name, value);
     });
 
-  useEffect(() => {
-    if (!isOpen) return;
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setIsOpen(false);
-    };
-    document.addEventListener("keydown", closeOnEscape);
-    return () => document.removeEventListener("keydown", closeOnEscape);
-  }, [isOpen]);
+  useCloseOnEscape(isOpen, () => setIsOpen(false));
 
   return (
     <>

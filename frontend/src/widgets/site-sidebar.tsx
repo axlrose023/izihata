@@ -16,7 +16,7 @@ import {
   UserRound,
   X,
 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { cartCount, useCartStore } from "@/modules/cart/store";
@@ -26,6 +26,7 @@ import { useCustomerAuth } from "@/modules/customers/customer-auth-context";
 import { LeadAction } from "@/modules/leads/components/lead-action";
 import { storeInfo } from "@/shared/config/store-info";
 import { useBodyScrollLock } from "@/shared/lib/use-body-scroll-lock";
+import { useCloseOnEscape } from "@/shared/lib/use-close-on-escape";
 import { CategoryIcon } from "@/shared/ui/category-icon";
 import { Logo } from "@/shared/ui/logo";
 
@@ -61,14 +62,7 @@ export function SiteSidebar({
     onClose();
   }, [onClose]);
 
-  useEffect(() => {
-    if (!open) return;
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") close();
-    };
-    document.addEventListener("keydown", closeOnEscape);
-    return () => document.removeEventListener("keydown", closeOnEscape);
-  }, [close, open]);
+  useCloseOnEscape(open, close);
 
   if (!open) return null;
 
@@ -80,7 +74,12 @@ export function SiteSidebar({
         onClick={close}
         type="button"
       />
-      <aside aria-label="Головне меню" className="site-sidebar__panel">
+      <aside
+        aria-label="Головне меню"
+        aria-modal="true"
+        className="site-sidebar__panel"
+        role="dialog"
+      >
         <div className="site-sidebar__head">
           <Logo />
           <button

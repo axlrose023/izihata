@@ -7,6 +7,7 @@ import { apiClient } from "@/shared/api/client";
 import { buildQuery } from "@/shared/api/query";
 import { formatMoney } from "@/shared/lib/format";
 import { useBodyScrollLock } from "@/shared/lib/use-body-scroll-lock";
+import { useCloseOnEscape } from "@/shared/lib/use-close-on-escape";
 import type { Product } from "@/shared/types/api";
 
 import { cartCount, useCartStore } from "../store";
@@ -19,6 +20,7 @@ export function CartDrawer() {
     return lines.map((line) => line.product.id).join(",");
   }, [isOpen, lines]);
   useBodyScrollLock(isOpen);
+  useCloseOnEscape(isOpen, close);
   const total = lines.reduce(
     (sum, line) => sum + Number(line.product.price) * line.quantity,
     0,
@@ -55,7 +57,12 @@ export function CartDrawer() {
         onClick={close}
         type="button"
       />
-      <aside aria-label="Кошик" className="drawer__panel">
+      <aside
+        aria-label="Кошик"
+        aria-modal="true"
+        className="drawer__panel"
+        role="dialog"
+      >
         <header className="drawer__header">
           <div>
             <span className="eyebrow">Ваше замовлення</span>
