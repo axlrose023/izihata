@@ -135,6 +135,29 @@ export function CatalogPage({
     : rankedSubcategories.slice(0, 6);
   const hiddenSubcategories =
     rankedSubcategories.length - visibleSubcategories.length;
+  // Блок «також купують» тримаємо на найпопулярнішому в цій категорії й без
+  // решти фільтрів — інакше він повторював би те, що вже в сітці.
+  const alsoBoughtResult = useQuery({
+    ...productsQuery({
+      category: query.category,
+      sort: "popular",
+      page: "1",
+      page_size: 20,
+    }),
+    enabled: Boolean(query.category),
+  });
+  // Беремо ширшу вибірку, бо найпопулярніше зазвичай уже стоїть у сітці —
+  // показуємо чотири позиції, яких на екрані ще немає.
+  const alsoBought = (alsoBoughtResult.data?.items ?? [])
+    .filter(
+      (item) =>
+        !productsResult.data?.items.some((shown) => shown.id === item.id),
+    )
+    .slice(0, 4);
+  const shownCount = Math.min(
+    Number(query.page) * query.page_size,
+    productsResult.data?.total ?? 0,
+  );
   const pageTitle = presetTitle ?? initialActiveCategory?.name ?? "Каталог";
   useDocumentTitle(pageTitle);
   usePageMeta({
@@ -296,6 +319,22 @@ export function CatalogPage({
               title="Товарів не знайдено"
             />
           )}
+          {products.items.length ? (
+            <div className="catalog-progress">
+              <span>
+                Показано {shownCount} з {products.total}
+              </span>
+              <span
+                aria-hidden="true"
+                className="catalog-progress__bar"
+                style={{
+                  ["--progress" as string]: `${Math.round(
+                    (shownCount / Math.max(products.total, 1)) * 100,
+                  )}%`,
+                }}
+              />
+            </div>
+          ) : null}
           {products.total_pages > 1 ? (
             <nav aria-label="Сторінки каталогу" className="pagination">
               {products.has_prev ? (
@@ -315,6 +354,21 @@ export function CatalogPage({
           ) : null}
         </section>
       </div>
+      {alsoBought.length ? (
+        <section className="also-bought">
+          <div className="section-heading">
+            <div>
+              <span className="eyebrow">Популярне поруч</span>
+              <h2>Також купують з цієї категорії</h2>
+            </div>
+          </div>
+          <div className="product-grid">
+            {alsoBought.map((item) => (
+              <ProductCard key={item.id} product={item} />
+            ))}
+          </div>
+        </section>
+      ) : null}
       <CatalogEducation category={activeCategory} />
     </div>
   );
