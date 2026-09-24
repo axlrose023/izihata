@@ -57,10 +57,14 @@ test("public routes render and product navigation works", async ({ page }) => {
     ).toHaveCount(0);
   }
   expect(productBody.reviews).toHaveLength(2);
+  // Відгуки й умови повернення живуть у вкладках, тож спершу відкриваємо їх.
+  await page.getByRole("tab", { name: /^Відгуки/ }).click();
   await expect(page.getByRole("heading", { name: "Відгуки" })).toBeVisible();
+  await page.getByRole("tab", { name: "Гарантія та повернення" }).click();
   await expect(
     page.getByText("Офіційна гарантія та повернення протягом 14 днів"),
   ).toBeVisible();
+  await page.getByRole("tab", { name: "Характеристики" }).click();
   const specificationHeading = page.getByRole("heading", {
     name: "Характеристики",
   });
