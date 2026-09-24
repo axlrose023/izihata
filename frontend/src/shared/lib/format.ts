@@ -40,6 +40,10 @@ export function pluralizePositions(count: number): string {
   return pluralizeUk(count, ["позиція", "позиції", "позицій"]);
 }
 
+export function pluralizeSubcategories(count: number): string {
+  return pluralizeUk(count, ["підкатегорія", "підкатегорії", "підкатегорій"]);
+}
+
 export function pluralizeReviews(count: number): string {
   return pluralizeUk(count, ["відгук", "відгуки", "відгуків"]);
 }
