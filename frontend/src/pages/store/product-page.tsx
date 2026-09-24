@@ -18,14 +18,17 @@ import { discountPercent, formatMoney } from "@/shared/lib/format";
 import { useDocumentTitle } from "@/shared/lib/use-document-title";
 import { usePageMeta } from "@/shared/lib/use-page-meta";
 import { LeadAction } from "@/modules/leads/components/lead-action";
+import { ProductStickyBar } from "@/modules/catalog/components/product-sticky-bar";
 import { ProductRating } from "@/shared/ui/product-rating";
 import { ProductTabs } from "@/modules/catalog/components/product-tabs";
 import { ErrorNotice } from "@/shared/ui/error-notice";
 import { StatusBadge } from "@/shared/ui/status-badge";
 import { ProductReviews } from "@/modules/reviews/components/product-reviews";
+import { useRef } from "react";
 
 export function ProductPage() {
   const { slug = "" } = useParams<{ slug: string }>();
+  const actionsRef = useRef<HTMLDivElement>(null);
   const productResult = useQuery(productQuery(slug));
   const product = productResult.data;
   useDocumentTitle(product?.name ?? "Товар");
@@ -124,7 +127,9 @@ export function ProductPage() {
               ))}
             </dl>
           ) : null}
-          <ProductActions product={product} />
+          <div ref={actionsRef}>
+            <ProductActions product={product} />
+          </div>
           <div className="product-detail__benefits">
             <span>
               <ShieldCheck /> Ціна перевіряється перед створенням замовлення
@@ -261,6 +266,9 @@ export function ProductPage() {
         products={product.bought_together}
         title="З цим купують"
       />
+      {product.stock_status !== "out_of_stock" ? (
+        <ProductStickyBar product={product} watch={actionsRef} />
+      ) : null}
     </div>
   );
 }
