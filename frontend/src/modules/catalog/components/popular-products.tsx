@@ -1,4 +1,5 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 
 import { fetchProducts } from "@/modules/catalog/api/catalog-api";
@@ -8,15 +9,41 @@ import { Carousel } from "@/shared/ui/carousel";
 
 const PAGE_SIZE = 5;
 
+// Три добірки під одним заголовком, як на артборді Main.
+const rails = [
+  {
+    id: "popular",
+    label: "Популярне",
+    href: "/catalog?sort=popular",
+    params: { is_popular: true, sort: "popular" as const },
+  },
+  {
+    id: "new",
+    label: "Новинки",
+    href: "/catalog/new",
+    params: { badge: ["new"], sort: "newest" as const },
+  },
+  {
+    id: "sale",
+    label: "Акції",
+    href: "/catalog/sale",
+    params: {
+      badge: ["sale", "promotion", "clearance"],
+      sort: "popular" as const,
+    },
+  },
+];
+
 export function PopularProducts() {
+  const [activeRail, setActiveRail] = useState(rails[0].id);
+  const rail = rails.find((item) => item.id === activeRail) ?? rails[0];
   // "Показати ще" appends the next page to the rail instead of replacing it.
   const result = useInfiniteQuery({
-    queryKey: [...catalogKeys.all, "popular-rail"],
+    queryKey: [...catalogKeys.all, "home-rail", rail.id],
     initialPageParam: 1,
     queryFn: ({ pageParam }) =>
       fetchProducts({
-        is_popular: true,
-        sort: "popular",
+        ...rail.params,
         page: pageParam,
         page_size: PAGE_SIZE,
       }),
@@ -24,12 +51,6 @@ export function PopularProducts() {
     staleTime: 60_000,
   });
   const items = result.data?.pages.flatMap((page) => page.items) ?? [];
-
-  if (result.isError) return null;
-  if (!items.length && result.isPending) {
-    return <div className="page-loader">Завантажуємо популярні товари…</div>;
-  }
-  if (!items.length) return null;
 
   const hasMore = result.hasNextPage;
 
@@ -39,17 +60,36 @@ export function PopularProducts() {
         <div className="section-heading">
           <div>
             <span className="eyebrow">Вибір покупців</span>
-            <h2>Популярні товари</h2>
+            <h2>Часто купують</h2>
           </div>
-          <Link to="/catalog?sort=popular">Увесь каталог →</Link>
+          <div className="home-rail-tabs" role="tablist">
+            {rails.map((item) => (
+              <button
+                aria-selected={item.id === rail.id}
+                key={item.id}
+                onClick={() => setActiveRail(item.id)}
+                role="tab"
+                type="button"
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+          <Link to={rail.href}>Увесь каталог →</Link>
         </div>
-        <Carousel ariaLabel="Популярні товари" autoplayMs={10_000}>
-          {items.map((product) => (
-            <div className="carousel__item" key={product.id}>
-              <ProductCard product={product} />
-            </div>
-          ))}
-        </Carousel>
+        {result.isError || (!items.length && !result.isPending) ? (
+          <p className="home-rail-empty">У цій добірці поки порожньо.</p>
+        ) : !items.length ? (
+          <div className="page-loader">Завантажуємо товари…</div>
+        ) : (
+          <Carousel ariaLabel={rail.label} autoplayMs={10_000} key={rail.id}>
+            {items.map((product) => (
+              <div className="carousel__item" key={product.id}>
+                <ProductCard product={product} />
+              </div>
+            ))}
+          </Carousel>
+        )}
         {hasMore ? (
           <button
             className="show-all-button"
