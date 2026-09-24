@@ -17,7 +17,9 @@ import { ApiError } from "@/shared/api/errors";
 import { discountPercent, formatMoney } from "@/shared/lib/format";
 import { useDocumentTitle } from "@/shared/lib/use-document-title";
 import { usePageMeta } from "@/shared/lib/use-page-meta";
+import { LeadAction } from "@/modules/leads/components/lead-action";
 import { ProductRating } from "@/shared/ui/product-rating";
+import { ProductTabs } from "@/modules/catalog/components/product-tabs";
 import { ErrorNotice } from "@/shared/ui/error-notice";
 import { StatusBadge } from "@/shared/ui/status-badge";
 import { ProductReviews } from "@/modules/reviews/components/product-reviews";
@@ -127,66 +129,123 @@ export function ProductPage() {
             <span>
               <ShieldCheck /> Ціна перевіряється перед створенням замовлення
             </span>
-            <span>
-              <Truck /> Доступні Нова пошта та самовивіз
-            </span>
-            <span>
-              <CreditCard /> Картка, післяплата або рахунок для компанії
-            </span>
-            <span>
-              <RotateCcw /> Офіційна гарантія та повернення протягом 14 днів
-            </span>
           </div>
         </div>
       </div>
-      {product.description ? (
-        <section className="product-description-section">
-          <span className="eyebrow">Про товар</span>
-          <p>{product.description}</p>
-        </section>
-      ) : null}
-      <section className="specification-section">
-        <div>
-          <span className="eyebrow">Технічні дані</span>
-          <h2>Характеристики</h2>
-        </div>
-        <dl className="specification-list">
-          {Object.entries(product.specs).map(([key, value]) => (
-            <div key={key}>
-              <dt>{key}</dt>
-              <dd>{value}</dd>
-            </div>
-          ))}
-        </dl>
-      </section>
-      <section className="product-origin-section">
-        <div>
-          <span>Бренд зареєстровано</span>
-          <strong>{product.brand_country ?? "Не вказано"}</strong>
-        </div>
-        <div>
-          <span>Країна виробництва</span>
-          <strong>{product.production_country ?? "Не вказано"}</strong>
-        </div>
-      </section>
-      {product.documents.length ? (
-        <section className="product-documents">
-          <div>
-            <span className="eyebrow">Документи</span>
-            <h2>Сертифікати та інструкції</h2>
-          </div>
-          <ul>
-            {product.documents.map((document) => (
-              <li key={document.id}>
-                <FileCheck2 aria-hidden="true" size={19} />
-                <a href={document.url} rel="noreferrer" target="_blank">
-                  {document.title} <ExternalLink aria-hidden="true" size={14} />
-                </a>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
+      <ProductTabs
+        tabs={[
+          {
+            id: "specs",
+            label: "Характеристики",
+            content: (
+              <>
+                {product.description ? (
+                  <section className="product-description-section">
+                    <span className="eyebrow">Про товар</span>
+                    <p>{product.description}</p>
+                  </section>
+                ) : null}
+                <section className="specification-section">
+                  <div>
+                    <span className="eyebrow">Технічні дані</span>
+                    <h2>Характеристики</h2>
+                  </div>
+                  <dl className="specification-list">
+                    {Object.entries(product.specs).map(([key, value]) => (
+                      <div key={key}>
+                        <dt>{key}</dt>
+                        <dd>{value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </section>
+                <section className="product-origin-section">
+                  <div>
+                    <span>Бренд зареєстровано</span>
+                    <strong>{product.brand_country ?? "Не вказано"}</strong>
+                  </div>
+                  <div>
+                    <span>Країна виробництва</span>
+                    <strong>
+                      {product.production_country ?? "Не вказано"}
+                    </strong>
+                  </div>
+                </section>
+                {product.documents.length ? (
+                  <section className="product-documents">
+                    <div>
+                      <span className="eyebrow">Документи</span>
+                      <h2>Сертифікати та інструкції</h2>
+                    </div>
+                    <ul>
+                      {product.documents.map((document) => (
+                        <li key={document.id}>
+                          <FileCheck2 aria-hidden="true" size={19} />
+                          <a
+                            href={document.url}
+                            rel="noreferrer"
+                            target="_blank"
+                          >
+                            {document.title}{" "}
+                            <ExternalLink aria-hidden="true" size={14} />
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                ) : null}
+              </>
+            ),
+          },
+          {
+            id: "reviews",
+            label: `Відгуки · ${product.reviews.length}`,
+            content: (
+              <ProductReviews
+                productSlug={product.slug}
+                reviews={product.reviews}
+              />
+            ),
+          },
+          {
+            id: "delivery",
+            label: "Доставка й оплата",
+            content: (
+              <ul className="product-terms">
+                <li>
+                  <Truck aria-hidden="true" /> Доступні Нова пошта та самовивіз
+                </li>
+                <li>
+                  <CreditCard aria-hidden="true" /> Картка, післяплата або
+                  рахунок для компанії
+                </li>
+                <li>
+                  <LeadAction
+                    label="Уточнити тариф і строк доставки"
+                    type="callback"
+                  />
+                </li>
+              </ul>
+            ),
+          },
+          {
+            id: "warranty",
+            label: "Гарантія та повернення",
+            content: (
+              <ul className="product-terms">
+                <li>
+                  <RotateCcw aria-hidden="true" /> Офіційна гарантія та
+                  повернення протягом 14 днів
+                </li>
+                <li>
+                  <ShieldCheck aria-hidden="true" /> Товар перевіряють перед
+                  відправленням
+                </li>
+              </ul>
+            ),
+          },
+        ]}
+      />
       <ProductRelationSection
         eyebrow="Той самий напрям"
         products={product.related}
@@ -202,7 +261,6 @@ export function ProductPage() {
         products={product.bought_together}
         title="З цим купують"
       />
-      <ProductReviews productSlug={product.slug} reviews={product.reviews} />
     </div>
   );
 }

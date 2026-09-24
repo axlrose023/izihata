@@ -2309,6 +2309,59 @@ h2 {
 .product-detail__benefits svg {
   color: var(--blue);
 }
+/* Вкладки на сторінці товару (артборд Product: активна — графітова плашка) */
+.product-tabs {
+  margin-top: 34px;
+}
+.product-tabs__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  border-bottom: 1px solid var(--line);
+}
+.product-tabs__list button {
+  min-height: 46px;
+  padding: 0 18px;
+  color: var(--ink-soft);
+  border: 0;
+  border-radius: var(--radius) var(--radius) 0 0;
+  background: transparent;
+  font-size: 0.83rem;
+  font-weight: 600;
+}
+.product-tabs__list button:hover {
+  color: var(--ink);
+  background: var(--surface-2);
+}
+.product-tabs__list button[aria-selected="true"] {
+  color: #fff;
+  background: var(--ink);
+}
+.product-tabs [role="tabpanel"] {
+  padding-top: 26px;
+}
+.product-tabs [role="tabpanel"]:focus-visible {
+  outline-offset: -2px;
+}
+.product-terms {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.product-terms li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+}
+.product-terms svg {
+  width: 19px;
+  flex-shrink: 0;
+  color: var(--accent-dark);
+}
 .specification-section {
   display: grid;
   grid-template-columns: minmax(0, 340px) minmax(0, 1fr);
