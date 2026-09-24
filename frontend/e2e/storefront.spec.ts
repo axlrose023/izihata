@@ -25,7 +25,8 @@ test("public routes render and product navigation works", async ({ page }) => {
   await expect(
     page.getByRole("heading", { name: "Часто купують" }),
   ).toBeVisible();
-  await expect(page.getByText("Гуртові ціни", { exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: /Дім і ремонт/ })).toBeVisible();
+  await expect(page.getByText("Гуртові ціни", { exact: true })).toHaveCount(0);
   const searchResponse = page.waitForResponse(
     (response) =>
       response.url().includes("/api/v1/catalog/products?") &&
