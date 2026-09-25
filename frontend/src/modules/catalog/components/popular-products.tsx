@@ -84,7 +84,10 @@ export function PopularProducts() {
         ) : (
           <Carousel ariaLabel={rail.label} autoplayMs={10_000} key={rail.id}>
             {items.map((product) => (
-              <div className="carousel__item" key={product.id}>
+              <div
+                className="carousel__item carousel__item--product"
+                key={product.id}
+              >
                 <ProductCard product={product} />
               </div>
             ))}

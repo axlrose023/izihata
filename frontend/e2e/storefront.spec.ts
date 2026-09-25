@@ -478,6 +478,53 @@ test("the home page rails popular products", async ({ page }) => {
   }
 });
 
+test("product rail cards keep their footers aligned", async ({ page }) => {
+  await page.goto("/");
+  const cards = page.locator(".popular-products .product-card");
+  await expect.poll(() => cards.count()).toBeGreaterThan(1);
+
+  // Product attributes are data-driven. Add extra rows to one card to ensure
+  // the rest of the rail still stretches to the same height and CTA baseline.
+  await cards.evaluateAll((elements) => {
+    const target = elements.at(-1);
+    const body = target?.querySelector(".product-card__body");
+    if (!body) return;
+
+    let specs = body.querySelector(".product-card__specs");
+    if (!specs) {
+      specs = document.createElement("dl");
+      specs.className = "product-card__specs";
+      body.insertBefore(specs, body.querySelector(".product-card__footer"));
+    }
+    for (let index = 0; index < 3; index += 1) {
+      const row = document.createElement("div");
+      row.innerHTML = "<dt>Додаткова характеристика</dt><dd>значення</dd>";
+      specs.append(row);
+    }
+  });
+
+  const layout = await cards.evaluateAll((elements) =>
+    elements.map((card) => {
+      const cardRect = card.getBoundingClientRect();
+      const footerRect = card
+        .querySelector(".product-card__footer")
+        ?.getBoundingClientRect();
+      return {
+        bottom: cardRect.bottom,
+        height: cardRect.height,
+        footerBottom: footerRect?.bottom,
+      };
+    }),
+  );
+  const first = layout[0];
+  expect(first).toBeDefined();
+  for (const card of layout.slice(1)) {
+    expect(card.height).toBeCloseTo(first!.height, 0);
+    expect(card.bottom).toBeCloseTo(first!.bottom, 0);
+    expect(card.footerBottom).toBeCloseTo(first!.footerBottom ?? 0, 0);
+  }
+});
+
 test("customer reviews are shown as a rail", async ({ page }) => {
   await page.goto("/");
   const reviews = page.locator(".testimonials-section");
