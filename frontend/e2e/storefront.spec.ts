@@ -467,7 +467,7 @@ test("the home page rails popular products", async ({ page }) => {
   await expect(rail).toBeVisible();
   const shown = await rail.locator(".carousel__item").count();
   expect(shown).toBeGreaterThan(0);
-  expect(shown).toBeLessThanOrEqual(5);
+  expect(shown).toBeLessThanOrEqual(8);
 
   const more = page.locator(".popular-products .show-all-button");
   if (await more.count()) {
@@ -476,6 +476,40 @@ test("the home page rails popular products", async ({ page }) => {
       .poll(() => rail.locator(".carousel__item").count())
       .toBeGreaterThan(shown);
   }
+});
+
+test("the desktop product rail displays four cards and advances", async ({
+  page,
+}) => {
+  test.skip((page.viewportSize()?.width ?? 1000) <= 1050, "desktop only");
+
+  await page.goto("/");
+  const section = page.locator(".popular-products");
+  const rail = section.locator(".carousel__rail");
+  await expect(rail).toBeVisible();
+  await expect
+    .poll(() => rail.locator(".carousel__item").count())
+    .toBeGreaterThan(4);
+
+  const visibleCards = await rail.evaluate((element) => {
+    const railBounds = element.getBoundingClientRect();
+    return [...element.children].filter((card) => {
+      const bounds = card.getBoundingClientRect();
+      return (
+        bounds.left >= railBounds.left - 1 &&
+        bounds.right <= railBounds.right + 1
+      );
+    }).length;
+  });
+  expect(visibleCards).toBe(4);
+
+  const next = section.getByRole("button", { name: "Наступні" });
+  await expect(next).toBeEnabled();
+  const before = await rail.evaluate((element) => element.scrollLeft);
+  await next.click();
+  await expect
+    .poll(() => rail.evaluate((element) => element.scrollLeft))
+    .toBeGreaterThan(before);
 });
 
 test("product rail cards keep their footers aligned", async ({ page }) => {
