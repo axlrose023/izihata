@@ -35,7 +35,12 @@ export function ProductMediaGallery({ product }: { product: ProductDetail }) {
   return (
     <div className="product-media-gallery">
       <div className="product-detail__visual">
-        <img alt={selected.alt} src={selected.url} />
+        <img
+          alt={selected.alt}
+          decoding="async"
+          fetchPriority="high"
+          src={selected.url}
+        />
       </div>
       {media.length > 1 ? (
         <div
@@ -50,7 +55,7 @@ export function ProductMediaGallery({ product }: { product: ProductDetail }) {
               onClick={() => setSelectedIndex(index)}
               type="button"
             >
-              <img alt="" src={item.url} />
+              <img alt="" decoding="async" loading="lazy" src={item.url} />
             </button>
           ))}
         </div>

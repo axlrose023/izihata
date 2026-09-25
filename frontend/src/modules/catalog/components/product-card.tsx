@@ -45,6 +45,11 @@ export function ProductCard({ product }: { product: Product }) {
       className="product-card"
       data-in-cart={inCart ? "true" : undefined}
     >
+      <Link
+        aria-label={`Відкрити товар: ${product.name}`}
+        className="product-card__link-overlay"
+        to={`/products/${product.slug}`}
+      />
       <div className="product-card__visual">
         {product.badge ? (
           <span className="product-card__badge" data-badge={product.badge}>
@@ -80,9 +85,7 @@ export function ProductCard({ product }: { product: Product }) {
         <div className="product-card__meta">
           <span className="eyebrow">{product.brand}</span>
         </div>
-        <h3 className="product-card__name">
-          <Link to={`/products/${product.slug}`}>{product.name}</Link>
-        </h3>
+        <h3 className="product-card__name">{product.name}</h3>
         {inCart ? (
           <span className="product-card__in-cart">
             <Check size={14} /> У кошику: {inCart} шт.
