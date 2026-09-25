@@ -50,10 +50,9 @@ describe("ProductCard", () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole("link", { name: product.name })).toHaveAttribute(
-      "href",
-      "/products/test-product",
-    );
+    expect(
+      screen.getByRole("link", { name: `Відкрити товар: ${product.name}` }),
+    ).toHaveAttribute("href", "/products/test-product");
     fireEvent.click(screen.getByRole("button", { name: "Додати в обране" }));
     fireEvent.click(screen.getByRole("button", { name: "Додати в кошик" }));
 

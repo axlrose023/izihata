@@ -59,7 +59,9 @@ test("public routes render and product navigation works", async ({ page }) => {
       response.url().includes("/api/v1/catalog/products/") &&
       response.status() === 200,
   );
-  await product.getByRole("link", { name: productName }).click();
+  await product
+    .getByRole("link", { name: `Відкрити товар: ${productName}`, exact: true })
+    .click();
   const productResponse = await productRequest;
   const productBody = (await productResponse.json()) as {
     image_url: string;
@@ -70,7 +72,9 @@ test("public routes render and product navigation works", async ({ page }) => {
   expect(new URL(productResponse.url()).origin).toBe(
     new URL(page.url()).origin,
   );
-  expect(productBody.image_url).toMatch(/^\/product-images\/.+\.svg$/);
+  expect(productBody.image_url).toMatch(
+    /^(?:\/product-images\/.+\.svg|https:\/\/izihata-product-media\.b-cdn\.net\/.+\.webp)$/,
+  );
   await expect(page).toHaveURL(/\/products\//);
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   await expect(page.getByRole("img", { name: productBody.name })).toBeVisible();
@@ -328,7 +332,7 @@ test("favourites and comparison survive route navigation", async ({ page }) => {
 test("callback validation and submission work", async ({ page }) => {
   await page.goto("/catalog");
   if ((page.viewportSize()?.width ?? 1000) <= 820) {
-    await page.locator(".product-card__name a").first().click();
+    await page.locator(".product-card__link-overlay").first().click();
     await page.getByRole("button", { name: "Купити в один клік" }).click();
   } else {
     await page.getByRole("button", { name: "1 клік" }).first().click();
@@ -352,7 +356,7 @@ test("callback validation and submission work", async ({ page }) => {
 
 test("product quantity is added as one cart operation", async ({ page }) => {
   await page.goto("/catalog");
-  await page.locator(".product-card__name a").first().click();
+  await page.locator(".product-card__link-overlay").first().click();
   await page
     .getByRole("button", { name: "Збільшити кількість товару" })
     .click();
