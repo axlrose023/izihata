@@ -17,6 +17,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.api.modules.catalog.enums import (
     AttributeValueType,
+    ProductAttributeSource,
     ProductBadge,
     ProductDocumentKind,
     ProductRelationKind,
@@ -193,7 +194,7 @@ class Product(Base, UUIDIDMixin, DateTimeMixin):
     attributes: Mapped[list["ProductAttribute"]] = relationship(
         back_populates="product",
         cascade="all, delete-orphan",
-        order_by="ProductAttribute.key",
+        order_by="ProductAttribute.source, ProductAttribute.position, ProductAttribute.key",
         lazy="raise",
     )
     reviews: Mapped[list["ProductReview"]] = relationship(
@@ -221,8 +222,9 @@ class ProductAttribute(Base, UUIDIDMixin):
     __table_args__ = (
         UniqueConstraint(
             "product_id",
+            "source",
             "key",
-            name="product_attribute_product_key_ukey",
+            name="product_attribute_product_source_key_ukey",
         ),
         Index("product_attributes_key_value_idx", "key", "value"),
     )
@@ -232,7 +234,13 @@ class ProductAttribute(Base, UUIDIDMixin):
         index=True,
     )
     key: Mapped[str] = mapped_column(String(120), index=True)
-    value: Mapped[str] = mapped_column(String(160), index=True)
+    value: Mapped[str] = mapped_column(String(300), index=True)
+    source: Mapped[ProductAttributeSource] = mapped_column(
+        Enum(ProductAttributeSource, native_enum=False, length=16),
+        default=ProductAttributeSource.PRIMARY,
+        nullable=False,
+    )
+    position: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     attribute_id: Mapped[UUID | None] = mapped_column(
         ForeignKey("catalog_attributes.id", ondelete="SET NULL"),
         index=True,

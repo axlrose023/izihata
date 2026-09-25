@@ -6,6 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from app.api.common.exceptions import ConflictError, NotFoundError, UnprocessableError
 from app.api.modules.catalog.enums import (
     AttributeValueType,
+    ProductAttributeSource,
     StockStatus,
     StockSubscriptionStatus,
 )
@@ -95,13 +96,26 @@ class ProductManagementService:
                     code="required_product_attribute_missing",
                 )
 
-        existing = {attribute.key: attribute for attribute in product.attributes}
-        attributes: list[ProductAttribute] = []
+        existing = {
+            attribute.key: attribute
+            for attribute in product.attributes
+            if attribute.source == ProductAttributeSource.PRIMARY
+        }
+        attributes = [
+            attribute
+            for attribute in product.attributes
+            if attribute.source != ProductAttributeSource.PRIMARY
+        ]
         for key, value in specs.items():
             definition = definitions_by_name.get(key)
             attribute = existing.get(key)
             if attribute is None:
-                attribute = ProductAttribute(key=key, value=value)
+                attribute = ProductAttribute(
+                    key=key,
+                    value=value,
+                    source=ProductAttributeSource.PRIMARY,
+                    position=len(attributes),
+                )
             else:
                 attribute.value = value
             attribute.attribute_id = definition.id if definition is not None else None
@@ -344,7 +358,11 @@ class ProductManagementService:
         elif category_changed:
             await self._replace_specs(
                 product,
-                {attribute.key: attribute.value for attribute in product.attributes},
+                {
+                    attribute.key: attribute.value
+                    for attribute in product.attributes
+                    if attribute.source == ProductAttributeSource.PRIMARY
+                },
                 category_id=category_id,
             )
         if media is not None:

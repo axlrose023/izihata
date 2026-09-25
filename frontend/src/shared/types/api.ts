@@ -30,6 +30,7 @@ export type BoardApplication = "apartment" | "house" | "industrial";
 export type BoardRequestStatus =
   "new" | "in_review" | "quoted" | "closed" | "cancelled";
 export type AttributeValueType = "text" | "number" | "boolean" | "select";
+export type ProductSpecificationSource = "primary" | "etim";
 
 export interface CatalogReference {
   id: string;
@@ -72,6 +73,13 @@ export interface ProductDocument {
   kind: ProductDocumentKind;
   title: string;
   url: string;
+}
+
+export interface ProductSpecification {
+  key: string;
+  value: string;
+  source: ProductSpecificationSource;
+  position: number;
 }
 
 export interface Product {
@@ -148,6 +156,7 @@ export interface ProductDetail extends Product {
   related: Product[];
   alternatives: Product[];
   bought_together: Product[];
+  specifications: ProductSpecification[];
 }
 
 export interface FacetOption {

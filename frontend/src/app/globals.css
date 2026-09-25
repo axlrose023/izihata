@@ -2693,6 +2693,20 @@ h2 {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.product-quick-specs__all {
+  width: fit-content;
+  margin: -8px 0 22px;
+  padding: 0;
+  color: var(--accent-dark);
+  border: 0;
+  border-bottom: 1px solid currentColor;
+  background: transparent;
+  font-size: 0.76rem;
+  font-weight: 720;
+}
+.product-quick-specs__all:hover {
+  color: var(--ink);
+}
 .product-actions-panel {
   max-width: 430px;
   display: grid;
@@ -2942,6 +2956,14 @@ h2 {
 }
 .specification-list {
   margin: 0;
+}
+.specification-groups {
+  display: grid;
+  gap: 36px;
+}
+.specification-group h3 {
+  margin: 0 0 10px;
+  font-size: 0.9rem;
 }
 .specification-list div {
   display: grid;

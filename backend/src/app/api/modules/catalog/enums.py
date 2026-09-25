@@ -51,6 +51,13 @@ class AttributeValueType(StrEnum):
     SELECT = "select"
 
 
+class ProductAttributeSource(StrEnum):
+    """Origin of a product characteristic shown on a product page."""
+
+    PRIMARY = "primary"
+    ETIM = "etim"
+
+
 class ReviewStatus(StrEnum):
     PENDING = "pending"
     PUBLISHED = "published"

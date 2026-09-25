@@ -12,10 +12,26 @@ export interface ProductTab {
  * приховані отримують `hidden`, тож вміст доступний пошуку й не перезбирається
  * при кожному переході.
  */
-export function ProductTabs({ tabs }: { tabs: ProductTab[] }) {
-  const [active, setActive] = useState(tabs[0]?.id);
+interface ProductTabsProps {
+  tabs: ProductTab[];
+  activeTab?: string;
+  onActiveTabChange?: (tabId: string) => void;
+}
+
+export function ProductTabs({
+  tabs,
+  activeTab,
+  onActiveTabChange,
+}: ProductTabsProps) {
+  const [uncontrolledActive, setUncontrolledActive] = useState(tabs[0]?.id);
+  const active = activeTab ?? uncontrolledActive;
   const base = useId();
   if (!tabs.length) return null;
+
+  const activate = (tabId: string) => {
+    setUncontrolledActive(tabId);
+    onActiveTabChange?.(tabId);
+  };
 
   return (
     <div className="product-tabs">
@@ -30,7 +46,7 @@ export function ProductTabs({ tabs }: { tabs: ProductTab[] }) {
             aria-selected={tab.id === active}
             id={`${base}-${tab.id}-tab`}
             key={tab.id}
-            onClick={() => setActive(tab.id)}
+            onClick={() => activate(tab.id)}
             role="tab"
             type="button"
           >

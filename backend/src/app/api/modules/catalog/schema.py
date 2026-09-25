@@ -9,6 +9,7 @@ from app.api.common.schema import PaginationParams, StrictSchema
 from app.api.common.utils import normalize_optional_text, normalize_text
 from app.api.modules.catalog.enums import (
     AttributeValueType,
+    ProductAttributeSource,
     ProductBadge,
     ProductDocumentKind,
     ProductRelationKind,
@@ -23,6 +24,7 @@ from app.api.modules.catalog.models import (
     CatalogAttribute,
     CatalogSection,
     Product,
+    ProductAttribute,
     ProductDocument,
     ProductMedia,
     ProductRelation,
@@ -190,6 +192,24 @@ class ProductDocumentResponse(StrictSchema):
     model_config = ConfigDict(extra="forbid", from_attributes=True)
 
 
+class ProductSpecificationResponse(StrictSchema):
+    key: str
+    value: str
+    source: ProductAttributeSource
+    position: int
+
+    @classmethod
+    def from_attribute(
+        cls, attribute: ProductAttribute
+    ) -> "ProductSpecificationResponse":
+        return cls(
+            key=attribute.key,
+            value=attribute.value,
+            source=attribute.source,
+            position=attribute.position,
+        )
+
+
 class ProductResponse(StrictSchema):
     id: UUID
     sku: str
@@ -246,7 +266,11 @@ class ProductResponse(StrictSchema):
                 if product.subcategory
                 else None
             ),
-            specs={attribute.key: attribute.value for attribute in product.attributes},
+            specs={
+                attribute.key: attribute.value
+                for attribute in product.attributes
+                if attribute.source == ProductAttributeSource.PRIMARY
+            },
         )
 
     model_config = ConfigDict(extra="forbid", from_attributes=True)
@@ -274,6 +298,7 @@ class ProductDetailResponse(ProductResponse):
     related: list[ProductResponse]
     alternatives: list[ProductResponse]
     bought_together: list[ProductResponse]
+    specifications: list[ProductSpecificationResponse]
 
     @classmethod
     def from_product(
@@ -304,6 +329,17 @@ class ProductDetailResponse(ProductResponse):
             ],
             bought_together=[
                 ProductResponse.from_product(item) for item in bought_together or []
+            ],
+            specifications=[
+                ProductSpecificationResponse.from_attribute(attribute)
+                for attribute in sorted(
+                    product.attributes,
+                    key=lambda attribute: (
+                        attribute.source != ProductAttributeSource.PRIMARY,
+                        attribute.position,
+                        attribute.key,
+                    ),
+                )
             ],
         )
 
