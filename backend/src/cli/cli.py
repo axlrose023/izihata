@@ -1,3 +1,4 @@
+import os
 import subprocess
 from configparser import ConfigParser
 from dataclasses import asdict
@@ -14,7 +15,15 @@ from alembic.config import Config
 from app.api.modules.outbox.service import OutboxRecoveryService
 from app.api.modules.users.models import User
 from app.database.engine import SessionFactory
-from app.database.imports import import_products, read_rows
+from app.database.imports import (
+    BunnyS3Config,
+    import_eti_workbook,
+    import_products,
+    planned_media_urls,
+    read_eti_workbook,
+    read_rows,
+    upload_eti_media,
+)
 from app.database.seed import seed_database
 from app.database.uow import UnitOfWork
 from app.ioc import get_async_container
@@ -195,6 +204,154 @@ def import_products_command(
                 )
                 for line in outcome.unmapped[:15]:
                     typer.echo(f"  {line[:90]}")
+
+    anyio.run(_run)
+
+
+@app.command("import-eti")
+def import_eti_command(
+    path: Annotated[Path, typer.Argument(help="ETI XLSX workbook")],
+    apply: Annotated[
+        bool,
+        typer.Option("--apply", help="Write products to the database"),
+    ] = False,
+    upload_media: Annotated[
+        bool,
+        typer.Option(
+            "--upload-media",
+            help="Copy the source photo sheet to Bunny Storage before importing",
+        ),
+    ] = False,
+    endpoint: Annotated[
+        str | None,
+        typer.Option(
+            envvar="BUNNY_S3_ENDPOINT",
+            help="Bunny S3 endpoint; defaults to BUNNY_S3_ENDPOINT",
+        ),
+    ] = None,
+    storage_zone: Annotated[
+        str | None,
+        typer.Option(
+            envvar="BUNNY_STORAGE_ZONE",
+            help="Bunny Storage zone; defaults to BUNNY_STORAGE_ZONE",
+        ),
+    ] = None,
+    storage_password: Annotated[
+        str | None,
+        typer.Option(
+            envvar="BUNNY_STORAGE_PASSWORD",
+            help="Bunny write password; defaults to BUNNY_STORAGE_PASSWORD",
+        ),
+    ] = None,
+    public_base_url: Annotated[
+        str | None,
+        typer.Option(
+            envvar="BUNNY_MEDIA_PUBLIC_BASE_URL",
+            help="Public Bunny Pull Zone URL; defaults to BUNNY_MEDIA_PUBLIC_BASE_URL",
+        ),
+    ] = None,
+    concurrency: Annotated[
+        int,
+        typer.Option(min=1, max=32, help="Concurrent image transfers"),
+    ] = 8,
+) -> None:
+    """Import ETI products, primary/ETIM characteristics and product images.
+
+    The command previews data by default.  ``--apply`` imports product data;
+    adding ``--upload-media`` first copies every source image into Bunny S3.
+    Set the four Bunny variables in the environment instead of placing secrets
+    in a command history.
+    """
+    if not path.exists():
+        typer.echo(typer.style(f"File not found: {path}", fg=typer.colors.RED))
+        raise typer.Exit(code=1)
+    try:
+        workbook = read_eti_workbook(path)
+    except (OSError, ValueError) as error:
+        typer.echo(typer.style(f"Cannot read workbook: {error}", fg=typer.colors.RED))
+        raise typer.Exit(code=1) from error
+
+    endpoint_value = endpoint or os.getenv("BUNNY_S3_ENDPOINT")
+    storage_zone_value = storage_zone or os.getenv("BUNNY_STORAGE_ZONE")
+    storage_password_value = storage_password or os.getenv("BUNNY_STORAGE_PASSWORD")
+    public_base_url_value = public_base_url or os.getenv("BUNNY_MEDIA_PUBLIC_BASE_URL")
+    has_bunny_values = any(
+        (
+            endpoint_value,
+            storage_zone_value,
+            storage_password_value,
+            public_base_url_value,
+        )
+    )
+    if upload_media and not apply:
+        typer.echo(typer.style("--upload-media requires --apply", fg=typer.colors.RED))
+        raise typer.Exit(code=1)
+    if (upload_media or has_bunny_values) and not all(
+        (
+            endpoint_value,
+            storage_zone_value,
+            storage_password_value,
+            public_base_url_value,
+        )
+    ):
+        typer.echo(
+            typer.style(
+                "Bunny configuration needs endpoint, zone, password and public URL",
+                fg=typer.colors.RED,
+            )
+        )
+        raise typer.Exit(code=1)
+    config = (
+        BunnyS3Config(
+            endpoint=endpoint_value,
+            storage_zone=storage_zone_value,
+            password=storage_password_value,
+            public_base_url=public_base_url_value,
+        )
+        if endpoint_value
+        and storage_zone_value
+        and storage_password_value
+        and public_base_url_value
+        else None
+    )
+
+    async def _run() -> None:
+        media_urls = planned_media_urls(workbook, config) if config else None
+        if upload_media:
+            if config is None:
+                raise RuntimeError("Bunny configuration unexpectedly missing")
+            typer.echo("Copying ETI photos to Bunny Storage…")
+            upload_outcome = await upload_eti_media(
+                workbook,
+                config,
+                concurrency=concurrency,
+            )
+            media_urls = upload_outcome.public_urls
+            typer.echo(f"images uploaded : {upload_outcome.uploaded}")
+            typer.echo(f"images existing : {upload_outcome.already_present}")
+            typer.echo(f"images failed   : {len(upload_outcome.failed)}")
+            for failure in upload_outcome.failed[:10]:
+                typer.echo(f"  {failure[:160]}")
+
+        async with SessionFactory() as session:
+            outcome = await import_eti_workbook(
+                session,
+                workbook,
+                media_urls=media_urls,
+                dry_run=not apply,
+            )
+            mode = "APPLIED" if apply else "DRY RUN (nothing written)"
+            typer.echo(typer.style(f"\n{mode}", fg=typer.colors.CYAN, bold=True))
+            typer.echo(f"products        : {outcome.total}")
+            typer.echo(f"created         : {outcome.created}")
+            typer.echo(f"updated         : {outcome.updated}")
+            typer.echo(f"duplicate rows  : {workbook.duplicate_product_rows}")
+            typer.echo(f"primary specs   : {outcome.primary_specifications}")
+            typer.echo(f"ETIM specs      : {outcome.etim_specifications}")
+            typer.echo(f"photos attached : {outcome.media_attached}")
+            typer.echo(f"fallback category: {len(outcome.unmapped)}")
+            for item in outcome.unmapped[:10]:
+                typer.echo(f"  {item[:120]}")
 
     anyio.run(_run)
 

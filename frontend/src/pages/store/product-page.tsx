@@ -24,11 +24,13 @@ import { ProductTabs } from "@/modules/catalog/components/product-tabs";
 import { ErrorNotice } from "@/shared/ui/error-notice";
 import { StatusBadge } from "@/shared/ui/status-badge";
 import { ProductReviews } from "@/modules/reviews/components/product-reviews";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 
 export function ProductPage() {
   const { slug = "" } = useParams<{ slug: string }>();
   const actionsRef = useRef<HTMLDivElement>(null);
+  const specificationsRef = useRef<HTMLDivElement>(null);
+  const [activeTab, setActiveTab] = useState("specs");
   const productResult = useQuery(productQuery(slug));
   const product = productResult.data;
   useDocumentTitle(product?.name ?? "Товар");
@@ -60,7 +62,13 @@ export function ProductPage() {
     );
   }
 
-  const quickSpecs = Object.entries(product.specs).slice(0, 4);
+  const primarySpecifications = product.specifications.filter(
+    (specification) => specification.source === "primary",
+  );
+  const etimSpecifications = product.specifications.filter(
+    (specification) => specification.source === "etim",
+  );
+  const quickSpecs = primarySpecifications.slice(0, 4);
   const discount = discountPercent(product.price, product.old_price);
   const availabilityText = getAvailabilityText(product);
   return (
@@ -119,13 +127,30 @@ export function ProductPage() {
           ) : null}
           {quickSpecs.length ? (
             <dl className="product-quick-specs">
-              {quickSpecs.map(([key, value]) => (
-                <div key={key}>
-                  <dt>{key}</dt>
-                  <dd>{value}</dd>
+              {quickSpecs.map((specification) => (
+                <div key={specification.key}>
+                  <dt>{specification.key}</dt>
+                  <dd>{specification.value}</dd>
                 </div>
               ))}
             </dl>
+          ) : null}
+          {primarySpecifications.length ? (
+            <button
+              className="product-quick-specs__all"
+              onClick={() => {
+                setActiveTab("specs");
+                requestAnimationFrame(() => {
+                  specificationsRef.current?.scrollIntoView({
+                    behavior: "smooth",
+                    block: "start",
+                  });
+                });
+              }}
+              type="button"
+            >
+              Всі характеристики
+            </button>
           ) : null}
           <div ref={actionsRef}>
             <ProductActions product={product} />
@@ -138,6 +163,8 @@ export function ProductPage() {
         </div>
       </div>
       <ProductTabs
+        activeTab={activeTab}
+        onActiveTabChange={setActiveTab}
         tabs={[
           {
             id: "specs",
@@ -150,19 +177,41 @@ export function ProductPage() {
                     <p>{product.description}</p>
                   </section>
                 ) : null}
-                <section className="specification-section">
+                <section
+                  className="specification-section"
+                  id="характеристики"
+                  ref={specificationsRef}
+                >
                   <div>
                     <span className="eyebrow">Технічні дані</span>
                     <h2>Характеристики</h2>
                   </div>
-                  <dl className="specification-list">
-                    {Object.entries(product.specs).map(([key, value]) => (
-                      <div key={key}>
-                        <dt>{key}</dt>
-                        <dd>{value}</dd>
+                  <div className="specification-groups">
+                    <div className="specification-group">
+                      <h3>Основні характеристики</h3>
+                      <dl className="specification-list">
+                        {primarySpecifications.map((specification) => (
+                          <div key={`primary-${specification.key}`}>
+                            <dt>{specification.key}</dt>
+                            <dd>{specification.value}</dd>
+                          </div>
+                        ))}
+                      </dl>
+                    </div>
+                    {etimSpecifications.length ? (
+                      <div className="specification-group">
+                        <h3>ETIM</h3>
+                        <dl className="specification-list">
+                          {etimSpecifications.map((specification) => (
+                            <div key={`etim-${specification.key}`}>
+                              <dt>{specification.key}</dt>
+                              <dd>{specification.value}</dd>
+                            </div>
+                          ))}
+                        </dl>
                       </div>
-                    ))}
-                  </dl>
+                    ) : null}
+                  </div>
                 </section>
                 <section className="product-origin-section">
                   <div>

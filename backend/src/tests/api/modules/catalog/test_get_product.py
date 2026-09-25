@@ -17,6 +17,7 @@ class TestGetProduct:
         assert body["image_url"] == "/product-images/automation.svg"
         assert body["category"]["slug"] == "lowvoltage"
         assert body["specs"]["Полюси"] == "1P"
+        assert body["specifications"][0]["source"] == "primary"
         assert len(body["reviews"]) == 2
         assert body["reviews"][0]["author"]
         assert 1 <= body["reviews"][0]["rating"] <= 5
