@@ -122,7 +122,9 @@ services:
 
   migrator:
     <<: *app
-    command: [cli, bootstrap]
+    # Production releases apply schema changes only. `bootstrap` seeds demo
+    # products and must stay an explicit, local-development operation.
+    command: [cli, upgrade]
     restart: "no"
     healthcheck:
       disable: true
