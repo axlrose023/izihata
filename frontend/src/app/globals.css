@@ -6866,6 +6866,19 @@ h1 {
   box-shadow: none !important;
 }
 
+.carousel__item--product {
+  display: flex;
+}
+
+.carousel__item--product .product-card {
+  width: 100%;
+  flex: 1;
+}
+
+.product-grid > .product-card {
+  height: 100%;
+}
+
 .product-card:hover {
   transform: none;
 }
