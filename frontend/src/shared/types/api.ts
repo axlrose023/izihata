@@ -130,6 +130,7 @@ export interface AdminProductRelation {
 
 export interface AdminProduct extends Product {
   wholesale_price: string | null;
+  stock_quantity: number;
   is_popular: boolean;
   is_active: boolean;
 }

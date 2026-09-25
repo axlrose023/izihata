@@ -236,6 +236,7 @@ class ProductManagementService:
             is_popular=request.is_popular,
             is_active=request.is_active,
             stock_status=request.stock_status,
+            stock_quantity=request.stock_quantity,
             availability_days=request.availability_days,
             sale_unit=request.sale_unit,
             wholesale_price=request.wholesale_price,

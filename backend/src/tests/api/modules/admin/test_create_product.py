@@ -21,6 +21,7 @@ def product_payload(product, **overrides):
         "old_price": "350.00",
         "badge": "new",
         "stock_status": "in_stock",
+        "stock_quantity": 17,
         "specs": {"Полюси": "2P", "Номінал": "20 А"},
     }
     payload.update(overrides)
@@ -51,10 +52,12 @@ class TestCreateProduct:
         assert body["slug"] == "qa-api-20001"
         assert body["specs"] == payload["specs"]
         assert body["category"]["id"] == payload["category_id"]
+        assert body["stock_quantity"] == 17
 
         public_response = await client.get(f"/api/v1/catalog/products/{body['slug']}")
         assert public_response.status_code == 200
         assert public_response.json()["id"] == body["id"]
+        assert "stock_quantity" not in public_response.json()
 
         await uow.session.execute(delete(Product).where(Product.id == UUID(body["id"])))
         await uow.commit()
@@ -120,6 +123,7 @@ class TestCreateProduct:
             ({"image_url": "javascript:alert(1)"}, 422),
             ({"specs": {"": "value"}}, 422),
             ({"sku": "КИРИЛИЦЯ-1"}, 422),
+            ({"stock_quantity": -1}, 422),
         ],
     )
     async def test_validates_payload(

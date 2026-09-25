@@ -213,6 +213,7 @@ async def import_products(
             if row.price is not None:
                 product.price = row.price
             product.stock_status = stock_status
+            product.stock_quantity = max(0, row.stock)
             outcome.updated += 1
 
             category_slug, subcategory_name, matched = classification
@@ -281,6 +282,7 @@ async def import_products(
                 brand=brand,
                 price=price,
                 stock_status=stock_status,
+                stock_quantity=max(0, row.stock),
                 is_active=activate and matched and not awaiting_price,
                 position=0,
             )

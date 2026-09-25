@@ -17,17 +17,26 @@ class TestUpdateProduct:
         headers = {"Authorization": f"Bearer {authenticated_user['access_token']}"}
         response = await client.patch(
             f"{self.endpoint}/{product.id}",
-            json={"price": "97.00", "stock_status": "preorder"},
+            json={
+                "price": "97.00",
+                "stock_status": "preorder",
+                "stock_quantity": 24,
+            },
             headers=headers,
         )
 
         assert response.status_code == 200, response.text
         assert response.json()["price"] == "97.00"
         assert response.json()["stock_status"] == "preorder"
+        assert response.json()["stock_quantity"] == 24
 
         restored = await client.patch(
             f"{self.endpoint}/{product.id}",
-            json={"price": "96.00", "stock_status": "in_stock"},
+            json={
+                "price": "96.00",
+                "stock_status": "in_stock",
+                "stock_quantity": 0,
+            },
             headers=headers,
         )
         assert restored.status_code == 200
@@ -106,7 +115,16 @@ class TestUpdateProduct:
 
     @pytest.mark.parametrize(
         "field",
-        ["category_id", "sku", "name", "brand", "price", "stock_status", "specs"],
+        [
+            "category_id",
+            "sku",
+            "name",
+            "brand",
+            "price",
+            "stock_status",
+            "stock_quantity",
+            "specs",
+        ],
     )
     async def test_rejects_null_for_required_product_fields(
         self,

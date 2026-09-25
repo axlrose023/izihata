@@ -22,11 +22,11 @@ import {
 } from "@/modules/catalog/api/catalog-queries";
 import { getUserErrorMessage } from "@/shared/api/errors";
 import { prepareImageUpload } from "@/shared/lib/prepare-image-upload";
-import type { AdminProductDetail, Product } from "@/shared/types/api";
+import type { AdminProduct, AdminProductDetail } from "@/shared/types/api";
 import { Modal } from "@/shared/ui/modal";
 
 function productValues(
-  product: Product | AdminProductDetail | null,
+  product: AdminProduct | AdminProductDetail | null,
 ): ProductFormValues {
   if (!product) return productFormDefaults;
   const detail = "relations" in product ? product : null;
@@ -47,6 +47,7 @@ function productValues(
     is_popular: detail?.is_popular ?? false,
     is_active: detail?.is_active ?? true,
     stock_status: product.stock_status,
+    stock_quantity: product.stock_quantity.toString(),
     availability_days: product.availability.lead_time_days?.toString() ?? "",
     sale_unit: product.sale_unit,
     wholesale_price: detail?.wholesale_price ?? "",
@@ -71,7 +72,7 @@ export function ProductFormDialog({
   onClose,
 }: {
   open: boolean;
-  product: Product | null;
+  product: AdminProduct | null;
   onClose: () => void;
 }) {
   const { request } = useAuth();
@@ -177,6 +178,7 @@ export function ProductFormDialog({
         is_popular: values.is_popular,
         is_active: values.is_active,
         stock_status: values.stock_status,
+        stock_quantity: Number(values.stock_quantity),
         ...(values.availability_days
           ? { availability_days: Number(values.availability_days) }
           : {}),
@@ -360,6 +362,19 @@ export function ProductFormDialog({
               <option value="preorder">Під замовлення</option>
               <option value="out_of_stock">Немає в наявності</option>
             </select>
+          </label>
+          <label className="field">
+            <span>Залишок</span>
+            <input
+              inputMode="numeric"
+              max="2147483647"
+              min="0"
+              type="number"
+              {...register("stock_quantity")}
+            />
+            {errors.stock_quantity ? (
+              <small>{errors.stock_quantity.message}</small>
+            ) : null}
           </label>
           <label className="field">
             <span>Строк постачання, днів</span>
