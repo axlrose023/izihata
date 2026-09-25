@@ -120,6 +120,10 @@ class Product(Base, UUIDIDMixin, DateTimeMixin):
             name="product_reviews_count_non_negative",
         ),
         CheckConstraint(
+            "stock_quantity >= 0",
+            name="product_stock_quantity_non_negative",
+        ),
+        CheckConstraint(
             "wholesale_price IS NULL OR wholesale_price >= 0",
             name="product_wholesale_price_non_negative",
         ),
@@ -162,6 +166,7 @@ class Product(Base, UUIDIDMixin, DateTimeMixin):
         default=StockStatus.IN_STOCK,
         index=True,
     )
+    stock_quantity: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     availability_days: Mapped[int | None] = mapped_column(Integer)
     sale_unit: Mapped[SaleUnit] = mapped_column(
         Enum(SaleUnit, native_enum=False, length=16),

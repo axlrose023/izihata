@@ -25,6 +25,7 @@ export interface CreateProductPayload {
   is_popular: boolean;
   is_active: boolean;
   stock_status: StockStatus;
+  stock_quantity: number;
   availability_days?: number;
   sale_unit: "piece" | "meter" | "coil";
   wholesale_price?: string;

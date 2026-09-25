@@ -530,6 +530,7 @@ class AdminProductRelationResponse(StrictSchema):
 
 class AdminProductResponse(ProductResponse):
     wholesale_price: Decimal | None
+    stock_quantity: int
     is_popular: bool
     is_active: bool
 
@@ -538,6 +539,7 @@ class AdminProductResponse(ProductResponse):
         return cls(
             **ProductResponse.from_product(product).model_dump(),
             wholesale_price=product.wholesale_price,
+            stock_quantity=product.stock_quantity,
             is_popular=product.is_popular,
             is_active=product.is_active,
         )
@@ -775,6 +777,7 @@ class CreateProductRequest(StrictSchema):
     # Imports land hidden so a wrong mapping never reaches the storefront.
     is_active: bool = True
     stock_status: StockStatus = StockStatus.IN_STOCK
+    stock_quantity: int = Field(default=0, ge=0, le=2_147_483_647)
     availability_days: int | None = Field(default=None, ge=0, le=365)
     sale_unit: SaleUnit = SaleUnit.PIECE
     wholesale_price: Decimal | None = Field(
@@ -862,6 +865,7 @@ class UpdateProductRequest(StrictSchema):
     is_popular: bool | None = None
     is_active: bool | None = None
     stock_status: StockStatus | None = None
+    stock_quantity: int | None = Field(default=None, ge=0, le=2_147_483_647)
     availability_days: int | None = Field(default=None, ge=0, le=365)
     sale_unit: SaleUnit | None = None
     wholesale_price: Decimal | None = Field(
@@ -915,6 +919,7 @@ class UpdateProductRequest(StrictSchema):
             "brand": self.brand,
             "price": self.price,
             "stock_status": self.stock_status,
+            "stock_quantity": self.stock_quantity,
             "sale_unit": self.sale_unit,
             "specs": self.specs,
         }

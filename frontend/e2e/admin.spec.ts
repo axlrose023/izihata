@@ -39,6 +39,7 @@ async function createProduct(page: Page, testInfo: TestInfo) {
     .getByRole("combobox", { name: /^Підкатегорія/ })
     .selectOption({ index: 1 });
   await dialog.getByRole("spinbutton", { name: /^Ціна/ }).fill("749.50");
+  await dialog.getByRole("spinbutton", { name: "Залишок" }).fill("17");
   // The picture is attached by upload; there is no URL field to type into.
   await dialog.getByLabel("Файл зображення товару").setInputFiles({
     name: "new-product.png",
@@ -58,7 +59,9 @@ async function createProduct(page: Page, testInfo: TestInfo) {
       new URL(response.url()).pathname === "/api/v1/admin/catalog/products",
   );
   await dialog.getByRole("button", { name: "Додати товар" }).click();
-  expect((await createResponse).status()).toBe(201);
+  const createdResponse = await createResponse;
+  expect(createdResponse.status()).toBe(201);
+  expect((await createdResponse.json()).stock_quantity).toBe(17);
 
   await expect(dialog).not.toBeVisible();
   await expect(page.getByText(name)).toBeVisible();
@@ -83,6 +86,8 @@ async function createProduct(page: Page, testInfo: TestInfo) {
   await row.getByRole("button", { name: `Редагувати ${name}` }).click();
   const editDialog = page.getByRole("dialog", { name: "Редагувати товар" });
   await editDialog.getByLabel("Назва").fill(updatedName);
+  await expect(editDialog.getByLabel("Залишок")).toHaveValue("17");
+  await editDialog.getByLabel("Залишок").fill("8");
   const updateResponse = page.waitForResponse(
     (response) =>
       response.request().method() === "PATCH" &&
@@ -91,7 +96,9 @@ async function createProduct(page: Page, testInfo: TestInfo) {
       ),
   );
   await editDialog.getByRole("button", { name: "Зберегти товар" }).click();
-  expect((await updateResponse).status()).toBe(200);
+  const updatedAdminResponse = await updateResponse;
+  expect(updatedAdminResponse.status()).toBe(200);
+  expect((await updatedAdminResponse.json()).stock_quantity).toBe(8);
   await expect(editDialog).not.toBeVisible();
   await expect(page.getByText(updatedName)).toBeVisible();
 

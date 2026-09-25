@@ -70,6 +70,11 @@ export const productFormSchema = z
       "preorder",
       "out_of_stock",
     ]),
+    stock_quantity: z
+      .string()
+      .trim()
+      .regex(/^\d+$/, "Вкажіть ціле число")
+      .refine((value) => Number(value) <= 2_147_483_647, "Залишок завеликий"),
     availability_days: z.string().trim().regex(/^\d*$/, "Вкажіть ціле число"),
     sale_unit: z.enum(["piece", "meter", "coil"]),
     wholesale_price: z
@@ -165,6 +170,7 @@ export const productFormDefaults: ProductFormValues = {
   is_popular: false,
   is_active: true,
   stock_status: "in_stock",
+  stock_quantity: "0",
   availability_days: "",
   sale_unit: "piece",
   wholesale_price: "",

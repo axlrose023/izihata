@@ -166,8 +166,10 @@ class TestImportProducts:
         assert created["IMP-1"].brand == "ETI"
         assert created["IMP-1"].price == Decimal("120.50")
         assert created["IMP-1"].stock_status == StockStatus.IN_STOCK
+        assert created["IMP-1"].stock_quantity == 7
         # No stock left means the storefront must not offer it.
         assert created["IMP-2"].stock_status == StockStatus.OUT_OF_STOCK
+        assert created["IMP-2"].stock_quantity == 0
 
     async def test_activate_publishes_only_confidently_mapped_rows(self, uow):
         await import_products(
@@ -214,6 +216,7 @@ class TestImportProducts:
         assert product.price == Decimal("131.00")
         assert product.name.endswith("(нова назва)")
         assert product.stock_status == StockStatus.OUT_OF_STOCK
+        assert product.stock_quantity == 0
 
     async def test_rerun_keeps_a_category_staff_corrected_by_hand(self, uow):
         await import_products(uow.session, self._rows(), brand="ETI", dry_run=False)
