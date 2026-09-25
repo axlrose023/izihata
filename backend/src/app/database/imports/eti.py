@@ -43,6 +43,8 @@ ETIM_SOURCE_LABEL: Final = "ETIM"
 MAX_IMAGE_BYTES: Final = 20 * 1024 * 1024
 MAX_ATTRIBUTE_KEY_LENGTH: Final = 120
 MAX_ATTRIBUTE_VALUE_LENGTH: Final = 300
+LEGACY_ETI_MEDIA_HOSTS: Final = frozenset({"eti.ua", "www.eti.ua"})
+ETI_PIM_MEDIA_HOST: Final = "storage-api-pim.etigroup.eu"
 
 
 @dataclass(frozen=True)
@@ -418,6 +420,31 @@ async def _download_photo(client: httpx.AsyncClient, url: str) -> tuple[bytes, s
         return b"".join(chunks), response.headers.get("content-type", "image/webp")
 
 
+def _pim_fallback_url(photo: EtiPhoto) -> str | None:
+    """Use ETI's current PIM host if a legacy supplier URL has disappeared."""
+    source = urlparse(photo.source_url)
+    if source.hostname not in LEGACY_ETI_MEDIA_HOSTS or not photo.sku.isdecimal():
+        return None
+    identifier = photo.sku.zfill(9)
+    return (
+        f"https://{ETI_PIM_MEDIA_HOST}/product_db/idents/{identifier}/en-GB/photo/"
+        f"{identifier}_Photo_T_BIG.webp"
+    )
+
+
+async def _download_eti_photo(
+    client: httpx.AsyncClient,
+    photo: EtiPhoto,
+) -> tuple[bytes, str]:
+    try:
+        return await _with_retries(lambda: _download_photo(client, photo.source_url))
+    except (httpx.HTTPError, ValueError):
+        fallback_url = _pim_fallback_url(photo)
+        if fallback_url is None:
+            raise
+        return await _with_retries(lambda: _download_photo(client, fallback_url))
+
+
 async def _object_exists(
     client: httpx.AsyncClient,
     config: BunnyS3Config,
@@ -495,8 +522,9 @@ async def upload_eti_media(
                     if exists:
                         outcome.already_present += 1
                     else:
-                        content, content_type = await _with_retries(
-                            lambda: _download_photo(source_client, photo.source_url)
+                        content, content_type = await _download_eti_photo(
+                            source_client,
+                            photo,
                         )
                         await _with_retries(
                             lambda: _put_object(

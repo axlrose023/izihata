@@ -14,6 +14,23 @@ from app.database.imports import (
     planned_media_urls,
     read_eti_workbook,
 )
+from app.database.imports.eti import EtiPhoto, _pim_fallback_url
+
+
+def test_pim_fallback_repairs_legacy_eti_photo_url() -> None:
+    photo = EtiPhoto(
+        sku="4774033",
+        source_url=(
+            "https://www.eti.ua/product_db/idents/004774033/en-GB/photo/"
+            "004774033_Photo_T_BIG.webp"
+        ),
+        position=0,
+    )
+
+    assert _pim_fallback_url(photo) == (
+        "https://storage-api-pim.etigroup.eu/product_db/idents/004774033/en-GB/"
+        "photo/004774033_Photo_T_BIG.webp"
+    )
 
 
 def write_workbook(path: Path) -> Path:
