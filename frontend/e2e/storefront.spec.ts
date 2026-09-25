@@ -94,6 +94,7 @@ test("public routes render and product navigation works", async ({ page }) => {
   await page.getByRole("tab", { name: "Характеристики" }).click();
   const specificationHeading = page.getByRole("heading", {
     name: "Характеристики",
+    exact: true,
   });
   await expect(specificationHeading).toBeVisible();
   const specificationHeadingFits = await specificationHeading.evaluate(
