@@ -7,7 +7,9 @@ import { catalogKeys } from "@/modules/catalog/api/catalog-queries";
 import { ProductCard } from "@/modules/catalog/components/product-card";
 import { Carousel } from "@/shared/ui/carousel";
 
-const PAGE_SIZE = 5;
+// Four cards are visible on desktop; load the following four at once so the
+// carousel arrow always has a meaningful next page to show.
+const PAGE_SIZE = 8;
 
 // Три добірки під одним заголовком, як на артборді Main.
 const rails = [

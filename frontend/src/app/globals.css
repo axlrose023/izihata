@@ -1651,7 +1651,7 @@ h2 {
 .carousel__rail {
   display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: calc((100% - 4 * 17px) / 5);
+  grid-auto-columns: calc((100% - 3 * 17px) / 4);
   gap: 17px;
   overflow-x: auto;
   padding-bottom: 6px;

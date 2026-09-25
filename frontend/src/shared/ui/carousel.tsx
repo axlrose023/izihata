@@ -18,15 +18,21 @@ export function Carousel({
 }) {
   const railRef = useRef<HTMLDivElement>(null);
   const [paused, setPaused] = useState(false);
-  const [edges, setEdges] = useState({ start: true, end: false });
+  const [edges, setEdges] = useState({
+    start: true,
+    end: false,
+    scrollable: false,
+  });
 
   const readEdges = useCallback(() => {
     const rail = railRef.current;
     if (!rail) return;
     const max = rail.scrollWidth - rail.clientWidth;
+    const scrollable = max > 4;
     setEdges({
-      start: rail.scrollLeft <= 4,
-      end: max <= 4 || rail.scrollLeft >= max - 4,
+      start: !scrollable || rail.scrollLeft <= 4,
+      end: !scrollable || rail.scrollLeft >= max - 4,
+      scrollable,
     });
   }, []);
 
@@ -34,6 +40,7 @@ export function Carousel({
     const rail = railRef.current;
     if (!rail) return;
     const max = rail.scrollWidth - rail.clientWidth;
+    if (max <= 4) return;
     const next = rail.scrollLeft + direction * rail.clientWidth;
     rail.scrollTo({
       left: direction === 1 && next > max - 4 ? 0 : Math.max(0, next),
@@ -97,7 +104,7 @@ export function Carousel({
         aria-label="Наступні"
         className="carousel__arrow"
         data-side="end"
-        disabled={edges.end && !autoplayMs}
+        disabled={!edges.scrollable || (edges.end && !autoplayMs)}
         onClick={() => scrollByPage(1)}
         type="button"
       >
