@@ -1,4 +1,5 @@
 import { useCallback, useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { setCustomerAccessToken } from "@/shared/api/client";
 import { useRefreshableSession } from "@/shared/api/use-refreshable-session";
@@ -10,14 +11,18 @@ export function CustomerAuthProvider({
 }: {
   children: React.ReactNode;
 }) {
+  const queryClient = useQueryClient();
   const session = useRefreshableSession(
     "/customer-auth",
     setCustomerAccessToken,
     false,
   );
   const login = useCallback(
-    (email: string, password: string) => session.login({ email, password }),
-    [session],
+    async (email: string, password: string) => {
+      await session.login({ email, password });
+      await queryClient.invalidateQueries({ queryKey: ["quote"] });
+    },
+    [queryClient, session.login],
   );
   const register = useCallback(
     (payload: {
@@ -25,19 +30,27 @@ export function CustomerAuthProvider({
       email: string;
       password: string;
       phone?: string;
-    }) => session.authenticate("/register", payload),
-    [session],
+    }) =>
+      session.authenticate("/register", payload).then(async () => {
+        await queryClient.invalidateQueries({ queryKey: ["quote"] });
+      }),
+    [queryClient, session.authenticate],
   );
+  const logout = useCallback(async () => {
+    await session.logout();
+    await queryClient.invalidateQueries({ queryKey: ["quote"] });
+  }, [queryClient, session.logout]);
 
   const value = useMemo(
     () => ({
       status: session.status,
+      request: session.request,
       login,
       register,
-      logout: session.logout,
+      logout,
       restore: session.refresh,
     }),
-    [login, register, session.logout, session.refresh, session.status],
+    [login, logout, register, session.refresh, session.request, session.status],
   );
 
   return (

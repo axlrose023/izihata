@@ -1,5 +1,7 @@
 import { queryOptions } from "@tanstack/react-query";
 
+import type { CustomerRequest } from "../customer-auth-context";
+
 import { fetchCustomerOrders, fetchCustomerProfile } from "./customer-api";
 
 export const customerKeys = {
@@ -8,14 +10,14 @@ export const customerKeys = {
   orders: () => [...customerKeys.all, "orders"] as const,
 };
 
-export const customerProfileQuery = () =>
+export const customerProfileQuery = (request: CustomerRequest) =>
   queryOptions({
     queryKey: customerKeys.profile(),
-    queryFn: fetchCustomerProfile,
+    queryFn: () => fetchCustomerProfile(request),
   });
 
-export const customerOrdersQuery = () =>
+export const customerOrdersQuery = (request: CustomerRequest, page = 1) =>
   queryOptions({
-    queryKey: customerKeys.orders(),
-    queryFn: () => fetchCustomerOrders(),
+    queryKey: [...customerKeys.orders(), page],
+    queryFn: () => fetchCustomerOrders(request, page),
   });

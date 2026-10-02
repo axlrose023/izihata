@@ -2,8 +2,14 @@ import { createContext, useContext } from "react";
 
 import type { SessionStatus } from "@/shared/api/use-refreshable-session";
 
+export type CustomerRequest = <T>(
+  path: string,
+  init?: RequestInit,
+) => Promise<T>;
+
 export interface CustomerAuthContextValue {
   status: SessionStatus;
+  request: CustomerRequest;
   login: (email: string, password: string) => Promise<void>;
   register: (payload: {
     full_name: string;

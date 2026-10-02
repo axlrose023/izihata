@@ -1,6 +1,6 @@
 import { useQueries } from "@tanstack/react-query";
 import { Building2, LogOut, ReceiptText, UserRound } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import {
@@ -12,15 +12,20 @@ import { useCustomerAuth } from "@/modules/customers/customer-auth-context";
 import { formatDate, formatMoney } from "@/shared/lib/format";
 import { useDocumentTitle } from "@/shared/lib/use-document-title";
 import { ErrorNotice } from "@/shared/ui/error-notice";
+import { AdminPagination } from "@/shared/ui/admin-pagination";
 import { StatusBadge } from "@/shared/ui/status-badge";
 
 export function CustomerAccountPage() {
-  const { logout, restore, status } = useCustomerAuth();
+  const { logout, restore, status, request } = useCustomerAuth();
+  const [ordersPage, setOrdersPage] = useState(1);
   const navigate = useNavigate();
   const [profileResult, ordersResult] = useQueries({
     queries: [
-      { ...customerProfileQuery(), enabled: status === "authenticated" },
-      { ...customerOrdersQuery(), enabled: status === "authenticated" },
+      { ...customerProfileQuery(request), enabled: status === "authenticated" },
+      {
+        ...customerOrdersQuery(request, ordersPage),
+        enabled: status === "authenticated",
+      },
     ],
   });
   useDocumentTitle("Особистий кабінет");
@@ -180,6 +185,13 @@ export function CustomerAccountPage() {
             Тут з’являться ваші оформлені замовлення.
           </p>
         )}
+        <AdminPagination
+          hasNext={ordersResult.data.has_next}
+          hasPrev={ordersResult.data.has_prev}
+          onPageChange={setOrdersPage}
+          page={ordersResult.data.page}
+          totalPages={ordersResult.data.total_pages}
+        />
       </section>
     </div>
   );

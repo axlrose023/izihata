@@ -6,6 +6,7 @@ import { z } from "zod";
 import { createCustomerCompany } from "@/modules/customers/api/customer-api";
 import { customerKeys } from "@/modules/customers/api/customer-queries";
 import { getUserErrorMessage } from "@/shared/api/errors";
+import { useCustomerAuth } from "@/modules/customers/customer-auth-context";
 
 const schema = z.object({
   kind: z.enum(["fop", "legal"]),
@@ -20,6 +21,7 @@ type Values = z.infer<typeof schema>;
 
 export function CustomerCompanyForm() {
   const queryClient = useQueryClient();
+  const { request } = useCustomerAuth();
   const {
     register,
     handleSubmit,
@@ -29,7 +31,7 @@ export function CustomerCompanyForm() {
     defaultValues: { kind: "legal" },
   });
   const mutation = useMutation({
-    mutationFn: createCustomerCompany,
+    mutationFn: (payload: Values) => createCustomerCompany(payload, request),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: customerKeys.profile() });
     },

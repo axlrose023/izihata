@@ -102,7 +102,11 @@ type CheckoutValues = z.infer<ReturnType<typeof checkoutSchema>>;
 
 export function CheckoutForm() {
   const navigate = useNavigate();
-  const { status: customerStatus, restore } = useCustomerAuth();
+  const {
+    status: customerStatus,
+    restore,
+    request: customerRequest,
+  } = useCustomerAuth();
   const lines = useCartStore((state) => state.lines);
   const clearCart = useCartStore((state) => state.clear);
   const [promoInput, setPromoInput] = useState("");
@@ -178,16 +182,19 @@ export function CheckoutForm() {
   const quotedItems = useDebouncedValue(serializedItems, 350);
   const quoteIsStale = serializedItems !== quotedItems;
   const quote = useQuery({
-    queryKey: ["quote", quotedItems, promoCode],
+    queryKey: ["quote", customerStatus, quotedItems, promoCode],
     enabled: items.length > 0,
-    queryFn: () =>
-      apiClient<Quote>("/checkout/quote", {
+    queryFn: () => {
+      const send =
+        customerStatus === "authenticated" ? customerRequest : apiClient;
+      return send<Quote>("/checkout/quote", {
         method: "POST",
         body: JSON.stringify({
           items: JSON.parse(quotedItems) as typeof items,
           promo_code: promoCode,
         }),
-      }),
+      });
+    },
   });
 
   useEffect(() => {
@@ -254,7 +261,9 @@ export function CheckoutForm() {
     if (requestIdentity !== idempotency) setIdempotency(requestIdentity);
     setSubmitError(null);
     try {
-      const order = await apiClient<Order>("/orders", {
+      const send =
+        customerStatus === "authenticated" ? customerRequest : apiClient;
+      const order = await send<Order>("/orders", {
         method: "POST",
         headers: { "Idempotency-Key": requestIdentity.key },
         body: fingerprint,
