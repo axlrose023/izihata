@@ -1,5 +1,5 @@
 import { Filter, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 
 import { useBodyScrollLock } from "@/shared/lib/use-body-scroll-lock";
@@ -309,6 +309,7 @@ function PriceFilter({
     max: query.max_price ?? "",
   });
   const debounced = useDebouncedValue(range, 500);
+  const userChangedRange = useRef(false);
   // Межі приходять із фасетів; без них повзунок не має шкали й не малюється.
   const lo = Number(facets.price.minimum);
   const hi = Number(facets.price.maximum);
@@ -320,16 +321,33 @@ function PriceFilter({
   const maxValue = range.max === "" ? (bounds?.max ?? 0) : Number(range.max);
 
   useEffect(() => {
+    userChangedRange.current = false;
+    setRange({ min: query.min_price ?? "", max: query.max_price ?? "" });
+  }, [query.min_price, query.max_price]);
+
+  useEffect(() => {
     if (
-      debounced.min === (query.min_price ?? "") &&
-      debounced.max === (query.max_price ?? "")
+      !userChangedRange.current ||
+      debounced.min !== range.min ||
+      debounced.max !== range.max
     ) {
       return;
     }
+    const queryMin = query.min_price ?? "";
+    const queryMax = query.max_price ?? "";
+    if (debounced.min === queryMin && debounced.max === queryMax) {
+      userChangedRange.current = false;
+      return;
+    }
     onChange({ min_price: debounced.min, max_price: debounced.max });
-    // Only the settled input drives the URL; query values are the source of truth.
+    // onChange updates the current route without remounting this control.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debounced]);
+  }, [debounced, query.min_price, query.max_price, range]);
+
+  const changeRange = (update: (value: typeof range) => typeof range) => {
+    userChangedRange.current = true;
+    setRange(update);
+  };
 
   return (
     <fieldset>
@@ -340,7 +358,7 @@ function PriceFilter({
           inputMode="decimal"
           min="0"
           onChange={(event) =>
-            setRange((value) => ({ ...value, min: event.target.value }))
+            changeRange((value) => ({ ...value, min: event.target.value }))
           }
           placeholder={facets.price.minimum ?? "від"}
           type="number"
@@ -351,7 +369,7 @@ function PriceFilter({
           inputMode="decimal"
           min="0"
           onChange={(event) =>
-            setRange((value) => ({ ...value, max: event.target.value }))
+            changeRange((value) => ({ ...value, max: event.target.value }))
           }
           placeholder={facets.price.maximum ?? "до"}
           type="number"
@@ -365,7 +383,7 @@ function PriceFilter({
             max={bounds.max}
             min={bounds.min}
             onChange={(event) =>
-              setRange((value) => ({
+              changeRange((value) => ({
                 ...value,
                 min: String(Math.min(Number(event.target.value), maxValue)),
               }))
@@ -378,7 +396,7 @@ function PriceFilter({
             max={bounds.max}
             min={bounds.min}
             onChange={(event) =>
-              setRange((value) => ({
+              changeRange((value) => ({
                 ...value,
                 max: String(Math.max(Number(event.target.value), minValue)),
               }))
