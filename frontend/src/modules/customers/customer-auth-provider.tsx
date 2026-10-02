@@ -17,12 +17,15 @@ export function CustomerAuthProvider({
     setCustomerAccessToken,
     false,
   );
+  const sessionLogin = session.login;
+  const sessionRegister = session.authenticate;
+  const sessionLogout = session.logout;
   const login = useCallback(
     async (email: string, password: string) => {
-      await session.login({ email, password });
+      await sessionLogin({ email, password });
       await queryClient.invalidateQueries({ queryKey: ["quote"] });
     },
-    [queryClient, session.login],
+    [queryClient, sessionLogin],
   );
   const register = useCallback(
     (payload: {
@@ -31,15 +34,15 @@ export function CustomerAuthProvider({
       password: string;
       phone?: string;
     }) =>
-      session.authenticate("/register", payload).then(async () => {
+      sessionRegister("/register", payload).then(async () => {
         await queryClient.invalidateQueries({ queryKey: ["quote"] });
       }),
-    [queryClient, session.authenticate],
+    [queryClient, sessionRegister],
   );
   const logout = useCallback(async () => {
-    await session.logout();
+    await sessionLogout();
     await queryClient.invalidateQueries({ queryKey: ["quote"] });
-  }, [queryClient, session.logout]);
+  }, [queryClient, sessionLogout]);
 
   const value = useMemo(
     () => ({

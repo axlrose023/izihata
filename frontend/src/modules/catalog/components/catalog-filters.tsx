@@ -176,7 +176,12 @@ export function CatalogFilters({
               </select>
             </fieldset>
           ) : null}
-          <PriceFilter facets={facets} onChange={setValues} query={query} />
+          <PriceFilter
+            facets={facets}
+            key={`${query.min_price ?? ""}:${query.max_price ?? ""}`}
+            onChange={setValues}
+            query={query}
+          />
           <FacetOptions
             activeValues={activeBrands}
             label="Бренд"
@@ -335,11 +340,6 @@ function PriceFilter({
   const maxValue = range.max === "" ? (bounds?.max ?? 0) : Number(range.max);
 
   useEffect(() => {
-    userChangedRange.current = false;
-    setRange({ min: query.min_price ?? "", max: query.max_price ?? "" });
-  }, [query.min_price, query.max_price]);
-
-  useEffect(() => {
     if (
       !userChangedRange.current ||
       debounced.min !== range.min ||
@@ -354,7 +354,7 @@ function PriceFilter({
       return;
     }
     onChange({ min_price: debounced.min, max_price: debounced.max });
-    // onChange updates the current route without remounting this control.
+    // The input state is remounted from the URL once the route changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debounced, query.min_price, query.max_price, range]);
 
