@@ -94,6 +94,12 @@ const detail: AdminProductDetail = {
   is_popular: true,
   is_active: false,
   description: "Detailed description",
+  brand_country: "Germany",
+  production_country: "France",
+  short_description: "Short description",
+  availability: { ...product.availability, lead_time_days: 7 },
+  wholesale_price: "50.00",
+  wholesale_min_quantity: 5,
   relations: [
     {
       product_id: "related-1",
@@ -137,12 +143,30 @@ it("waits for full details before editing and keeps hidden fields on save", asyn
   const save = screen.getByRole("button", { name: "Зберегти товар" });
   expect(name).toHaveValue("Full name");
   fireEvent.change(name, { target: { value: "Edited name" } });
+  for (const label of [
+    "Країна реєстрації",
+    "Країна виробництва",
+    "Короткий опис",
+    "Повний опис",
+    "Строк постачання, днів",
+    "Гуртова ціна, ₴",
+    "Гурт: від кількості",
+  ]) {
+    fireEvent.change(screen.getByLabelText(label), { target: { value: "" } });
+  }
   fireEvent.click(save);
 
   await waitFor(() => expect(updateAdminProductDetails).toHaveBeenCalled());
   expect(vi.mocked(updateAdminProductDetails).mock.calls[0]?.[2]).toMatchObject(
     {
       name: "Edited name",
+      brand_country: null,
+      production_country: null,
+      short_description: null,
+      description: null,
+      availability_days: null,
+      wholesale_price: null,
+      wholesale_min_quantity: null,
       is_popular: true,
       is_active: false,
       relations: [{ product_id: "related-1", kind: "related", position: 0 }],

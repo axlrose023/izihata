@@ -88,6 +88,7 @@ async function createProduct(page: Page, testInfo: TestInfo) {
   await editDialog.getByLabel("Назва").fill(updatedName);
   await expect(editDialog.getByLabel("Залишок")).toHaveValue("17");
   await editDialog.getByLabel("Залишок").fill("8");
+  await editDialog.getByRole("spinbutton", { name: /^Ціна/ }).fill("849.50");
   const updateResponse = page.waitForResponse(
     (response) =>
       response.request().method() === "PATCH" &&
@@ -107,6 +108,31 @@ async function createProduct(page: Page, testInfo: TestInfo) {
   );
   expect(updatedResponse.status()).toBe(200);
   expect((await updatedResponse.json()).name).toBe(updatedName);
+  const updatedRow = page.getByRole("row", { name: new RegExp(updatedName) });
+  await expect(
+    updatedRow.getByLabel(`Ціна ${updatedName}`, { exact: true }),
+  ).toHaveValue("849.50");
+  await expect(
+    updatedRow.getByRole("button", {
+      name: `Зберегти ${updatedName}`,
+      exact: true,
+    }),
+  ).toBeDisabled();
+  await updatedRow.getByLabel(`Стара ціна ${updatedName}`).fill("950.00");
+  const inlineResponse = page.waitForResponse(
+    (response) =>
+      response.request().method() === "PATCH" &&
+      new URL(response.url()).pathname.startsWith(
+        "/api/v1/admin/catalog/products/",
+      ),
+  );
+  await updatedRow
+    .getByRole("button", { name: `Зберегти ${updatedName}`, exact: true })
+    .click();
+  const inline = await inlineResponse;
+  expect(inline.request().postDataJSON()).toEqual({ old_price: "950.00" });
+  expect(inline.status()).toBe(200);
+  expect((await inline.json()).price).toBe("849.50");
 }
 
 test("hiding a product keeps it recoverable", async ({ page }) => {

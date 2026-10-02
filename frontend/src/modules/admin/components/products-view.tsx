@@ -35,11 +35,15 @@ function ProductRow({
 }) {
   const { request } = useAuth();
   const queryClient = useQueryClient();
-  const [price, setPrice] = useState(product.price);
-  const [oldPrice, setOldPrice] = useState(product.old_price ?? "");
-  const [stockStatus, setStockStatus] = useState<StockStatus>(
-    product.stock_status,
-  );
+  const [draft, setDraft] = useState<{
+    price?: string;
+    old_price?: string | null;
+    stock_status?: StockStatus;
+  }>({});
+  const price = draft.price ?? product.price;
+  const oldPrice =
+    "old_price" in draft ? (draft.old_price ?? "") : (product.old_price ?? "");
+  const stockStatus = draft.stock_status ?? product.stock_status;
   const [message, setMessage] = useState<string | null>(null);
   const visibility = useMutation({
     mutationFn: (isActive: boolean) =>
@@ -54,13 +58,9 @@ function ProductRow({
       setMessage(getUserErrorMessage(error, "Не вдалося змінити видимість")),
   });
   const update = useMutation({
-    mutationFn: () =>
-      updateAdminProduct(request, product.id, {
-        price,
-        old_price: oldPrice || null,
-        stock_status: stockStatus,
-      }),
+    mutationFn: () => updateAdminProduct(request, product.id, draft),
     onSuccess: async () => {
+      setDraft({});
       setMessage("Збережено");
       await queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
     },
@@ -90,7 +90,10 @@ function ProductRow({
         <input
           aria-label={`Ціна ${product.name}`}
           min="0.01"
-          onChange={(event) => setPrice(event.target.value)}
+          disabled={update.isPending}
+          onChange={(event) =>
+            setDraft((current) => ({ ...current, price: event.target.value }))
+          }
           step="0.01"
           type="number"
           value={price}
@@ -100,7 +103,13 @@ function ProductRow({
         <input
           aria-label={`Стара ціна ${product.name}`}
           min="0.01"
-          onChange={(event) => setOldPrice(event.target.value)}
+          disabled={update.isPending}
+          onChange={(event) =>
+            setDraft((current) => ({
+              ...current,
+              old_price: event.target.value || null,
+            }))
+          }
           placeholder="—"
           step="0.01"
           type="number"
@@ -110,8 +119,12 @@ function ProductRow({
       <td>
         <select
           aria-label={`Наявність ${product.name}`}
+          disabled={update.isPending}
           onChange={(event) =>
-            setStockStatus(event.target.value as StockStatus)
+            setDraft((current) => ({
+              ...current,
+              stock_status: event.target.value as StockStatus,
+            }))
           }
           value={stockStatus}
         >
@@ -125,7 +138,7 @@ function ProductRow({
         <div className="table-action__buttons">
           <button
             aria-label={`Зберегти ${product.name}`}
-            disabled={update.isPending}
+            disabled={update.isPending || !Object.keys(draft).length}
             onClick={() => update.mutate()}
             type="button"
           >

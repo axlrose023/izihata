@@ -14,10 +14,10 @@ export interface CreateProductPayload {
   sku: string;
   name: string;
   brand: string;
-  brand_country?: string;
-  production_country?: string;
-  short_description?: string;
-  description?: string;
+  brand_country?: string | null;
+  production_country?: string | null;
+  short_description?: string | null;
+  description?: string | null;
   image_url: string | null;
   price: string;
   old_price: string | null;
@@ -26,10 +26,10 @@ export interface CreateProductPayload {
   is_active: boolean;
   stock_status: StockStatus;
   stock_quantity: number;
-  availability_days?: number;
+  availability_days?: number | null;
   sale_unit: "piece" | "meter" | "coil";
-  wholesale_price?: string;
-  wholesale_min_quantity?: number;
+  wholesale_price?: string | null;
+  wholesale_min_quantity?: number | null;
   specs: Record<string, string>;
   relations?: Array<
     Pick<AdminProductRelation, "product_id" | "kind"> & {
@@ -70,9 +70,9 @@ export function updateAdminProduct(
   request: AdminRequest,
   productId: string,
   payload: {
-    price: string;
-    old_price: string | null;
-    stock_status: StockStatus;
+    price?: string;
+    old_price?: string | null;
+    stock_status?: StockStatus;
   },
 ): Promise<Product> {
   return request(`/admin/catalog/products/${productId}`, {

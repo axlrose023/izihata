@@ -861,9 +861,12 @@ class CreateProductRequest(StrictSchema):
     def validate_sku(cls, value: object) -> str:
         return normalize_sku(value)
 
+    @field_validator("name", "brand", mode="before")
+    @classmethod
+    def normalize_required_text(cls, value: object) -> str:
+        return normalize_text(value)
+
     @field_validator(
-        "name",
-        "brand",
         "brand_country",
         "production_country",
         "short_description",
@@ -871,8 +874,8 @@ class CreateProductRequest(StrictSchema):
         mode="before",
     )
     @classmethod
-    def normalize_required_text(cls, value: object) -> str:
-        return normalize_text(value)
+    def normalize_optional_product_text(cls, value: object | None) -> str | None:
+        return normalize_optional_text(value)
 
     @field_validator("image_url", mode="before")
     @classmethod

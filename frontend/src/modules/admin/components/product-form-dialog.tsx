@@ -194,18 +194,10 @@ function ProductFormFields({
         sku: values.sku.trim(),
         name: values.name.trim(),
         brand: values.brand.trim(),
-        ...(values.brand_country.trim()
-          ? { brand_country: values.brand_country.trim() }
-          : {}),
-        ...(values.production_country.trim()
-          ? { production_country: values.production_country.trim() }
-          : {}),
-        ...(values.short_description.trim()
-          ? { short_description: values.short_description.trim() }
-          : {}),
-        ...(values.description.trim()
-          ? { description: values.description.trim() }
-          : {}),
+        brand_country: values.brand_country.trim() || null,
+        production_country: values.production_country.trim() || null,
+        short_description: values.short_description.trim() || null,
+        description: values.description.trim() || null,
         image_url: values.image_url.trim() || null,
         price: values.price,
         old_price: values.old_price || null,
@@ -214,16 +206,14 @@ function ProductFormFields({
         is_active: values.is_active,
         stock_status: values.stock_status,
         stock_quantity: Number(values.stock_quantity),
-        ...(values.availability_days
-          ? { availability_days: Number(values.availability_days) }
-          : {}),
+        availability_days: values.availability_days
+          ? Number(values.availability_days)
+          : null,
         sale_unit: values.sale_unit,
-        ...(values.wholesale_price && values.wholesale_min_quantity
-          ? {
-              wholesale_price: values.wholesale_price,
-              wholesale_min_quantity: Number(values.wholesale_min_quantity),
-            }
-          : {}),
+        wholesale_price: values.wholesale_price || null,
+        wholesale_min_quantity: values.wholesale_min_quantity
+          ? Number(values.wholesale_min_quantity)
+          : null,
         specs: Object.fromEntries(
           values.specs.map(({ key, value }) => [key.trim(), value.trim()]),
         ),
