@@ -34,3 +34,37 @@ it("waits for a visible image before assigning a download URL", () => {
   expect(image).toHaveAttribute("srcset", "small.webp 80w");
   expect(disconnect).toHaveBeenCalled();
 });
+
+it("allows nearby cards to preload without changing the gallery default", () => {
+  const margins: (string | undefined)[] = [];
+  vi.stubGlobal(
+    "IntersectionObserver",
+    class {
+      constructor(
+        _handler: IntersectionObserverCallback,
+        options?: IntersectionObserverInit,
+      ) {
+        margins.push(options?.rootMargin);
+      }
+      observe = vi.fn();
+      disconnect = vi.fn();
+    },
+  );
+  render(
+    <>
+      <VisibleImage alt="Card" src="card.webp" rootMargin="200px" />
+      <VisibleImage alt="Gallery" src="gallery.webp" />
+    </>,
+  );
+  expect(margins).toEqual(["200px", "0px"]);
+  expect(screen.getByAltText("Card")).not.toHaveAttribute("rootMargin");
+});
+
+it("loads normally when IntersectionObserver is unavailable", () => {
+  vi.stubGlobal("IntersectionObserver", undefined);
+  render(<VisibleImage alt="Fallback" src="original.jpg" />);
+  expect(screen.getByAltText("Fallback")).toHaveAttribute(
+    "src",
+    "original.jpg",
+  );
+});

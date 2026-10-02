@@ -5,9 +5,10 @@ export function VisibleImage({
   src,
   srcSet,
   alt,
+  rootMargin = "0px",
   ...props
-}: ImgHTMLAttributes<HTMLImageElement>) {
-  const { ref, isVisible } = useInView<HTMLImageElement>("0px");
+}: ImgHTMLAttributes<HTMLImageElement> & { rootMargin?: string }) {
+  const { ref, isVisible } = useInView<HTMLImageElement>(rootMargin);
   return (
     <img
       {...props}

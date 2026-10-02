@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { sectionVisual } from "@/modules/catalog/lib/section-presentation";
 import type { CatalogSection } from "@/shared/types/api";
 import { pluralizeProducts } from "@/shared/lib/format";
+import { VisibleImage } from "@/shared/ui/visible-image";
 
 export function SectionCards({ sections }: { sections: CatalogSection[] }) {
   return (
@@ -18,7 +19,7 @@ export function SectionCards({ sections }: { sections: CatalogSection[] }) {
             key={section.id}
             to={`/sections/${section.slug}`}
           >
-            <img alt={visual.alt} fetchPriority="high" src={visual.image} />
+            <VisibleImage alt={visual.alt} src={visual.image} />
             <div className="section-card__overlay" />
             <div className="section-card__content">
               <span className="section-card__count">

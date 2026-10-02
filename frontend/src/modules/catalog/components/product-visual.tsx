@@ -3,6 +3,7 @@ import { useState } from "react";
 import { responsiveImage } from "@/modules/catalog/lib/responsive-image";
 import type { Product } from "@/shared/types/api";
 import { CategoryIcon } from "@/shared/ui/category-icon";
+import { VisibleImage } from "@/shared/ui/visible-image";
 
 export function ProductVisual({
   product,
@@ -18,11 +19,12 @@ export function ProductVisual({
 
   if (product.image_url && failedUrl !== product.image_url) {
     return (
-      <img
+      <VisibleImage
         alt={product.name}
         className="product-visual__image"
         decoding="async"
         loading="lazy"
+        rootMargin="200px"
         onError={() => {
           if (
             Object.values(product.image_variants ?? {}).some(

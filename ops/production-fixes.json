@@ -382,6 +382,16 @@
         "Supplier media replacement clears primary variant metadata even when the public source URL stays the same; new gallery rows already have no variants. The common generator then reads the new original. Seven supplier import regressions passed, including same-URL refresh and incomplete-gallery preservation.",
         "Shared supplier import regression confirms stale primary metadata is invalidated on same-URL media replacement; incomplete gallery stays untouched."
       ]
+    },
+    {
+      "id": "O11",
+      "priority": "P2",
+      "title": "Фото карточек и баннеры вне экрана конкурируют с видимым контентом",
+      "status": "validated",
+      "checks": [
+        "125 frontend tests, build, lint passed. Existing VisibleImage reused: cards preload within 200px, gallery retains 0px, section cards wait until visible.",
+        "Local 390px/1440px browser checks: all images load on scrolling; 22-photo gallery remains usable; no page errors. Mobile initial home banners 3 to 1, initial catalog images 12 to 6."
+      ]
     }
   ],
   "deployments": [
