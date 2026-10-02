@@ -726,7 +726,6 @@ async def import_eti_workbook(
     }
     if FALLBACK_CATEGORY not in categories:
         raise ValueError(f"Fallback category '{FALLBACK_CATEGORY}' is missing")
-    categories_by_id = {category.id: category for category in categories.values()}
     subcategories = {
         (subcategory.category_id, subcategory.name): subcategory
         for subcategory in (await session.execute(select(Subcategory))).scalars().all()
@@ -908,15 +907,6 @@ async def import_eti_workbook(
                     product.brand = brand_name
                     product.price = row.price
                 outcome.updated += 1
-
-            actual_category = (
-                category
-                if product is None or remap_categories
-                else categories_by_id[product.category_id]
-            )
-            outcome.per_category[actual_category.slug] = (
-                outcome.per_category.get(actual_category.slug, 0) + 1
-            )
 
             specifications = workbook.specifications.get(row.sku, [])
             attributes = _product_attributes(

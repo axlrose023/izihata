@@ -57,9 +57,7 @@ _TRANSLITERATION = dict(zip(_CYRILLIC, _LATIN, strict=True))
 def normalize_sku(value: object) -> str:
     sku = normalize_text(value)
     if _SKU_PATTERN.fullmatch(sku) is None:
-        raise ValueError(
-            "SKU cannot contain whitespace"
-        )
+        raise ValueError("SKU cannot contain whitespace")
     return sku
 
 
