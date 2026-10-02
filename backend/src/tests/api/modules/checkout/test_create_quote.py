@@ -3,6 +3,8 @@ import uuid
 import pytest
 from httpx import AsyncClient
 
+from app.api.modules.catalog.enums import StockStatus
+
 
 @pytest.mark.asyncio
 class TestCreateQuote:
@@ -68,3 +70,34 @@ class TestCreateQuote:
         )
 
         assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("status", [StockStatus.OUT_OF_STOCK, StockStatus.PREORDER])
+async def test_stock_policy_applies_to_quote_and_order(
+    client, product, uow, order_payload, idempotency_key, status
+):
+    original_status = product.stock_status
+    product.stock_status = status
+    await uow.commit()
+    try:
+        quote = await client.post(
+            "/api/v1/checkout/quote",
+            json={"items": [{"product_id": str(product.id), "quantity": 2}]},
+        )
+        order = await client.post(
+            "/api/v1/orders",
+            json=order_payload(product.id),
+            headers={"Idempotency-Key": idempotency_key},
+        )
+        if status == StockStatus.OUT_OF_STOCK:
+            assert quote.status_code == order.status_code == 422
+            assert (
+                quote.json()["code"] == order.json()["code"] == "products_unavailable"
+            )
+        else:
+            assert quote.status_code == 200, quote.text
+            assert order.status_code == 201, order.text
+    finally:
+        product.stock_status = original_status
+        await uow.commit()

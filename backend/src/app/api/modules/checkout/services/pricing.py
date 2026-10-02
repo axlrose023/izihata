@@ -4,6 +4,7 @@ from decimal import Decimal
 from uuid import UUID
 
 from app.api.common.exceptions import UnprocessableError
+from app.api.modules.catalog.enums import StockStatus
 from app.api.modules.catalog.models import Product
 from app.api.modules.checkout.enums import QuotePriceType
 from app.api.modules.checkout.schema import (
@@ -46,6 +47,14 @@ class PricingService:
         if missing_ids:
             raise UnprocessableError(
                 "One or more products are unavailable",
+                code="products_unavailable",
+            )
+
+        if any(
+            product.stock_status == StockStatus.OUT_OF_STOCK for product in products
+        ):
+            raise UnprocessableError(
+                "One or more products are out of stock",
                 code="products_unavailable",
             )
 
