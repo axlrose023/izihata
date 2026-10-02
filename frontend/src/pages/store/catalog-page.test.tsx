@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -8,21 +9,15 @@ import {
 } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { afterEach, expect, it, vi } from "vitest";
-import { productFixture } from "@/tests/product-fixture";
+import { productListFixture } from "@/tests/product-fixture";
+import { fetchProducts } from "@/modules/catalog/api/catalog-api";
+import { ApiError } from "@/shared/api/errors";
 import { CatalogPage } from "./catalog-page";
 vi.mock("@/modules/catalog/api/catalog-api", () => ({
   fetchCategories: async () => [
     { id: "cat", slug: "tools", name: "Tools", subcategories: [] },
   ],
-  fetchProducts: async () => ({
-    items: [productFixture()],
-    total: 1,
-    total_pages: 1,
-    page: 1,
-    page_size: 24,
-    has_next: false,
-    has_prev: false,
-  }),
+  fetchProducts: vi.fn(async () => productListFixture()),
 }));
 vi.mock("@/modules/catalog/components/catalog-filters", () => ({
   CatalogFilters: () => null,
@@ -58,4 +53,54 @@ it("preserves repeated filters and resets only pagination during mobile search",
   expect(params.get("spec")).toBe("x:16");
   expect(params.get("sort")).toBe("price_asc");
   expect(params.has("page")).toBe(false);
+});
+
+it("marks retained results as updating and exposes a failed refresh", async () => {
+  vi.mocked(fetchProducts).mockResolvedValue(productListFixture());
+  const router = createMemoryRouter(
+    [{ path: "/catalog", element: <CatalogPage /> }],
+    { initialEntries: ["/catalog"] },
+  );
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  const view = render(
+    <QueryClientProvider client={client}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>,
+  );
+  await screen.findByRole("textbox", { name: "Пошук у каталозі" });
+  let resolve!: (value: ReturnType<typeof productListFixture>) => void;
+  vi.mocked(fetchProducts).mockImplementationOnce(
+    () =>
+      new Promise((done) => {
+        resolve = done;
+      }),
+  );
+  await act(async () => {
+    await router.navigate("/catalog?search=new");
+  });
+  await screen.findByText("Оновлюємо товари за обраними умовами…");
+  expect(view.container.querySelector(".catalog-results")).toHaveAttribute(
+    "aria-busy",
+    "true",
+  );
+  expect(view.container.querySelectorAll(".product-card")).toHaveLength(1);
+  await act(async () => {
+    resolve(productListFixture());
+  });
+  await waitFor(() =>
+    expect(view.container.querySelector(".catalog-results")).toHaveAttribute(
+      "aria-busy",
+      "false",
+    ),
+  );
+  vi.mocked(fetchProducts).mockRejectedValueOnce(
+    new ApiError(503, "Unavailable", undefined, "service_unavailable"),
+  );
+  await act(async () => {
+    await client.invalidateQueries({ queryKey: ["catalog", "products"] });
+  });
+  await screen.findByRole("alert");
+  expect(screen.getByRole("button", { name: "Повторити" })).toBeInTheDocument();
 });

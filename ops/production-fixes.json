@@ -104,8 +104,10 @@
       "id": "R12",
       "priority": "P2",
       "title": "Смена условий оставляет старые карточки без признака обновления",
-      "status": "pending",
-      "checks": []
+      "status": "implemented",
+      "checks": [
+        "2 catalog UI regressions passed: old cards marked aria-busy during filter changes, pending status visible, background failures show retry; typecheck/lint passed."
+      ]
     },
     {
       "id": "R13",

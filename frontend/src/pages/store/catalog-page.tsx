@@ -250,7 +250,10 @@ export function CatalogPage({
           total={products.total}
         />
 
-        <section className="catalog-results">
+        <section
+          className="catalog-results"
+          aria-busy={productsResult.isFetching}
+        >
           <div className="catalog-toolbar">
             <span>Знайдено: {products.total}</span>
             <label>
@@ -290,6 +293,18 @@ export function CatalogPage({
             </div>
           </div>
           <ActiveFilters resetHref={basePath} />
+          {productsResult.isFetching ? (
+            <p className="inline-note" role="status">
+              Оновлюємо товари за обраними умовами…
+            </p>
+          ) : null}
+          {productsResult.isError ? (
+            <ErrorNotice
+              error={productsResult.error}
+              fallback="Не вдалося оновити товари."
+              onRetry={() => void productsResult.refetch()}
+            />
+          ) : null}
           {products.items.length ? (
             <div
               className="product-grid product-grid--catalog"

@@ -1,4 +1,4 @@
-import type { Product, ProductDetail } from "@/shared/types/api";
+import type { Product, ProductDetail, ProductList } from "@/shared/types/api";
 
 export function productFixture(overrides: Partial<Product> = {}): Product {
   return {
@@ -44,6 +44,28 @@ export function productDetailFixture(
     alternatives: [],
     bought_together: [],
     specifications: [],
+    ...overrides,
+  };
+}
+
+export function productListFixture(
+  overrides: Partial<ProductList> = {},
+): ProductList {
+  return {
+    items: [productFixture()],
+    total: 1,
+    page: 1,
+    page_size: 24,
+    total_pages: 1,
+    has_next: false,
+    has_prev: false,
+    facets: {
+      brands: [],
+      specs: {},
+      availability: [],
+      sale_units: [],
+      price: { minimum: null, maximum: null },
+    },
     ...overrides,
   };
 }
