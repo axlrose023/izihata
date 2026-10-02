@@ -44,7 +44,7 @@
       "id": "R05",
       "priority": "P2",
       "title": "Корзина принимает дробное количество, которое API отклоняет",
-      "status": "implemented",
+      "status": "verified",
       "checks": [
         "4 cart regressions passed, including persisted fractional quantities; one integer normalizer shared by cart and product controls; typecheck and lint passed."
       ]
@@ -53,7 +53,7 @@
       "id": "R06",
       "priority": "P2",
       "title": "Корзина разрешает больше строк, чем контракт checkout",
-      "status": "implemented",
+      "status": "verified",
       "checks": [
         "11 cart, checkout and advisor regressions passed; limit 100 lines enforced, bundle additions atomic, oversized persisted carts retained for manual editing."
       ]
@@ -62,35 +62,38 @@
       "id": "R07",
       "priority": "P2",
       "title": "Цена в боковой корзине может устареть",
-      "status": "implemented",
+      "status": "verified",
       "checks": [
         "14 cart/checkout regressions passed; opening the cart refreshes current product metadata without changing quantities or removing unavailable lines, checkout renders server quote unit prices; TypeScript/lint passed.",
-        "End-to-end cart assertion now checks the estimated sum label; final payable total remains authoritative in checkout."
+        "End-to-end cart assertion now checks the estimated sum label; final payable total remains authoritative in checkout.",
+        "Production persisted price 999999 refreshed to 156.00; quantity 3 retained; checkout displayed server total 468.00."
       ]
     },
     {
       "id": "R08",
       "priority": "P2",
       "title": "При возврате к закэшированному товару исчезает фото",
-      "status": "implemented",
+      "status": "verified",
       "checks": [
-        "Gallery regressions passed for cached navigation, shrinking media and failed derivatives/originals; product content keyed by identity resets quantity, tab and review state; typecheck/lint passed."
+        "Gallery regressions passed for cached navigation, shrinking media and failed derivatives/originals; product content keyed by identity resets quantity, tab and review state; typecheck/lint passed.",
+        "Production 22-photo gallery switches to its final image; cached gallery regressions and browser navigation passed."
       ]
     },
     {
       "id": "R09",
       "priority": "P2",
       "title": "Canonical и description остаются от предыдущего товара",
-      "status": "implemented",
+      "status": "verified",
       "checks": [
-        "3 metadata regressions passed; all title-only pages update canonical/description and clear previous product data; Open Graph fields updated; duplicate title effects removed; typecheck/lint passed."
+        "3 metadata regressions passed; all title-only pages update canonical/description and clear previous product data; Open Graph fields updated; duplicate title effects removed; typecheck/lint passed.",
+        "Six real public routes have correct canonical metadata; product data clears on navigation in metadata regressions."
       ]
     },
     {
       "id": "R10",
       "priority": "P2",
       "title": "Номер страницы допускает переполнение SQL OFFSET",
-      "status": "implemented",
+      "status": "verified",
       "checks": [
         "2 pagination regressions passed; OpenAPI page bounds guarantee OFFSET fits signed BIGINT at every supported page size; overflowing requests return 422."
       ]
@@ -99,7 +102,7 @@
       "id": "R11",
       "priority": "P2",
       "title": "Мобильный поиск сбрасывает фильтры",
-      "status": "implemented",
+      "status": "verified",
       "checks": [
         "Mobile catalog search regression passed: repeated brands, specifications and sort retained while pagination resets; TypeScript and lint passed."
       ]
@@ -108,7 +111,7 @@
       "id": "R12",
       "priority": "P2",
       "title": "Смена условий оставляет старые карточки без признака обновления",
-      "status": "implemented",
+      "status": "verified",
       "checks": [
         "2 catalog UI regressions passed: old cards marked aria-busy during filter changes, pending status visible, background failures show retry; typecheck/lint passed."
       ]
@@ -117,7 +120,7 @@
       "id": "R13",
       "priority": "P2",
       "title": "Обещание отслеживания гостевого заказа ведёт в недоступную историю",
-      "status": "implemented",
+      "status": "verified",
       "checks": [
         "7 checkout/success-page regressions passed; guests get order-number instructions, history link only for orders created in an authenticated account; selected delivery method preserved."
       ]
@@ -126,7 +129,7 @@
       "id": "R14",
       "priority": "P2",
       "title": "Несогласованные тексты доставки, возврата и оплаты",
-      "status": "implemented",
+      "status": "verified",
       "checks": [
         "Checkout regression asserts truthful payment text; shipping/return placeholders and unsupported payment-gateway promise removed; typecheck and lint passed."
       ]
@@ -135,7 +138,7 @@
       "id": "R15",
       "priority": "P3",
       "title": "Контракт изменения media меньше существующих галерей",
-      "status": "implemented",
+      "status": "verified",
       "checks": [
         "Gallery contract regression passed: 22 ordered images accepted without truncation; write limit raised to 100 to match existing galleries while remaining bounded."
       ]
@@ -144,22 +147,24 @@
       "id": "R16",
       "priority": "P3",
       "title": "Счётчики посетителей неустойчивы к параллельности и повтору заказа",
-      "status": "implemented",
+      "status": "verified",
       "checks": [
         "17 activity/order tests passed; SQL increments are atomic and idempotent order retries do not count a second contact; added PostgreSQL concurrency regression.",
-        "PostgreSQL integration: 50 concurrent first visits and 50 contacts accumulated exactly 50/50, including creation races; full backend suite 333 passed."
+        "PostgreSQL integration: 50 concurrent first visits and 50 contacts accumulated exactly 50/50, including creation races; full backend suite 333 passed.",
+        "PostgreSQL 50 concurrent visits/contacts yielded exactly 50/50; idempotent orders and session concurrency tests passed."
       ]
     },
     {
       "id": "R17",
       "priority": "P3",
       "title": "Прямые HTML-ответы не содержат данных страницы; несуществующий URL отдаёт 200",
-      "status": "implemented",
+      "status": "verified",
       "checks": [
         "15 backend HTML/API contract tests passed; meaningful public HTML with canonical/Open Graph/JSON-LD, exact 404/422/503 statuses, escaped supplier data and script-safe JSON; nginx syntax validated. 6 local browser routes passed; robots metadata resets on valid navigation.",
         "Contract regression caught a fallback overriding API 405; fixed by letting the original router handle wrong methods. Known API wrong-method and unknown API 404 checks now pass (15 targeted tests).",
         "20 HTML/API tests passed, including GET on POST-only orders preserving 405/Allow POST. Public route excludes the API namespace before matching; removed special-case response rewriting. Standalone frontend health probes static index.html.",
-        "Repeated scalar category parameters now validate the same first value as browser URLSearchParams and the seeded product query. Fifteen public-page regressions passed; valid category plus a later unknown duplicate remains HTTP 200."
+        "Repeated scalar category parameters now validate the same first value as browser URLSearchParams and the seeded product query. Fifteen public-page regressions passed; valid category plus a later unknown duplicate remains HTTP 200.",
+        "Production meaningful HTML and seeded data confirmed on six routes; unknown page/API 404, invalid method 405/Allow POST, and repeated category parameters checked."
       ]
     },
     {
@@ -175,7 +180,7 @@
       "id": "R19",
       "priority": "P2",
       "title": "Переименование бренда разрывает связь с его товарами",
-      "status": "implemented",
+      "status": "verified",
       "checks": [
         "12 brand/media API tests passed; brand rename updates product membership in the same transaction, preserves slug, rejects collisions; row locked against concurrent renames."
       ]
@@ -184,7 +189,7 @@
       "id": "R20",
       "priority": "P2",
       "title": "Номер выбранного отделения или поштомата теряется при оформлении",
-      "status": "implemented",
+      "status": "verified",
       "checks": [
         "4 checkout regressions passed; selected point submits the full provider description including branch/locker number, not its short address.",
         "End-to-end directory assertion now checks full branch number, matching the corrected provider name field."
@@ -194,27 +199,30 @@
       "id": "R21",
       "priority": "P2",
       "title": "Недоступные товары остаются в избранном без возможности очистки",
-      "status": "implemented",
+      "status": "verified",
       "checks": [
-        "2 collection regressions passed; missing items can be explicitly removed, all collections can be cleared, failures preserve saved IDs, requests cancelled on changes."
+        "2 collection regressions passed; missing items can be explicitly removed, all collections can be cleared, failures preserve saved IDs, requests cancelled on changes.",
+        "Production missing favorite explicitly removed; persisted collection became empty without automatic deletion."
       ]
     },
     {
       "id": "R22",
       "priority": "P2",
       "title": "Временная ошибка quote сбрасывает выбранный промокод",
-      "status": "implemented",
+      "status": "verified",
       "checks": [
-        "5 checkout regressions passed; promo retained beyond prior 6-second expiry through 503 errors, explicit retry retains code, submission disabled while quote is invalid."
+        "5 checkout regressions passed; promo retained beyond prior 6-second expiry through 503 errors, explicit retry retains code, submission disabled while quote is invalid.",
+        "Production browser simulated quote 503 retained promo beyond 7 seconds and withheld invalid totals."
       ]
     },
     {
       "id": "R23",
       "priority": "P2",
       "title": "Сбой загрузки выдаётся за отсутствие бренда",
-      "status": "implemented",
+      "status": "verified",
       "checks": [
-        "Brand page regression passed: 503 shows an error and retry, missing-brand state appears only after a successful empty response; typecheck and lint passed."
+        "Brand page regression passed: 503 shows an error and retry, missing-brand state appears only after a successful empty response; typecheck and lint passed.",
+        "Production SPA navigation with simulated brands 503 displayed retry instead of a missing-brand state."
       ]
     },
     {
@@ -223,14 +231,15 @@
       "title": "Выбор города клавиатурой падает после обновления подсказок",
       "status": "verified",
       "checks": [
-        "2 autocomplete regressions passed: shortened and reordered suggestions; selected references remain valid."
+        "2 autocomplete regressions passed: shortened and reordered suggestions; selected references remain valid.",
+        "Real delivery autocomplete changed from 12 to 9 options while selecting by keyboard; no browser errors."
       ]
     },
     {
       "id": "O01",
       "priority": "P2",
       "title": "Отложить формы обращений и их зависимости",
-      "status": "implemented",
+      "status": "verified",
       "checks": [
         "3 lead-form regressions passed; closed forms are unmounted and dynamically imported; main JavaScript reduced 453.97 to 345.46 KB, gzip 140.49 to 108.13 KB; build and lint passed.",
         "Full frontend suite 118 passed; lazy-form regression allows 3 seconds for module import under concurrent test load while retaining mount/unmount checks."
@@ -240,7 +249,7 @@
       "id": "O02",
       "priority": "P2",
       "title": "Готовить размеры фото под карточку",
-      "status": "implemented",
+      "status": "verified",
       "checks": [
         "321 backend and 94 frontend tests passed; original URLs retained, WebP sizes preserve alpha and ratio, stale variants ignored; storage transport reused by supplier imports.",
         "Production sample thumbnails: 7,654 bytes vs original 23,456 bytes. Follow-up prevents larger derivatives and keeps full-size originals; 4 image regressions passed.",
@@ -249,14 +258,15 @@
         "Production diagnosis: 20 thumbnails were simultaneously visible in wrapped mobile gallery; changed to a horizontally scrollable strip so only visible images compete with the main image; 3 regressions passed.",
         "5 image regressions passed including concurrency bounds, fast resume without rewriting complete rows, and repair of missing gallery metadata without re-downloading originals. Upload concurrency configurable 1–32; encoders still limited to 2, product-scoped CLI reuses the same pipeline.",
         "Production batch identified a real animated supplier GIF. Preserve animation by counting it as deliberately skipped rather than a conversion failure; do not write flattened metadata. Six image regressions passed, including no DB writes for animated input.",
-        "Measured production conversion waits on storage with about one CPU used of the two reserved. Permit an explicitly selected maximum of 16 source workers while retaining two encoders and independent upload bounds; default remains 2. Eight regressions passed for 2/8/16 workers, bounded uploads, resume, original fallback and animated skips."
+        "Measured production conversion waits on storage with about one CPU used of the two reserved. Permit an explicitly selected maximum of 16 source workers while retaining two encoders and independent upload bounds; default remains 2. Eight regressions passed for 2/8/16 workers, bounded uploads, resume, original fallback and animated skips.",
+        "Production complete: 22617 primary images and 45197 gallery images have matching WebP-v2 metadata. Two original animated GIFs return HTTP 200 with 255/207 frames. Original catalog row fingerprints identical."
       ]
     },
     {
       "id": "O03",
       "priority": "P2",
       "title": "Уменьшить лишнюю работу выдачи и рекомендаций",
-      "status": "implemented",
+      "status": "verified",
       "checks": [
         "65 backend regressions and 3 catalog UI tests passed; public lists load PRIMARY specifications only, detail reloads all sources, recommendation requests start on visibility; typecheck/lint passed."
       ]
@@ -265,44 +275,48 @@
       "id": "O04",
       "priority": "P2",
       "title": "Сократить повторную работу справочников и facets",
-      "status": "implemented",
+      "status": "verified",
       "checks": [
-        "110 cache/catalog/admin regressions passed; invalidation follows successful catalog commits, outages/corrupt values fall back to SQL, concurrent misses are coalesced. Full-catalog PostgreSQL/Redis benchmark: repeated directories/facets 1.0–1.8 ms with zero SQL queries; facets cold 26.1 ms."
+        "110 cache/catalog/admin regressions passed; invalidation follows successful catalog commits, outages/corrupt values fall back to SQL, concurrent misses are coalesced. Full-catalog PostgreSQL/Redis benchmark: repeated directories/facets 1.0–1.8 ms with zero SQL queries; facets cold 26.1 ms.",
+        "Actual production cached categories/sections/facets took 0.949/1.617/1.047 ms and performed zero SQL queries; cold facets took 46.806 ms."
       ]
     },
     {
       "id": "O05",
       "priority": "P3",
       "title": "Оптимизировать поиск на основании плана SQL",
-      "status": "implemented",
+      "status": "verified",
       "checks": [
-        "PostgreSQL EXPLAIN on all 23,736 catalog products: search medians Hager 30.627 to 9.538 ms, ETIMAT 40.568 to 1.913 ms, partial SKU 28.147 to 0.249 ms; concurrent GIN index migration preserves query semantics."
+        "PostgreSQL EXPLAIN on all 23,736 catalog products: search medians Hager 30.627 to 9.538 ms, ETIMAT 40.568 to 1.913 ms, partial SKU 28.147 to 0.249 ms; concurrent GIN index migration preserves query semantics.",
+        "Production indexed ETIMAT and partial-SKU queries measured 2.155/0.930 ms; complete ordering preserved by PostgreSQL comparison tests."
       ]
     },
     {
       "id": "O06",
       "priority": "P3",
       "title": "Оставить глубокую пагинацию под наблюдением",
-      "status": "implemented",
+      "status": "verified",
       "checks": [
-        "55 catalog regressions and 90 PostgreSQL comparisons passed across all six sorts, first/deep/empty pages, brands and search; narrow-ID paging preserved every ordered result. EXPLAIN deep popular page 201.821 to 13.213 ms."
+        "55 catalog regressions and 90 PostgreSQL comparisons passed across all six sorts, first/deep/empty pages, brands and search; narrow-ID paging preserved every ordered result. EXPLAIN deep popular page 201.821 to 13.213 ms.",
+        "Actual production deep popular query: full-row paging 136.115 ms versus narrow-ID paging 19.883 ms."
       ]
     },
     {
       "id": "O07",
       "priority": "P3",
       "title": "Начинать нужные запросы раньше при переходах",
-      "status": "implemented",
+      "status": "verified",
       "checks": [
         "4 seed regressions passed; public API paths shared between transport/query options, parameter-aware seeds retain receipt time and exclude private data. Local compiled browser: home/product/section start with zero API fetches; catalog/brand need only filter facets, no duplicate initial product request.",
-        "Load checker includes server-rendered homepage in the shared catalog rate-limit budget; 12 bounded-load regressions passed including rejection of the formerly underestimated budget."
+        "Load checker includes server-rendered homepage in the shared catalog rate-limit budget; 12 bounded-load regressions passed including rejection of the formerly underestimated budget.",
+        "Production home/product/section start with zero duplicate catalog fetches; catalog and brand need only facets."
       ]
     },
     {
       "id": "O08",
       "priority": "P3",
       "title": "Ограничить сетевое ожидание Redis для HTTP-запросов",
-      "status": "implemented",
+      "status": "verified",
       "checks": [
         "11 settings/Redis tests passed; HTTP Redis connect/read bounded to one second by default, configurable within 10 seconds; blocking task queue remains unchanged."
       ]
@@ -311,7 +325,7 @@
       "id": "O09",
       "priority": "P3",
       "title": "Настроить реальные товарные подборки главной",
-      "status": "implemented",
+      "status": "verified",
       "checks": [
         "2 homepage rail regressions passed; default selection now shows real catalog products without inventing popularity/badges, requests wait for visibility, errors show retry; typecheck/lint passed.",
         "Browser suite updated to the actual catalog selection heading; fixture-based end-to-end flow covers the new default rail.",
@@ -322,46 +336,51 @@
       "id": "R25",
       "priority": "P2",
       "title": "Проверка прод-сервисов включает одноразовые CLI-контейнеры",
-      "status": "implemented",
+      "status": "verified",
       "checks": [
-        "Found during production verification with isolated media worker; shell syntax checked, one-off containers excluded while every regular instance is checked."
+        "Found during production verification with isolated media worker; shell syntax checked, one-off containers excluded while every regular instance is checked.",
+        "Repeated health checks correctly checked all six long-running services while excluding bounded one-off conversion jobs."
       ]
     },
     {
       "id": "R26",
       "priority": "P2",
       "title": "Открытые вкладки теряют отложенные JS-модули после деплоя",
-      "status": "implemented",
+      "status": "verified",
       "checks": [
-        "Production reproduced 404 for the previous product-page hashed chunk after deployment. Existing startup hook now retains hashed assets in a bounded 14-day volume. Nginx Alpine regression passed across two releases: new and previous chunks survive, expired files are removed. Current HTML stays in the release image."
+        "Production reproduced 404 for the previous product-page hashed chunk after deployment. Existing startup hook now retains hashed assets in a bounded 14-day volume. Nginx Alpine regression passed across two releases: new and previous chunks survive, expired files are removed. Current HTML stays in the release image.",
+        "A tab opened before changed frontend hashes navigated after deployment using its previous product-page-BEcRNtUr.js with HTTP 200; all 22 photos remained usable."
       ]
     },
     {
       "id": "O10",
       "priority": "P2",
       "title": "Карточка скачивает форму отзывов и её библиотеки до открытия вкладки",
-      "status": "implemented",
+      "status": "verified",
       "checks": [
         "Browser network capture identified the validation/form chunk being loaded while the reviews tab was hidden. Lazy loading starts only on first opening; the mounted form and draft remain intact on later tab changes. Dedicated regression passed for deferred mounting and retained input.",
-        "Full frontend suite 123 passed, lint/typecheck/build passed, and 65 browser scenarios passed with 3 viewport-specific skips. Product reviews retain drafts after hiding/reopening the tab."
+        "Full frontend suite 123 passed, lint/typecheck/build passed, and 65 browser scenarios passed with 3 viewport-specific skips. Product reviews retain drafts after hiding/reopening the tab.",
+        "Production downloaded no review/form-validation chunk while tab was closed; opening loaded the review module and retained the draft on tab switches."
       ]
     },
     {
       "id": "R27",
       "priority": "P1",
       "title": "Повторное сохранение фото и документов конфликтует с позициями и теряет варианты",
-      "status": "implemented",
+      "status": "verified",
       "checks": [
-        "Reproduced actual API 409 on repeating an unchanged gallery/documents patch. Delete obsolete positions and flush before inserting replacements within the same guarded transaction. Preserve image variant metadata by unchanged URL, including reordering the primary image. Twenty-eight admin regressions passed; four PostgreSQL regressions passed including repeat/reorder/restore with both collections."
+        "Reproduced actual API 409 on repeating an unchanged gallery/documents patch. Delete obsolete positions and flush before inserting replacements within the same guarded transaction. Preserve image variant metadata by unchanged URL, including reordering the primary image. Twenty-eight admin regressions passed; four PostgreSQL regressions passed including repeat/reorder/restore with both collections.",
+        "Production service repeated/reordered/restored all 22 gallery photos in an outer rollback transaction. Full product/media/document rows remained identical afterward."
       ]
     },
     {
       "id": "R28",
       "priority": "P2",
       "title": "Повторный импорт может оставить старые превью при обновлении фото по прежнему URL",
-      "status": "implemented",
+      "status": "verified",
       "checks": [
-        "Supplier media replacement clears primary variant metadata even when the public source URL stays the same; new gallery rows already have no variants. The common generator then reads the new original. Seven supplier import regressions passed, including same-URL refresh and incomplete-gallery preservation."
+        "Supplier media replacement clears primary variant metadata even when the public source URL stays the same; new gallery rows already have no variants. The common generator then reads the new original. Seven supplier import regressions passed, including same-URL refresh and incomplete-gallery preservation.",
+        "Shared supplier import regression confirms stale primary metadata is invalidated on same-URL media replacement; incomplete gallery stays untouched."
       ]
     }
   ],
@@ -380,6 +399,209 @@
         "6 services healthy; combined advisor returns six compatible breakers and cable capacity covers breaker nominal.",
         "Production browser directory-outage scenario: no address errors, order POST attempted once and blocked, cart retained."
       ]
+    },
+    {
+      "release": "b58ca5f",
+      "date": "2026-10-03",
+      "checks": [
+        "All six services healthy; actual cold mobile browser measurements and public bootstrap request counts recorded."
+      ]
+    },
+    {
+      "release": "46d98af",
+      "date": "2026-10-03",
+      "checks": [
+        "All six services healthy; API method contracts and open-tab navigation checked; 220 bounded requests across 1/5/10/20 concurrency, no errors."
+      ]
+    },
+    {
+      "release": "ebacb30",
+      "date": "2026-10-03",
+      "checks": [
+        "All six services healthy; duplicated category scalar uses the browser value; independent image job retains two encoders and bounded resource use."
+      ]
+    },
+    {
+      "release": "a1bd6a2",
+      "date": "2026-10-03",
+      "checks": [
+        "All six services healthy; fresh/previous frontend chunks, lazy reviews, gallery rollback probe, full media coverage and original catalog fingerprints checked.",
+        "220 bounded production requests across 1/5/10/20 concurrency all HTTP 200 with validated bodies; final p95 at 20 concurrency 433.68 ms."
+      ]
     }
-  ]
+  ],
+  "final_verification": {
+    "checked_at_utc": "2026-10-02T23:46:09.828578+00:00",
+    "code_release": "a1bd6a2",
+    "verified_items": 38,
+    "tests": {
+      "backend_passed": 359,
+      "frontend_passed": 123,
+      "postgres_redis_passed": 12,
+      "browser_passed": 65,
+      "browser_viewport_skipped": 3,
+      "frontend_lint_typecheck_build": "passed"
+    },
+    "production_load": {
+      "total_requests": 220,
+      "orders_created": 0,
+      "stages": [
+        {
+          "concurrency": 1,
+          "completed": 55,
+          "p50_ms": 14.69,
+          "p95_ms": 52.82,
+          "statuses": {
+            "200": 55
+          },
+          "errors": []
+        },
+        {
+          "concurrency": 5,
+          "completed": 55,
+          "p50_ms": 37.9,
+          "p95_ms": 208.14,
+          "statuses": {
+            "200": 55
+          },
+          "errors": []
+        },
+        {
+          "concurrency": 10,
+          "completed": 55,
+          "p50_ms": 83.71,
+          "p95_ms": 238.35,
+          "statuses": {
+            "200": 55
+          },
+          "errors": []
+        },
+        {
+          "concurrency": 20,
+          "completed": 55,
+          "p50_ms": 199.09,
+          "p95_ms": 433.68,
+          "statuses": {
+            "200": 55
+          },
+          "errors": []
+        }
+      ]
+    },
+    "catalog_integrity": {
+      "original_rows_unchanged": true,
+      "products": 23736,
+      "attributes": 408361,
+      "media": 45199,
+      "product_data": "df70341527fa9c985d27b46e8bd30828",
+      "attribute_data": "d9d597503ed0ffa9f2882454a58008c3",
+      "media_data": "b965779dab3c37b68be343ad913148fc"
+    },
+    "image_coverage": {
+      "product_images": 22617,
+      "product_variants": 22617,
+      "gallery_images": 45199,
+      "gallery_variants": 45197,
+      "originals_without_variants": [
+        "https://izihata-product-media.b-cdn.net/products/enext/p0660023/4.gif",
+        "https://izihata-product-media.b-cdn.net/products/enext/p0660401/3.gif"
+      ]
+    },
+    "backup": {
+      "restored_snapshot": "daily-20261002T224822Z",
+      "restore": "passed in isolated server container",
+      "new_snapshot": "daily-20261002T234036Z",
+      "storage": "server only"
+    },
+    "cold_mobile_browser": [
+      {
+        "scenario": "home",
+        "path": "/",
+        "conditions": "CPU 4x, 1.6Mbps, RTT150ms, cold cache",
+        "content_ms": 2858,
+        "first_image_ms": null,
+        "requests_at_capture": 30,
+        "images_started": 3,
+        "image_bytes_completed_at_capture": 0,
+        "api": [],
+        "page_errors": []
+      },
+      {
+        "scenario": "product_22_photos",
+        "path": "/products/i0600006",
+        "conditions": "CPU 4x, 1.6Mbps, RTT150ms, cold cache",
+        "content_ms": 2647,
+        "first_image_ms": 3118,
+        "requests_at_capture": 27,
+        "images_started": 6,
+        "image_bytes_completed_at_capture": 75446,
+        "api": [],
+        "page_errors": []
+      },
+      {
+        "scenario": "section",
+        "path": "/sections/home-repair",
+        "conditions": "CPU 4x, 1.6Mbps, RTT150ms, cold cache",
+        "content_ms": 2323,
+        "first_image_ms": 2884,
+        "requests_at_capture": 18,
+        "images_started": 1,
+        "image_bytes_completed_at_capture": 36914,
+        "api": [],
+        "page_errors": []
+      },
+      {
+        "scenario": "brand_catalog",
+        "path": "/brands/hager",
+        "conditions": "CPU 4x, 1.6Mbps, RTT150ms, cold cache",
+        "content_ms": 2551,
+        "first_image_ms": 3010,
+        "requests_at_capture": 38,
+        "images_started": 12,
+        "image_bytes_completed_at_capture": 86715,
+        "api": [
+          {
+            "url": "https://izihata.com.ua/api/v1/catalog/facets?brand=Hager",
+            "type": "Fetch",
+            "start_ms": 2540,
+            "status": 200,
+            "response_ms": 2824,
+            "encoded_bytes": 344,
+            "finished_ms": 2827
+          }
+        ],
+        "page_errors": []
+      }
+    ],
+    "production_cache": {
+      "categories_cold": {
+        "ms": 108.594,
+        "sql_queries": 3
+      },
+      "categories_cached": {
+        "ms": 0.949,
+        "sql_queries": 0
+      },
+      "sections_cold": {
+        "ms": 22.795,
+        "sql_queries": 4
+      },
+      "sections_cached": {
+        "ms": 1.617,
+        "sql_queries": 0
+      },
+      "facets_cold": {
+        "ms": 46.806,
+        "sql_queries": 4
+      },
+      "facets_cached": {
+        "ms": 1.047,
+        "sql_queries": 0
+      }
+    },
+    "deferred_by_user": [
+      "Manager notification channel; two existing dead notification events remain."
+    ],
+    "cleanup": "Owned local audit servers/databases and finished production conversion/restore containers removed."
+  }
 }
