@@ -1,3 +1,4 @@
+import logging
 from typing import Annotated
 
 from dishka import FromDishka
@@ -14,6 +15,8 @@ from app.api.modules.orders.schema import CreateOrderRequest, OrderResponse
 from app.api.modules.orders.service import OrderCreationService
 
 router = APIRouter(route_class=DishkaRoute)
+
+logger = logging.getLogger(__name__)
 
 
 @router.post(
@@ -50,10 +53,16 @@ async def create_order(
         customer_id=customer.id if customer is not None else None,
         contact_email=contact_email,
     )
-    await tracking.record_contact(
-        visitor_key_from(http_request),
-        name=request.customer_name,
-        phone=request.phone,
-        kind="order",
-    )
+    try:
+        await tracking.record_contact(
+            visitor_key_from(http_request),
+            name=request.customer_name,
+            phone=request.phone,
+            kind="order",
+        )
+    except Exception:
+        logger.warning(
+            "The persisted order could not be added to visitor tracking",
+            exc_info=True,
+        )
     return order
