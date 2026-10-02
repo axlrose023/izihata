@@ -82,6 +82,10 @@ services:
       traefik.http.routers.izihata-api.priority: "100"
       traefik.http.routers.izihata-api.middlewares: izihata-security@docker
       traefik.http.services.izihata-api.loadbalancer.server.port: "8000"
+      traefik.http.services.izihata-api.loadbalancer.healthcheck.path: /ready
+      traefik.http.services.izihata-api.loadbalancer.healthcheck.hostname: izihata.com.ua
+      traefik.http.services.izihata-api.loadbalancer.healthcheck.interval: 10s
+      traefik.http.services.izihata-api.loadbalancer.healthcheck.timeout: 3s
     depends_on:
       cache:
         condition: service_healthy
