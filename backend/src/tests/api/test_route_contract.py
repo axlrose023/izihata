@@ -25,6 +25,7 @@ def test_openapi_contains_only_confirmed_business_routes(app: FastAPI):
         ("GET", "/api/v1/catalog/sections"),
         ("GET", "/api/v1/catalog/products"),
         ("GET", "/api/v1/catalog/products/{product_slug}"),
+        ("GET", "/api/v1/catalog/products/{product_slug}/reviews"),
         ("POST", "/api/v1/catalog/products/{product_slug}/reviews"),
         (
             "POST",
@@ -70,6 +71,7 @@ def test_openapi_contains_only_confirmed_business_routes(app: FastAPI):
         ("POST", "/api/v1/admin/catalog/sections"),
         ("PATCH", "/api/v1/admin/catalog/sections/{section_id}"),
         ("GET", "/api/v1/admin/orders"),
+        ("GET", "/api/v1/admin/orders/{order_id}"),
         ("PATCH", "/api/v1/admin/orders/{order_id}/status"),
         ("GET", "/api/v1/admin/leads"),
         ("PATCH", "/api/v1/admin/leads/{lead_id}/status"),

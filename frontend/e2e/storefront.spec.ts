@@ -93,7 +93,7 @@ test("public routes render and product navigation works", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Відгуки" })).toBeVisible();
   await page.getByRole("tab", { name: "Гарантія та повернення" }).click();
   await expect(
-    page.getByText("Офіційна гарантія та повернення протягом 14 днів"),
+    page.getByText(/Умови гарантії та повернення уточніть у менеджера/),
   ).toBeVisible();
   await page.getByRole("tab", { name: "Характеристики" }).click();
   const specificationHeading = page.getByRole("heading", {

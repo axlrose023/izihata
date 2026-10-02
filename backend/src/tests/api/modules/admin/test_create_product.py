@@ -2,8 +2,9 @@ import uuid
 from uuid import UUID
 
 import pytest
+import pytest_asyncio
 from httpx import AsyncClient
-from sqlalchemy import delete
+from sqlalchemy import delete, select
 
 from app.api.modules.catalog.models import Product
 from app.database.uow import UnitOfWork
@@ -32,6 +33,15 @@ def product_payload(product, **overrides):
 class TestCreateProduct:
     endpoint = "/api/v1/admin/catalog/products"
 
+    @pytest_asyncio.fixture(autouse=True)
+    async def clean_created_products(self, uow):
+        original_ids = set((await uow.session.scalars(select(Product.id))).all())
+        yield
+        await uow.session.execute(
+            delete(Product).where(Product.id.not_in(original_ids))
+        )
+        await uow.commit()
+
     async def test_creates_product_available_through_public_api(
         self,
         client: AsyncClient,
@@ -48,7 +58,7 @@ class TestCreateProduct:
 
         assert response.status_code == 201, response.text
         body = response.json()
-        assert body["sku"] == "QA-API-20001"
+        assert body["sku"] == "qa-api-20001"
         assert body["slug"] == "qa-api-20001"
         assert body["specs"] == payload["specs"]
         assert body["category"]["id"] == payload["category_id"]
@@ -75,7 +85,7 @@ class TestCreateProduct:
     ):
         response = await client.post(
             self.endpoint,
-            json=product_payload(product, sku=product.sku.lower()),
+            json=product_payload(product, sku=product.sku),
             headers={"Authorization": f"Bearer {authenticated_user['access_token']}"},
         )
 
@@ -122,7 +132,7 @@ class TestCreateProduct:
             ({"old_price": "1.00"}, 422),
             ({"image_url": "javascript:alert(1)"}, 422),
             ({"specs": {"": "value"}}, 422),
-            ({"sku": "КИРИЛИЦЯ-1"}, 422),
+            ({"sku": "SKU WITH SPACE"}, 422),
             ({"stock_quantity": -1}, 422),
         ],
     )
@@ -141,3 +151,27 @@ class TestCreateProduct:
         )
 
         assert response.status_code == expected_status
+
+    @pytest.mark.parametrize("sku", ["КИРИЛИЦЯ-1", "mixedCase-2.5/3"])
+    async def test_preserves_supplier_sku(
+        self, client, authenticated_user, product, sku
+    ):
+        response = await client.post(
+            self.endpoint,
+            json=product_payload(product, sku=sku),
+            headers={"Authorization": f"Bearer {authenticated_user['access_token']}"},
+        )
+        assert response.status_code == 201, response.text
+        assert response.json()["sku"] == sku
+        assert (
+            await client.get(f"/api/v1/catalog/products/{response.json()['slug']}")
+        ).status_code == 200
+
+    async def test_rejects_slug_collision(self, client, authenticated_user, product):
+        response = await client.post(
+            self.endpoint,
+            json=product_payload(product, sku=product.sku.lower()),
+            headers={"Authorization": f"Bearer {authenticated_user['access_token']}"},
+        )
+        assert response.status_code == 409
+        assert response.json()["code"] == "product_slug_exists"

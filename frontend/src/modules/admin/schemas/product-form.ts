@@ -16,10 +16,7 @@ export const productFormSchema = z
       .trim()
       .min(1, "Вкажіть SKU")
       .max(64)
-      .regex(
-        /^\S+$/,
-        "SKU не може містити пробіли",
-      ),
+      .regex(/^\S+$/, "SKU не може містити пробіли"),
     name: z.string().trim().min(2, "Вкажіть назву").max(240),
     brand: z.string().trim().min(1, "Вкажіть бренд").max(120),
     brand_country: z.string().trim().max(120),
