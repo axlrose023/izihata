@@ -335,6 +335,16 @@
       "checks": [
         "Production reproduced 404 for the previous product-page hashed chunk after deployment. Existing startup hook now retains hashed assets in a bounded 14-day volume. Nginx Alpine regression passed across two releases: new and previous chunks survive, expired files are removed. Current HTML stays in the release image."
       ]
+    },
+    {
+      "id": "O10",
+      "priority": "P2",
+      "title": "Карточка скачивает форму отзывов и её библиотеки до открытия вкладки",
+      "status": "implemented",
+      "checks": [
+        "Browser network capture identified the validation/form chunk being loaded while the reviews tab was hidden. Lazy loading starts only on first opening; the mounted form and draft remain intact on later tab changes. Dedicated regression passed for deferred mounting and retained input.",
+        "Full frontend suite 123 passed, lint/typecheck/build passed, and 65 browser scenarios passed with 3 viewport-specific skips. Product reviews retain drafts after hiding/reopening the tab."
+      ]
     }
   ],
   "deployments": [

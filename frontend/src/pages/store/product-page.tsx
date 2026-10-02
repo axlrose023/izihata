@@ -22,8 +22,13 @@ import { ProductRating } from "@/shared/ui/product-rating";
 import { ProductTabs } from "@/modules/catalog/components/product-tabs";
 import { ErrorNotice } from "@/shared/ui/error-notice";
 import { StatusBadge } from "@/shared/ui/status-badge";
-import { ProductReviews } from "@/modules/reviews/components/product-reviews";
-import { useRef, useState } from "react";
+import { lazy, Suspense, useRef, useState } from "react";
+
+const ProductReviews = lazy(() =>
+  import("@/modules/reviews/components/product-reviews").then((module) => ({
+    default: module.ProductReviews,
+  })),
+);
 
 export function ProductPage() {
   const { slug = "" } = useParams<{ slug: string }>();
@@ -69,6 +74,7 @@ function ProductContent({ product }: { product: ProductDetail }) {
   const actionsRef = useRef<HTMLDivElement>(null);
   const specificationsRef = useRef<HTMLDivElement>(null);
   const [activeTab, setActiveTab] = useState("specs");
+  const [reviewsOpened, setReviewsOpened] = useState(false);
   const primarySpecifications = product.specifications.filter(
     (specification) => specification.source === "primary",
   );
@@ -171,7 +177,10 @@ function ProductContent({ product }: { product: ProductDetail }) {
       </div>
       <ProductTabs
         activeTab={activeTab}
-        onActiveTabChange={setActiveTab}
+        onActiveTabChange={(tab) => {
+          setActiveTab(tab);
+          if (tab === "reviews") setReviewsOpened(true);
+        }}
         tabs={[
           {
             id: "specs",
@@ -261,14 +270,16 @@ function ProductContent({ product }: { product: ProductDetail }) {
           {
             id: "reviews",
             label: `Відгуки · ${product.reviews_count}`,
-            content: (
-              <ProductReviews
-                active={activeTab === "reviews"}
-                initialReviews={product.reviews}
-                productSlug={product.slug}
-                reviewCount={product.reviews_count}
-              />
-            ),
+            content: reviewsOpened ? (
+              <Suspense fallback={<p role="status">Завантажуємо відгуки…</p>}>
+                <ProductReviews
+                  active={activeTab === "reviews"}
+                  initialReviews={product.reviews}
+                  productSlug={product.slug}
+                  reviewCount={product.reviews_count}
+                />
+              </Suspense>
+            ) : null,
           },
           {
             id: "delivery",
