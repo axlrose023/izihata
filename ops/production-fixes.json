@@ -387,10 +387,21 @@
       "id": "O11",
       "priority": "P2",
       "title": "Фото карточек и баннеры вне экрана конкурируют с видимым контентом",
-      "status": "validated",
+      "status": "verified",
       "checks": [
         "125 frontend tests, build, lint passed. Existing VisibleImage reused: cards preload within 200px, gallery retains 0px, section cards wait until visible.",
-        "Local 390px/1440px browser checks: all images load on scrolling; 22-photo gallery remains usable; no page errors. Mobile initial home banners 3 to 1, initial catalog images 12 to 6."
+        "Local 390px/1440px browser checks: all images load on scrolling; 22-photo gallery remains usable; no page errors. Mobile initial home banners 3 to 1, initial catalog images 12 to 6.",
+        "Production after 42f1533: six desktop/mobile route scenarios passed; initial mobile banners 1 and catalog images 6; every image loads on scroll, gallery keeps 22 photos, no browser errors."
+      ]
+    },
+    {
+      "id": "O12",
+      "priority": "P2",
+      "title": "Генератор безусловно заменяет сжатое фото исходным файлом в его родном размере",
+      "status": "validated",
+      "checks": [
+        "Native-size candidate is used only when smaller; original files/URLs, aspect ratio, transparency, animation and no-upscale rules preserved. v3 reuses v2 resized files only when content digest matches.",
+        "362 backend tests passed, including 11 variant regressions; Ruff passed. ACKO 288x800 original JPEGs 100243/183892/102733 bytes become WebP 23354/23368/24116 bytes (76.5–87.3% smaller)."
       ]
     }
   ],

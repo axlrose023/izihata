@@ -55,12 +55,27 @@ def test_animated_originals_are_preserved_without_flattening():
     assert encode_variants(animated_bytes()) == {}
 
 
-def test_original_bytes_are_retained_for_the_full_size_variant():
+def test_native_size_uses_the_smaller_copy_without_upscaling():
     content = image_bytes((200, 1200))
     variants = encode_variants(content)
-    assert variants[200] is content
+    assert len(variants[200]) < len(content)
+    with Image.open(io.BytesIO(variants[200])) as image:
+        assert image.size == (200, 1200)
+        assert image.format == "WEBP"
     with Image.open(io.BytesIO(variants[80])) as image:
         assert image.size == (80, 480)
+
+
+def test_larger_native_sources_keep_the_original_without_encoding_huge_copies():
+    content = image_bytes((2000, 1000))
+    assert encode_variants(content)[2000] is content
+
+
+def test_an_already_small_native_webp_is_not_replaced_by_a_larger_copy():
+    output = io.BytesIO()
+    Image.new("RGB", (200, 100), "red").save(output, "WEBP", quality=82, method=4)
+    content = output.getvalue()
+    assert encode_variants(content)[200] is content
 
 
 @pytest.mark.asyncio
@@ -136,7 +151,7 @@ async def test_batch_limits_uploads_and_resumes_complete_metadata(
     assert 1 < peak <= 8
     assert downloads == 10
     assert len(saved) == 20
-    assert all(metadata["sizes"]["1200"] == metadata["source"] for metadata in saved)
+    assert all(metadata["sizes"]["1200"] != metadata["source"] for metadata in saved)
     sources = [(metadata["source"], metadata) for metadata in saved[::2]]
     downloads = 0
     saved.clear()
@@ -175,3 +190,77 @@ async def test_batch_limits_uploads_and_resumes_complete_metadata(
     assert result["skipped"] == 1
     assert result["failed"] == result["generated"] == 0
     assert saved == []
+
+
+@pytest.mark.asyncio
+async def test_v2_upgrade_reuses_unchanged_derivatives_and_uploads_native_size(
+    monkeypatch,
+):
+    import hashlib
+
+    from sqlalchemy import Select
+
+    from app.api.modules.catalog.models import Product
+    from app.clients.bunny_storage import BunnyS3Config
+    from app.services import image_variants as module
+
+    content = image_bytes((288, 400))
+    source = "https://cdn.example/original.png"
+    digest = hashlib.sha256(content).hexdigest()
+    metadata = {
+        "source": source,
+        "generator": "webp-v2",
+        "sizes": {
+            "80": f"https://cdn.example/variants/webp-v2/{digest}/80.webp",
+            "160": f"https://cdn.example/variants/webp-v2/{digest}/160.webp",
+            "288": source,
+        },
+    }
+    saved, uploads = [], []
+
+    class Rows:
+        def __init__(self, values):
+            self.values = values
+
+        def all(self):
+            return self.values
+
+    class Session:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            pass
+
+        async def execute(self, statement):
+            if isinstance(statement, Select):
+                return Rows(
+                    [(source, metadata)]
+                    if statement.column_descriptions[0]["entity"] is Product
+                    else []
+                )
+            saved.append(statement.compile().params["image_variants"])
+
+        async def commit(self):
+            pass
+
+    async def download(client, url):
+        return content, "image/png"
+
+    async def upload(client, storage, key, encoded, content_type):
+        uploads.append(key)
+
+    monkeypatch.setattr(module, "download_image", download)
+    monkeypatch.setattr(module, "put_object", upload)
+    storage = BunnyS3Config(
+        "https://storage.example", "zone", "test-only", "https://cdn.example"
+    )
+    result = await module.generate_image_variants(
+        Session, storage, progress=lambda value: None
+    )
+    assert result["generated"] == 1
+    assert uploads == [f"variants/webp-v3/{digest}/288.webp"]
+    assert saved[0]["sizes"]["80"] == metadata["sizes"]["80"]
+    assert saved[0]["sizes"]["160"] == metadata["sizes"]["160"]
+    assert saved[0]["sizes"]["288"] != source
+    assert saved[0]["generator"] == "webp-v3"
