@@ -73,3 +73,24 @@ docker compose -f compose.production.yml up --build -d
 The production environment file contains credentials and is intentionally
 ignored by Git. Keep database backups outside this server before treating a
 deployment as recoverable.
+
+### Production backups and health
+
+`ops/backup-production.sh` saves a custom PostgreSQL dump, local uploaded media,
+the release commit and checksums in `/home/deployer/backups/izihata`. Completed
+daily snapshots older than 14 days are removed only after a new backup succeeds.
+Supplier photos remain in Bunny Storage; this archive contains database references
+and files from the server's media volume.
+
+`ops/check-production.sh` checks container health, the public catalog and backup
+freshness, and records dead outbox events. Changed results are sent to local syslog
+under `izihata-health`; the current report is in
+`/home/deployer/.local/state/izihata/health.txt`. Task health verifies a scheduled
+heartbeat has actually run on a worker in the last three minutes.
+
+The deployer's crontab runs backups daily at 02:30 UTC and checks every five minutes.
+These copies remain on this server, as agreed. To restore, use an isolated empty
+PostgreSQL database with the same major version: verify `SHA256SUMS`, run
+`pg_restore --no-owner --no-acl --exit-on-error -d <isolated_database> database.dump`,
+and extract `media.tar.gz` to a separate media directory. Compare product,
+attribute and gallery counts before switching any application to that copy.

@@ -60,3 +60,24 @@ async def test_cleanup_tasks_remove_expired_rows():
     async with SessionFactory() as session:
         assert await session.get(AuthSession, auth_session_id) is None
         assert await session.get(OutboxEvent, old_event_id) is None
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_worker_health_requires_a_recent_executed_heartbeat():
+    from redis.asyncio import Redis
+
+    from app.settings import get_config
+    from app.tasks.heartbeat import HEARTBEAT_KEY, worker_heartbeat
+    from app.tasks_health import is_healthy
+
+    async with Redis.from_url(get_config().redis_url) as redis:
+        await redis.delete(HEARTBEAT_KEY)
+        try:
+            assert await is_healthy() is False
+            await worker_heartbeat.original_func()
+            assert await is_healthy() is True
+            assert 0 < await redis.ttl(HEARTBEAT_KEY) <= 180
+            await redis.delete(HEARTBEAT_KEY)
+            assert await is_healthy() is False
+        finally:
+            await redis.delete(HEARTBEAT_KEY)

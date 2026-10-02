@@ -145,7 +145,11 @@ services:
     <<: *app
     command: [taskiq, scheduler, "app.tiq:scheduler", "app.tasks"]
     healthcheck:
-      disable: true
+      test: ["CMD", "python", "-m", "app.tasks_health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 180s
     depends_on:
       cache:
         condition: service_healthy
@@ -158,7 +162,11 @@ services:
     <<: *app
     command: [taskiq, worker, "app.tiq:broker", -w, "4", "app.tasks"]
     healthcheck:
-      disable: true
+      test: ["CMD", "python", "-m", "app.tasks_health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 180s
     depends_on:
       cache:
         condition: service_healthy
