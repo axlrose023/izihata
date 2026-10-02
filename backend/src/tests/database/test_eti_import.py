@@ -219,6 +219,13 @@ class TestEtiWorkbookImport:
         ]
         assert product.image_url == product.media[0].url
 
+        product.image_variants = {
+            "source": product.image_url,
+            "generator": "webp-v2",
+            "sizes": {"80": "https://cdn.example/stale.webp"},
+        }
+        await uow.commit()
+
         repeated = await import_eti_workbook(
             uow.session,
             workbook,
@@ -227,6 +234,8 @@ class TestEtiWorkbookImport:
             batch_size=1,
         )
         assert (repeated.created, repeated.updated) == (0, 1)
+        await uow.session.refresh(product)
+        assert product.image_variants is None
 
     async def test_dry_run_does_not_write_products(self, tmp_path, uow):
         workbook = read_eti_workbook(write_workbook(tmp_path / "eti.xlsx"))

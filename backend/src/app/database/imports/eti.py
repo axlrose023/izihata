@@ -802,6 +802,8 @@ async def import_eti_workbook(
                 ]
                 product.media = media
                 product.image_url = media[0].url
+                # Supplier objects can be overwritten at the same public URL.
+                product.image_variants = None
                 outcome.media_attached += len(media)
             if not dry_run:
                 product.attributes = attributes

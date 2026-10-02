@@ -354,6 +354,15 @@
       "checks": [
         "Reproduced actual API 409 on repeating an unchanged gallery/documents patch. Delete obsolete positions and flush before inserting replacements within the same guarded transaction. Preserve image variant metadata by unchanged URL, including reordering the primary image. Twenty-eight admin regressions passed; four PostgreSQL regressions passed including repeat/reorder/restore with both collections."
       ]
+    },
+    {
+      "id": "R28",
+      "priority": "P2",
+      "title": "Повторный импорт может оставить старые превью при обновлении фото по прежнему URL",
+      "status": "implemented",
+      "checks": [
+        "Supplier media replacement clears primary variant metadata even when the public source URL stays the same; new gallery rows already have no variants. The common generator then reads the new original. Seven supplier import regressions passed, including same-URL refresh and incomplete-gallery preservation."
+      ]
     }
   ],
   "deployments": [
