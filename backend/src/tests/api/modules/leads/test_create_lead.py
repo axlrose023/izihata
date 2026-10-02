@@ -4,6 +4,7 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy import func, select
 
+from app.api.modules.leads.models import Lead
 from app.api.modules.outbox.models import OutboxEvent
 
 
@@ -69,7 +70,9 @@ class TestCreateLead:
 
         assert response.status_code == 422
 
-    async def test_rejects_product_for_callback(self, client: AsyncClient, product):
+    async def test_retains_product_for_callback(
+        self, client: AsyncClient, product, uow
+    ):
         response = await client.post(
             self.endpoint,
             json={
@@ -80,7 +83,9 @@ class TestCreateLead:
             },
         )
 
-        assert response.status_code == 422
+        assert response.status_code == 201, response.text
+        lead = await uow.session.get(Lead, uuid.UUID(response.json()["id"]))
+        assert lead.product_id == product.id
 
     async def test_rejects_whitespace_contact_fields(self, client: AsyncClient):
         response = await client.post(

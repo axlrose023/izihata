@@ -40,8 +40,6 @@ class CreateLeadRequest(StrictSchema):
             raise ValueError("product_id is required for quick_buy lead")
         if self.type == LeadType.WHOLESALE and not self.company:
             raise ValueError("company is required for wholesale lead")
-        if self.type == LeadType.CALLBACK and self.product_id is not None:
-            raise ValueError("product_id is not accepted for callback lead")
         return self
 
 

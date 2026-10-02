@@ -70,7 +70,7 @@ export function LeadDialog({
           name: values.name,
           phone: values.phone,
           company: type === "wholesale" ? values.company : null,
-          product_id: type === "quick_buy" ? productId : null,
+          product_id: type === "wholesale" ? null : (productId ?? null),
         }),
       });
       setSubmitted(true);
