@@ -301,7 +301,7 @@ test("checkout explains an invalid promo and suggests Nova Poshta addresses", as
   ).toBeVisible();
   await point.press("ArrowDown");
   await point.press("Enter");
-  await expect(point).toHaveValue("Київ, вул. Хрещатик, 12");
+  await expect(point).toHaveValue("Відділення №12");
   await expect(page.getByRole("listbox")).toHaveCount(0);
 });
 

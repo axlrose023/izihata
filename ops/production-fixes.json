@@ -183,7 +183,8 @@
       "title": "Номер выбранного отделения или поштомата теряется при оформлении",
       "status": "implemented",
       "checks": [
-        "4 checkout regressions passed; selected point submits the full provider description including branch/locker number, not its short address."
+        "4 checkout regressions passed; selected point submits the full provider description including branch/locker number, not its short address.",
+        "End-to-end directory assertion now checks full branch number, matching the corrected provider name field."
       ]
     },
     {
