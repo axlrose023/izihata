@@ -18,12 +18,15 @@ from app.api.modules.catalog.schema import (
     CreateProductReviewResponse,
     CreateStockSubscriptionRequest,
     ProductDetailResponse,
+    ProductFacets,
     ProductListParams,
     ProductListResponse,
     ProductResponse,
     ProductReviewListParams,
     ProductReviewPageResponse,
     ProductReviewResponse,
+    SpecFacetPageResponse,
+    SpecFacetParams,
     StockSubscriptionResponse,
 )
 from app.api.modules.catalog.service import (
@@ -60,6 +63,30 @@ async def get_products(
     params: Annotated[ProductListParams, Query()],
 ) -> ProductListResponse:
     return await service.get_products(params)
+
+
+@router.get(
+    "/facets",
+    response_model=ProductFacets,
+    dependencies=[Depends(RateLimit(CATALOG_LIST_RATE_LIMIT))],
+)
+async def get_facets(
+    service: FromDishka[CatalogQueryService],
+    params: Annotated[ProductListParams, Query()],
+) -> ProductFacets:
+    return await service.get_facets(params)
+
+
+@router.get(
+    "/spec-facets",
+    response_model=SpecFacetPageResponse,
+    dependencies=[Depends(RateLimit(CATALOG_LIST_RATE_LIMIT))],
+)
+async def get_spec_facets(
+    service: FromDishka[CatalogQueryService],
+    params: Annotated[SpecFacetParams, Query()],
+) -> SpecFacetPageResponse:
+    return await service.get_spec_facets(params)
 
 
 @router.get("/brands", response_model=list[BrandResponse])

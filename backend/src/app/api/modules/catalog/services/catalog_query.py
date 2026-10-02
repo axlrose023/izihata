@@ -19,6 +19,8 @@ from app.api.modules.catalog.schema import (
     ProductReviewListParams,
     ProductReviewPageResponse,
     ProductReviewResponse,
+    SpecFacetPageResponse,
+    SpecFacetParams,
     SubcategoryResponse,
 )
 from app.database.uow import UnitOfWork
@@ -97,24 +99,17 @@ class CatalogQueryService:
     async def get_products(self, params: ProductListParams) -> ProductListResponse:
         products = await self._uow.products.list(params)
         total = await self._uow.products.count(params)
-        if params.include_facets:
-            brand_rows = await self._uow.products.brand_facets(params)
-            attribute_rows = await self._uow.products.attribute_facets(params)
-            minimum, maximum = await self._uow.products.price_facet(params)
-            availability_rows = await self._uow.products.availability_facets(params)
-            sale_unit_rows = await self._uow.products.sale_unit_facets(params)
-        else:
-            brand_rows = []
-            attribute_rows = []
-            minimum, maximum = None, None
-            availability_rows = []
-            sale_unit_rows = []
-
-        spec_facets: dict[str, list[FacetOption]] = {}
-        for key, value, count in attribute_rows:
-            spec_facets.setdefault(key, []).append(
-                FacetOption(value=value, count=count)
+        facets = (
+            await self.get_facets(params, include_specs=True)
+            if params.include_facets
+            else ProductFacets(
+                brands=[],
+                specs={},
+                availability=[],
+                sale_units=[],
+                price=PriceFacet(minimum=None, maximum=None),
             )
+        )
 
         total_pages = (total + params.page_size - 1) // params.page_size
         return ProductListResponse(
@@ -125,21 +120,46 @@ class CatalogQueryService:
             total_pages=total_pages,
             has_next=params.page < total_pages,
             has_prev=params.page > 1,
-            facets=ProductFacets(
-                brands=[
-                    FacetOption(value=brand, count=count) for brand, count in brand_rows
-                ],
-                specs=spec_facets,
-                availability=[
-                    FacetOption(value=status.value, count=count)
-                    for status, count in availability_rows
-                ],
-                sale_units=[
+            facets=facets,
+        )
+
+    async def get_facets(
+        self, params: ProductListParams, *, include_specs: bool = False
+    ) -> ProductFacets:
+        brand_rows = await self._uow.products.brand_facets(params)
+        minimum, maximum = await self._uow.products.price_facet(params)
+        availability_rows = await self._uow.products.availability_facets(params)
+        sale_unit_rows = await self._uow.products.sale_unit_facets(params)
+        spec_facets: dict[str, list[FacetOption]] = {}
+        if include_specs:
+            for key, value, count in await self._uow.products.attribute_facets(params):
+                spec_facets.setdefault(key, []).append(
                     FacetOption(value=value, count=count)
-                    for value, count in sale_unit_rows
-                ],
-                price=PriceFacet(minimum=minimum, maximum=maximum),
-            ),
+                )
+        return ProductFacets(
+            brands=[
+                FacetOption(value=value, count=count) for value, count in brand_rows
+            ],
+            specs=spec_facets,
+            availability=[
+                FacetOption(value=status.value, count=count)
+                for status, count in availability_rows
+            ],
+            sale_units=[
+                FacetOption(value=value, count=count) for value, count in sale_unit_rows
+            ],
+            price=PriceFacet(minimum=minimum, maximum=maximum),
+        )
+
+    async def get_spec_facets(self, params: SpecFacetParams) -> SpecFacetPageResponse:
+        rows = await self._uow.products.spec_facet_page(params)
+        return SpecFacetPageResponse(
+            items=[
+                FacetOption(value=value, count=count)
+                for value, count in rows[: params.page_size]
+            ],
+            page=params.page,
+            has_next=len(rows) > params.page_size,
         )
 
     async def get_product(self, product_slug: str) -> ProductDetailResponse:

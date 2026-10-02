@@ -29,7 +29,11 @@ from app.api.modules.catalog.models import (
     ProductStockSubscription,
     Subcategory,
 )
-from app.api.modules.catalog.schema import AdminProductListParams, ProductListParams
+from app.api.modules.catalog.schema import (
+    AdminProductListParams,
+    ProductListParams,
+    SpecFacetParams,
+)
 
 
 class BrandGateway:
@@ -258,9 +262,12 @@ class ProductGateway:
         params: ProductListParams,
         *,
         include_facet_key: bool = False,
+        exclude_key: str | None = None,
     ) -> list[ColumnElement[bool]]:
         conditions: list[ColumnElement[bool]] = []
         for key, values in params.spec_filters.items():
+            if key == exclude_key:
+                continue
             matching_value = Product.attributes.any(
                 and_(
                     ProductAttribute.key == key,
@@ -499,6 +506,36 @@ class ProductGateway:
         return [
             (key, value, int(count))
             for key, value, count in (await self._session.execute(stmt)).all()
+        ]
+
+    async def spec_facet_page(
+        self, params: SpecFacetParams
+    ) -> Sequence[tuple[str, int]]:
+        if params.facet_key:
+            column = ProductAttribute.value
+            count = func.count(func.distinct(ProductAttribute.product_id))
+            conditions = [ProductAttribute.key == params.facet_key]
+            conditions.extend(
+                self._spec_filter_conditions(params, exclude_key=params.facet_key)
+            )
+        else:
+            column = ProductAttribute.key
+            count = func.count(func.distinct(ProductAttribute.value))
+            conditions = self._spec_filter_conditions(params, include_facet_key=True)
+        if params.facet_search:
+            conditions.append(column.ilike(f"%{params.facet_search}%"))
+        stmt = (
+            select(column, count)
+            .join(Product, Product.id == ProductAttribute.product_id)
+            .where(*self._conditions(params, include_specs=False), *conditions)
+            .group_by(column)
+            .order_by(column)
+            .offset(params.offset)
+            .limit(params.page_size + 1)
+        )
+        return [
+            (value, int(count))
+            for value, count in (await self._session.execute(stmt)).all()
         ]
 
     async def price_facet(

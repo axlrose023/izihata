@@ -1,3 +1,8 @@
+import { useQuery } from "@tanstack/react-query";
+import { facetsQuery } from "@/modules/catalog/api/facet-queries";
+import { CatalogSpecFilters } from "./catalog-spec-filters";
+import { ErrorNotice } from "@/shared/ui/error-notice";
+import type { QueryValue } from "@/shared/api/query";
 import { Filter, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
@@ -46,7 +51,7 @@ interface CatalogFiltersProps {
   categories: Category[];
   activeCategory?: Category;
   categoryIsRouteParam: boolean;
-  facets: ProductList["facets"];
+  params: Record<string, QueryValue | QueryValue[]>;
   query: CatalogFilterQuery;
   total: number;
 }
@@ -56,16 +61,21 @@ export function CatalogFilters({
   categories,
   activeCategory,
   categoryIsRouteParam,
-  facets,
+  params,
   query,
   total,
 }: CatalogFiltersProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [isOpen, setIsOpen] = useState(false);
   const [moreFiltersOpen, setMoreFiltersOpen] = useState(query.spec.length > 0);
-  const [expandedSpecs, setExpandedSpecs] = useState<Record<string, boolean>>(
-    {},
-  );
+  const facetsResult = useQuery(facetsQuery(params));
+  const facets = facetsResult.data ?? {
+    brands: [],
+    specs: {},
+    availability: [],
+    sale_units: [],
+    price: { minimum: null, maximum: null },
+  };
   useBodyScrollLock(isOpen);
   const activeBrands = new Set(query.brand);
   const activeSpecs = new Set(
@@ -153,6 +163,16 @@ export function CatalogFilters({
           </button>
         </div>
         <div className="filters__body">
+          {facetsResult.isPending ? (
+            <p role="status">Завантажуємо фільтри…</p>
+          ) : null}
+          {facetsResult.isError ? (
+            <ErrorNotice
+              error={facetsResult.error}
+              fallback="Не вдалося завантажити фільтри."
+              onRetry={() => void facetsResult.refetch()}
+            />
+          ) : null}
           <fieldset>
             <legend>Категорія</legend>
             <select
@@ -223,39 +243,12 @@ export function CatalogFilters({
                 }
                 options={facets.sale_units}
               />
-              {Object.entries(facets.specs)
-                .filter(
-                  ([key]) =>
-                    key.toLocaleLowerCase("uk") !== "серія" ||
-                    activeBrands.size > 0,
-                )
-                .map(([key, options]) => {
-                  const activeOptions = options
-                    .filter(({ value }) =>
-                      activeSpecs.has(encodeSpecFilter(key, value)),
-                    )
-                    .map(({ value }) => encodeSpecFilter(key, value));
-                  const isExpanded =
-                    expandedSpecs[key] ?? activeOptions.length > 0;
-                  return (
-                    <SpecFacet
-                      activeOptions={activeOptions}
-                      isExpanded={isExpanded}
-                      key={key}
-                      label={key}
-                      onExpandedChange={(open) =>
-                        setExpandedSpecs((current) =>
-                          current[key] === open
-                            ? current
-                            : { ...current, [key]: open },
-                        )
-                      }
-                      onToggle={toggleMulti}
-                      options={options}
-                      showSeriesNote={key.toLocaleLowerCase("uk") === "серія"}
-                    />
-                  );
-                })}
+              <CatalogSpecFilters
+                params={params}
+                activeSpecs={activeSpecs}
+                activeBrands={activeBrands}
+                onToggle={toggleMulti}
+              />
               <label className="stock-filter">
                 <input
                   checked={query.in_stock === "true"}
@@ -291,108 +284,6 @@ export function CatalogFilters({
         </div>
       </aside>
     </>
-  );
-}
-
-function SpecFacet({
-  activeOptions,
-  isExpanded,
-  label,
-  onExpandedChange,
-  onToggle,
-  options,
-  showSeriesNote,
-}: {
-  activeOptions: string[];
-  isExpanded: boolean;
-  label: string;
-  onExpandedChange: (open: boolean) => void;
-  onToggle: (name: string, value: string, checked: boolean) => void;
-  options: ProductList["facets"]["brands"];
-  showSeriesNote: boolean;
-}) {
-  const [search, setSearch] = useState("");
-  const activeValues = new Set(
-    activeOptions.map((value) => decodeSpecFilter(value)?.[1]),
-  );
-  const searchable = options.length > 8;
-  const matches = searchable
-    ? options.filter((option) =>
-        option.value
-          .toLocaleLowerCase("uk")
-          .includes(search.toLocaleLowerCase("uk")),
-      )
-    : options;
-  const shown = searchable
-    ? search
-      ? matches.slice(0, 100)
-      : [
-          ...options.filter((option) => activeValues.has(option.value)),
-          ...options.slice(0, 8),
-        ].filter(
-          (option, index, all) =>
-            all.findIndex((item) => item.value === option.value) === index,
-        )
-    : options;
-
-  return (
-    <details
-      className="filter-spec"
-      onToggle={(event) => onExpandedChange(event.currentTarget.open)}
-      open={isExpanded}
-    >
-      <summary>
-        {label} <small>({options.length})</small>
-      </summary>
-      {isExpanded ? (
-        <fieldset>
-          <legend className="visually-hidden">{label}</legend>
-          {showSeriesNote ? (
-            <p className="filter-series-note">
-              Вибір серії покаже всі сумісні елементи цього дизайну.
-            </p>
-          ) : null}
-          {searchable ? (
-            <input
-              aria-label={`Пошук: ${label.toLocaleLowerCase("uk")}`}
-              className="facet-search"
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder={`Пошук: ${label.toLocaleLowerCase("uk")}`}
-              type="search"
-              value={search}
-            />
-          ) : null}
-          {searchable ? (
-            <small className="facet-search__hint">
-              {search
-                ? `Знайдено ${matches.length}; показано ${shown.length}`
-                : `Показано ${shown.length} з ${options.length}. Уточніть пошук.`}
-            </small>
-          ) : null}
-          <div className="filter-options">
-            {shown.map((option) => {
-              const value = encodeSpecFilter(label, option.value);
-              return (
-                <label key={value}>
-                  <input
-                    checked={activeValues.has(option.value)}
-                    onChange={(event) =>
-                      onToggle("spec", value, event.target.checked)
-                    }
-                    type="checkbox"
-                  />
-                  <span>{option.value}</span>
-                  <small>{option.count}</small>
-                </label>
-              );
-            })}
-            {searchable && search && !shown.length ? (
-              <p className="filter-options__empty">Нічого не знайдено</p>
-            ) : null}
-          </div>
-        </fieldset>
-      ) : null}
-    </details>
   );
 }
 

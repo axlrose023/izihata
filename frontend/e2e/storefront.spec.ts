@@ -405,7 +405,9 @@ test("catalog keeps every relevant facet", async ({ page }) => {
   // Картки теж друкують «Полюси» у таблиці характеристик, тож фасет
   // шукаємо саме в панелі фільтрів.
   const filters = page.locator(".filters");
-  await expect(filters.getByText("Полюси", { exact: true })).toBeVisible();
+  await expect(
+    filters.locator("summary").filter({ hasText: /^Полюси/ }),
+  ).toBeVisible();
   await filters
     .locator("summary")
     .filter({ hasText: /^Серія/ })
@@ -714,4 +716,39 @@ test("every overlay closes with Escape and announces itself as a dialog", async 
     await page.keyboard.press("Escape");
     await expect(menu).toBeHidden();
   }
+});
+
+test("catalog cards load before filters and spec values load on demand", async ({
+  page,
+}) => {
+  let release!: () => void;
+  const pending = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const specRequests = new Set<string>();
+  await page.route(/\/api\/v1\/catalog\/facets(?:\?|$)/, async (route) => {
+    await pending;
+    await route.continue();
+  });
+  await page.route("**/api/v1/catalog/spec-facets?**", async (route) => {
+    specRequests.add(route.request().url());
+    await route.continue();
+  });
+  try {
+    await page.goto("/catalog");
+    await expect(page.locator(".product-card").first()).toBeVisible();
+    expect(specRequests.size).toBe(0);
+    if ((page.viewportSize()?.width ?? 1000) <= 820)
+      await page.getByRole("button", { name: "Фільтри", exact: true }).click();
+    await expect(page.getByText("Завантажуємо фільтри…")).toBeVisible();
+  } finally {
+    release();
+  }
+  await page.getByRole("button", { name: "Більше фільтрів" }).click();
+  const group = page.locator(".filter-spec").first();
+  await expect(group.locator("summary")).toBeVisible();
+  expect(specRequests.size).toBe(1);
+  await group.locator("summary").click();
+  await expect(group.getByRole("checkbox").first()).toBeVisible();
+  expect(specRequests.size).toBe(2);
 });

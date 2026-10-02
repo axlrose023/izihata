@@ -457,6 +457,23 @@ class ProductListParams(PaginationParams):
         return filters
 
 
+class SpecFacetParams(ProductListParams):
+    facet_key: str | None = Field(default=None, min_length=1, max_length=120)
+    facet_search: str | None = Field(default=None, min_length=1, max_length=100)
+    page_size: int = Field(default=20, ge=1, le=100)
+
+    @field_validator("facet_key", "facet_search", mode="before")
+    @classmethod
+    def normalize_facet_text(cls, value: object | None) -> str | None:
+        return normalize_optional_text(value)
+
+
+class SpecFacetPageResponse(StrictSchema):
+    items: list[FacetOption]
+    page: int
+    has_next: bool
+
+
 class ProductListResponse(StrictSchema):
     items: list[ProductResponse]
     total: int

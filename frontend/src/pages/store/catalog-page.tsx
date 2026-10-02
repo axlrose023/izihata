@@ -93,6 +93,7 @@ export function CatalogPage({
     sort: searchParams.get("sort") ?? "popular",
     page: searchParams.get("page") ?? "1",
     page_size: 12,
+    include_facets: false,
   };
   const [allSubcategoriesShown, setAllSubcategoriesShown] = useState(false);
   const categoriesResult = useQuery(categoriesQuery());
@@ -235,7 +236,7 @@ export function CatalogPage({
           activeCategory={activeCategory}
           categories={categories}
           categoryIsRouteParam={Boolean(category)}
-          facets={products.facets}
+          params={query}
           query={filterQuery}
           total={products.total}
         />

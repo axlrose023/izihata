@@ -22,6 +22,8 @@ def test_openapi_contains_only_confirmed_business_routes(app: FastAPI):
         ("POST", "/api/v1/customer-auth/refresh"),
         ("POST", "/api/v1/customer-auth/register"),
         ("GET", "/api/v1/catalog/categories"),
+        ("GET", "/api/v1/catalog/facets"),
+        ("GET", "/api/v1/catalog/spec-facets"),
         ("GET", "/api/v1/catalog/sections"),
         ("GET", "/api/v1/catalog/products"),
         ("GET", "/api/v1/catalog/products/{product_slug}"),
