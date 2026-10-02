@@ -470,6 +470,17 @@ class ProductGateway:
         )
         return (await self._session.execute(stmt)).scalar_one_or_none()
 
+    async def exact_search_id(self, search: str) -> UUID | None:
+        stmt = (
+            select(Product.id)
+            .where(
+                Product.is_active.is_(True), func.lower(Product.sku) == search.lower()
+            )
+            .limit(2)
+        )
+        matches = (await self._session.execute(stmt)).scalars().all()
+        return matches[0] if len(matches) == 1 else None
+
     async def brand_facets(
         self,
         params: ProductListParams,

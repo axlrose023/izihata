@@ -218,3 +218,32 @@ def test_spec_filters_reject_invalid_pairs(raw):
 
     with pytest.raises(ValidationError):
         ProductListParams(spec=[raw])
+
+
+@pytest.mark.asyncio
+async def test_exact_sku_search_preserves_filter_scope(client, product):
+    exact = await client.get(
+        "/api/v1/catalog/products",
+        params={"search": product.sku.lower(), "include_facets": False},
+    )
+    assert exact.status_code == 200, exact.text
+    assert exact.json()["total"] == 1
+    assert exact.json()["items"][0]["id"] == str(product.id)
+    excluded = await client.get(
+        "/api/v1/catalog/products",
+        params={
+            "search": product.sku,
+            "brand": "Missing brand",
+            "include_facets": False,
+        },
+    )
+    assert excluded.json()["total"] == 0
+    scoped = await client.get(
+        "/api/v1/catalog/products",
+        params={
+            "search": product.sku,
+            "id": str(uuid.uuid4()),
+            "include_facets": False,
+        },
+    )
+    assert scoped.json()["total"] == 0

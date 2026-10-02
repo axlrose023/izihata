@@ -97,6 +97,7 @@ class CatalogQueryService:
         ]
 
     async def get_products(self, params: ProductListParams) -> ProductListResponse:
+        params = await self._resolve_exact_search(params)
         products = await self._uow.products.list(params)
         total = await self._uow.products.count(params)
         facets = (
@@ -126,6 +127,7 @@ class CatalogQueryService:
     async def get_facets(
         self, params: ProductListParams, *, include_specs: bool = False
     ) -> ProductFacets:
+        params = await self._resolve_exact_search(params)
         brand_rows = await self._uow.products.brand_facets(params)
         minimum, maximum = await self._uow.products.price_facet(params)
         availability_rows = await self._uow.products.availability_facets(params)
@@ -152,6 +154,7 @@ class CatalogQueryService:
         )
 
     async def get_spec_facets(self, params: SpecFacetParams) -> SpecFacetPageResponse:
+        params = await self._resolve_exact_search(params)
         rows = await self._uow.products.spec_facet_page(params)
         return SpecFacetPageResponse(
             items=[
@@ -161,6 +164,21 @@ class CatalogQueryService:
             page=params.page,
             has_next=len(rows) > params.page_size,
         )
+
+    async def _resolve_exact_search[Params: ProductListParams](
+        self, params: Params
+    ) -> Params:
+        if params.search:
+            product_id = await self._uow.products.exact_search_id(params.search)
+            if product_id is not None and (
+                not params.product_ids or product_id in params.product_ids
+            ):
+                # An exact manufacturer SKU identifies one product. Partial
+                # codes and text queries retain the existing fuzzy search.
+                return params.model_copy(
+                    update={"search": None, "product_ids": [product_id]}
+                )
+        return params
 
     async def get_product(self, product_slug: str) -> ProductDetailResponse:
         product = await self._uow.products.get_by_slug(product_slug)

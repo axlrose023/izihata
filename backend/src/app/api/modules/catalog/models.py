@@ -12,6 +12,7 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
+    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -107,6 +108,7 @@ class Brand(Base, UUIDIDMixin, DateTimeMixin):
 class Product(Base, UUIDIDMixin, DateTimeMixin):
     __tablename__ = "products"
     __table_args__ = (
+        Index("products_sku_lower_idx", text("lower(sku)")),
         CheckConstraint("price >= 0", name="product_price_non_negative"),
         CheckConstraint(
             "old_price IS NULL OR old_price >= price",
