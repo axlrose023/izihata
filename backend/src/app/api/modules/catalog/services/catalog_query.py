@@ -65,11 +65,18 @@ class CatalogQueryService:
     async def get_products(self, params: ProductListParams) -> ProductListResponse:
         products = await self._uow.products.list(params)
         total = await self._uow.products.count(params)
-        brand_rows = await self._uow.products.brand_facets(params)
-        attribute_rows = await self._uow.products.attribute_facets(params)
-        minimum, maximum = await self._uow.products.price_facet(params)
-        availability_rows = await self._uow.products.availability_facets(params)
-        sale_unit_rows = await self._uow.products.sale_unit_facets(params)
+        if params.include_facets:
+            brand_rows = await self._uow.products.brand_facets(params)
+            attribute_rows = await self._uow.products.attribute_facets(params)
+            minimum, maximum = await self._uow.products.price_facet(params)
+            availability_rows = await self._uow.products.availability_facets(params)
+            sale_unit_rows = await self._uow.products.sale_unit_facets(params)
+        else:
+            brand_rows = []
+            attribute_rows = []
+            minimum, maximum = None, None
+            availability_rows = []
+            sale_unit_rows = []
 
         spec_facets: dict[str, list[FacetOption]] = {}
         for key, value, count in attribute_rows:

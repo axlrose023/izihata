@@ -48,6 +48,7 @@ export function PopularProducts() {
         ...rail.params,
         page: pageParam,
         page_size: PAGE_SIZE,
+        include_facets: false,
       }),
     getNextPageParam: (last) => (last.has_next ? last.page + 1 : undefined),
     staleTime: 60_000,

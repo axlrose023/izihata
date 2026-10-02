@@ -21,7 +21,7 @@ export function CollectionPage({ mode }: { mode: "favorites" | "compare" }) {
     enabled: ids.length > 0,
     queryFn: () =>
       apiClient<ProductList>(
-        `/catalog/products${buildQuery({ id: ids, page_size: 100 })}`,
+        `/catalog/products${buildQuery({ id: ids, page_size: 100, include_facets: false })}`,
       ),
   });
   const products = data?.items ?? [];

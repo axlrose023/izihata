@@ -16,7 +16,12 @@ export function ProductSearch() {
   const normalized = query.trim();
   const debounced = useDebouncedValue(normalized, 250);
   const result = useQuery({
-    ...productsQuery({ search: debounced, page_size: 5, sort: "popular" }),
+    ...productsQuery({
+      search: debounced,
+      page_size: 5,
+      sort: "popular",
+      include_facets: false,
+    }),
     enabled: debounced.length >= 2,
   });
   const suggestions = result.data?.items ?? [];

@@ -379,6 +379,7 @@ class CatalogAttributeResponse(StrictSchema):
 
 
 class ProductListParams(PaginationParams):
+    include_facets: bool = True
     product_ids: list[UUID] = Field(
         default_factory=list,
         alias="id",

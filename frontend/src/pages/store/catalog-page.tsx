@@ -143,6 +143,7 @@ export function CatalogPage({
       sort: "popular",
       page: "1",
       page_size: 20,
+      include_facets: false,
     }),
     enabled: Boolean(query.category),
   });
