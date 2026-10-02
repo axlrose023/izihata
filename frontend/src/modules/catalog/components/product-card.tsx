@@ -79,7 +79,6 @@ export function ProductCard({ product }: { product: Product }) {
           </button>
         </div>
         <ProductVisual iconSize={72} product={product} />
-        <span className="product-card__sku">{product.sku}</span>
       </div>
       <div className="product-card__body">
         <div className="product-card__meta">

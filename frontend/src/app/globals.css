@@ -1937,16 +1937,6 @@ h2 {
   height: 34px;
   background: rgba(255, 255, 255, 0.92);
 }
-/* Артикул у кутку картинки, як на артборді Catalog */
-.product-card__sku {
-  position: absolute;
-  bottom: 10px;
-  left: 12px;
-  color: var(--muted);
-  font-family: var(--font-mono), ui-monospace, Menlo, monospace;
-  font-size: 0.66rem;
-  letter-spacing: 0.04em;
-}
 .product-card__body {
   flex: 1;
   display: flex;
@@ -6923,12 +6913,6 @@ h1 {
   left: 8px;
   padding: 3px 7px;
   font-size: 9.5px;
-}
-
-.product-card__sku {
-  bottom: 8px;
-  left: 8px;
-  font-size: 10px;
 }
 
 .product-card__actions {
