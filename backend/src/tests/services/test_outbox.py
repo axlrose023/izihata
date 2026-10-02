@@ -7,18 +7,19 @@ from app.api.modules.outbox.service import OutboxDeliveryService
 
 
 class SuccessfulDispatcher:
-    async def dispatch(self, event: OutboxEvent) -> None:
-        return None
+    async def dispatch(self, event: OutboxEvent) -> bool:
+        return True
 
 
 class FailingDispatcher:
-    async def dispatch(self, event: OutboxEvent) -> None:
+    async def dispatch(self, event: OutboxEvent) -> bool:
         raise RuntimeError("provider unavailable")
 
 
 class SlowDispatcher:
-    async def dispatch(self, event: OutboxEvent) -> None:
+    async def dispatch(self, event: OutboxEvent) -> bool:
         await asyncio.sleep(1)
+        return True
 
 
 @pytest.mark.asyncio

@@ -3,7 +3,7 @@ from dataclasses import asdict
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
-from app.api.modules.outbox.models import OutboxEvent, OutboxStatus
+from app.api.modules.outbox.models import OutboxEvent
 from app.api.modules.outbox.service import OutboxDeliveryService, OutboxRecoveryService
 from app.clients.notifications import NotificationDispatcher
 from app.database.engine import SessionFactory
@@ -29,8 +29,9 @@ async def dispatch_outbox() -> None:
         )
         await uow.commit()
         for event in events:
-            await delivery_service.deliver(event)
-            await _mark_delivered_stock_subscription(event, uow)
+            delivered = await delivery_service.deliver(event)
+            if delivered:
+                await _mark_delivered_stock_subscription(event, uow)
             await uow.commit()
         if events:
             stats = await OutboxRecoveryService(uow).get_stats()
@@ -44,7 +45,7 @@ async def _mark_delivered_stock_subscription(
     event: OutboxEvent,
     uow: UnitOfWork,
 ) -> None:
-    if event.topic != "catalog.back_in_stock" or event.status != OutboxStatus.PROCESSED:
+    if event.topic != "catalog.back_in_stock":
         return
     subscription_id = event.payload.get("subscription_id")
     if not isinstance(subscription_id, str):

@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 class EventDispatcher(Protocol):
-    async def dispatch(self, event: OutboxEvent) -> None: ...
+    async def dispatch(self, event: OutboxEvent) -> bool: ...
 
 
 class NotificationDispatcher:
@@ -17,7 +17,7 @@ class NotificationDispatcher:
     def __init__(self, config: Config):
         self._environment = config.env
 
-    async def dispatch(self, event: OutboxEvent) -> None:
+    async def dispatch(self, event: OutboxEvent) -> bool:
         if self._environment == "prod":
             raise RuntimeError("Production notification adapter is not configured")
         logger.info(
@@ -28,3 +28,4 @@ class NotificationDispatcher:
                 "payload": event.payload,
             },
         )
+        return False

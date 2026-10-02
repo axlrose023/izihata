@@ -19,10 +19,10 @@ class OutboxDeliveryService:
         self._timeout_seconds = timeout_seconds
         self._max_attempts = max_attempts
 
-    async def deliver(self, event: OutboxEvent) -> None:
+    async def deliver(self, event: OutboxEvent) -> bool:
         try:
             async with asyncio.timeout(self._timeout_seconds):
-                await self._dispatcher.dispatch(event)
+                delivered = await self._dispatcher.dispatch(event)
         except Exception as exc:
             event.attempts = (event.attempts or 0) + 1
             event.last_error = str(exc)[:2000]
@@ -38,6 +38,7 @@ class OutboxDeliveryService:
                     minutes=delay_minutes
                 )
                 logger.exception("Outbox event dispatch failed")
+            return False
         else:
             event.attempts = (event.attempts or 0) + 1
             event.status = OutboxStatus.PROCESSED
@@ -45,3 +46,4 @@ class OutboxDeliveryService:
             event.next_attempt_at = None
             event.locked_until = None
             event.last_error = None
+            return delivered
