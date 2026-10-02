@@ -92,8 +92,14 @@ export function OrderSuccessPage() {
               <dd>за тарифом</dd>
             </div>
             <div>
-              <dt>{payment === "card" ? "Сплачено карткою" : "До сплати"}</dt>
-              <dd>{total ? formatMoney(total) : "—"}</dd>
+              <dt>{payment === "card" ? "Статус оплати" : "До сплати"}</dt>
+              <dd>
+                {payment === "card"
+                  ? "Очікує підтвердження менеджером"
+                  : total
+                    ? formatMoney(total)
+                    : "—"}
+              </dd>
             </div>
           </dl>
         </section>
