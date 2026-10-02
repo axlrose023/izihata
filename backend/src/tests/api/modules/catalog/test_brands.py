@@ -88,6 +88,43 @@ class TestAdminBrands:
 
         assert response.status_code == 409
 
+    async def test_rename_preserves_product_membership_and_slug(
+        self, client, uow, authenticated_user
+    ):
+        from app.api.modules.catalog.models import Product
+
+        headers = {"Authorization": f"Bearer {authenticated_user['access_token']}"}
+        brand = (
+            await uow.session.execute(select(Brand).where(Brand.name == "IEK"))
+        ).scalar_one()
+        old_name, old_slug = brand.name, brand.slug
+        before = (await client.get(f"/api/v1/catalog/brands/{old_slug}")).json()[
+            "product_count"
+        ]
+        try:
+            response = await client.patch(
+                f"{self.endpoint}/{brand.id}",
+                headers=headers,
+                json={"name": "IEK renamed regression"},
+            )
+            assert response.status_code == 200, response.text
+            assert response.json()["product_count"] == before
+            assert response.json()["slug"] == old_slug
+            listing = await client.get(
+                "/api/v1/catalog/products",
+                params={"brand": "IEK renamed regression", "include_facets": False},
+            )
+            assert listing.json()["total"] == before
+            assert (
+                await uow.session.execute(
+                    select(Product).where(Product.brand == old_name)
+                )
+            ).scalars().all() == []
+        finally:
+            await client.patch(
+                f"{self.endpoint}/{brand.id}", headers=headers, json={"name": old_name}
+            )
+
 
 @pytest.mark.asyncio
 class TestMediaUpload:

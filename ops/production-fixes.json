@@ -157,8 +157,10 @@
       "id": "R19",
       "priority": "P2",
       "title": "Переименование бренда разрывает связь с его товарами",
-      "status": "pending",
-      "checks": []
+      "status": "implemented",
+      "checks": [
+        "12 brand/media API tests passed; brand rename updates product membership in the same transaction, preserves slug, rejects collisions; row locked against concurrent renames."
+      ]
     },
     {
       "id": "R20",

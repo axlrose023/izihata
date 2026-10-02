@@ -46,8 +46,12 @@ class BrandGateway:
             stmt = stmt.where(Brand.is_active.is_(True))
         return (await self._session.execute(stmt)).scalars().all()
 
-    async def get_by_id(self, brand_id: UUID) -> Brand | None:
+    async def get_by_id(
+        self, brand_id: UUID, *, for_update: bool = False
+    ) -> Brand | None:
         stmt = select(Brand).where(Brand.id == brand_id)
+        if for_update:
+            stmt = stmt.with_for_update()
         return (await self._session.execute(stmt)).scalar_one_or_none()
 
     async def get_by_slug(self, slug: str) -> Brand | None:
@@ -959,6 +963,11 @@ class ProductGateway:
             .values(status=StockSubscriptionStatus.NOTIFIED)
         )
         await self._session.execute(stmt)
+
+    async def rename_brand(self, old_name: str, new_name: str) -> None:
+        await self._session.execute(
+            update(Product).where(Product.brand == old_name).values(brand=new_name)
+        )
 
     async def get_many(self, product_ids: set[UUID]) -> Sequence[Product]:
         if not product_ids:

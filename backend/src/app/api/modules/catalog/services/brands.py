@@ -74,7 +74,7 @@ class BrandManagementService:
         brand_id: UUID,
         request: UpdateBrandRequest,
     ) -> AdminBrandResponse:
-        brand = await self._uow.brands.get_by_id(brand_id)
+        brand = await self._uow.brands.get_by_id(brand_id, for_update=True)
         if brand is None:
             raise NotFoundError("Brand not found", code="brand_not_found")
 
@@ -84,6 +84,7 @@ class BrandManagementService:
                     "Brand name already exists",
                     code="brand_name_exists",
                 )
+            await self._uow.products.rename_brand(brand.name, request.name)
             brand.name = request.name
         for field in ("logo_url", "description", "position", "is_active"):
             if field in request.model_fields_set:
