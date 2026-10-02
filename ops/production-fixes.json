@@ -228,7 +228,8 @@
       "checks": [
         "321 backend and 94 frontend tests passed; original URLs retained, WebP sizes preserve alpha and ratio, stale variants ignored; storage transport reused by supplier imports.",
         "Production sample thumbnails: 7,654 bytes vs original 23,456 bytes. Follow-up prevents larger derivatives and keeps full-size originals; 4 image regressions passed.",
-        "325 backend and 102 frontend tests passed. Batch processing now overlaps bounded uploads (max 8), permits 8 source workers with only 2 encoders; resumability and upload bounds tested."
+        "325 backend and 102 frontend tests passed. Batch processing now overlaps bounded uploads (max 8), permits 8 source workers with only 2 encoders; resumability and upload bounds tested.",
+        "3 visibility/gallery regressions passed; thumbnail URLs are assigned only when their images enter the viewport; fallback works without IntersectionObserver; typecheck/lint passed."
       ]
     },
     {

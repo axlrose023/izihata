@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 
+import { VisibleImage } from "@/shared/ui/visible-image";
 import { responsiveImage } from "@/modules/catalog/lib/responsive-image";
 import type { ProductDetail, ProductMedia } from "@/shared/types/api";
 
@@ -93,7 +94,9 @@ export function ProductMediaGallery({ product }: { product: ProductDetail }) {
               }}
               type="button"
             >
-              <img
+              <VisibleImage
+                width={80}
+                height={80}
                 alt=""
                 decoding="async"
                 loading="lazy"
