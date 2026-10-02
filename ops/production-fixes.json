@@ -246,7 +246,8 @@
         "325 backend and 102 frontend tests passed. Batch processing now overlaps bounded uploads (max 8), permits 8 source workers with only 2 encoders; resumability and upload bounds tested.",
         "3 visibility/gallery regressions passed; thumbnail URLs are assigned only when their images enter the viewport; fallback works without IntersectionObserver; typecheck/lint passed.",
         "Production diagnosis: 20 thumbnails were simultaneously visible in wrapped mobile gallery; changed to a horizontally scrollable strip so only visible images compete with the main image; 3 regressions passed.",
-        "5 image regressions passed including concurrency bounds, fast resume without rewriting complete rows, and repair of missing gallery metadata without re-downloading originals. Upload concurrency configurable 1–32; encoders still limited to 2, product-scoped CLI reuses the same pipeline."
+        "5 image regressions passed including concurrency bounds, fast resume without rewriting complete rows, and repair of missing gallery metadata without re-downloading originals. Upload concurrency configurable 1–32; encoders still limited to 2, product-scoped CLI reuses the same pipeline.",
+        "Production batch identified a real animated supplier GIF. Preserve animation by counting it as deliberately skipped rather than a conversion failure; do not write flattened metadata. Six image regressions passed, including no DB writes for animated input."
       ]
     },
     {

@@ -38,6 +38,23 @@ def test_invalid_images_are_rejected_without_replacing_the_original():
         encode_variants(b"not an image")
 
 
+def animated_bytes():
+    output = io.BytesIO()
+    Image.new("RGB", (20, 20), "red").save(
+        output,
+        "GIF",
+        save_all=True,
+        append_images=[Image.new("RGB", (20, 20), "blue")],
+        duration=100,
+        loop=0,
+    )
+    return output.getvalue()
+
+
+def test_animated_originals_are_preserved_without_flattening():
+    assert encode_variants(animated_bytes()) == {}
+
+
 def test_original_bytes_are_retained_for_the_full_size_variant():
     content = image_bytes((200, 1200))
     variants = encode_variants(content)
@@ -144,3 +161,14 @@ async def test_batch_limits_uploads_and_resumes_complete_metadata(monkeypatch):
     assert result["reused"] == 10
     assert downloads == 0
     assert len(saved) == 2
+
+    content = animated_bytes()
+    sources = [("https://cdn.example/animated.gif", None)]
+    media_sources = []
+    saved.clear()
+    result = await module.generate_image_variants(
+        Session, storage, progress=lambda value: None
+    )
+    assert result["skipped"] == 1
+    assert result["failed"] == result["generated"] == 0
+    assert saved == []

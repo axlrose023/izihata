@@ -32,7 +32,7 @@ def encode_variants(content: bytes) -> dict[int, bytes]:
         if original.width * original.height > 20_000_000:
             raise ValueError("Image exceeds 20 million pixels")
         if getattr(original, "is_animated", False):
-            raise ValueError("Animated originals are preserved without conversion")
+            return {}
         oriented = ImageOps.exif_transpose(original)
         image = oriented.convert(
             "RGBA"
@@ -157,6 +157,9 @@ async def generate_image_variants(
                             continue
                         async with encoding_slots:
                             variants = await asyncio.to_thread(encode_variants, content)
+                        if not variants:
+                            counters["skipped"] += 1
+                            continue
                         digest = hashlib.sha256(content).hexdigest()
 
                         async def upload(
