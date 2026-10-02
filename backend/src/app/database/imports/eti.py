@@ -195,7 +195,7 @@ def read_eti_workbook(path: Path) -> EtiWorkbook:
     return _read_supplier_workbook(
         path,
         price_header="Ціна в грн. з ПДВ",
-        photos_sheet=PHOTOS_SHEET,
+        photos_sheet_name=PHOTOS_SHEET,
         has_source_column=True,
         supplier_slug="eti",
     )
@@ -206,7 +206,7 @@ def read_hager_workbook(path: Path) -> EtiWorkbook:
     return _read_supplier_workbook(
         path,
         price_header=HAGER_PRICE_HEADER,
-        photos_sheet=HAGER_PHOTOS_SHEET,
+        photos_sheet_name=HAGER_PHOTOS_SHEET,
         has_source_column=False,
         supplier_slug="hager",
     )
@@ -216,7 +216,7 @@ def _read_supplier_workbook(
     path: Path,
     *,
     price_header: str,
-    photos_sheet: str,
+    photos_sheet_name: str,
     has_source_column: bool,
     supplier_slug: str,
 ) -> EtiWorkbook:
@@ -225,7 +225,7 @@ def _read_supplier_workbook(
     missing_sheets = {
         PRODUCTS_SHEET,
         CHARACTERISTICS_SHEET,
-        photos_sheet,
+        photos_sheet_name,
     } - set(workbook.sheetnames)
     if missing_sheets:
         raise ValueError(
@@ -338,13 +338,13 @@ def _read_supplier_workbook(
         )
         positions[position_key] += 1
 
-    photos_sheet = workbook[photos_sheet]
-    photo_rows = photos_sheet.iter_rows(values_only=True)
+    photo_worksheet = workbook[photos_sheet_name]
+    photo_rows = photo_worksheet.iter_rows(values_only=True)
     photo_header = tuple(next(photo_rows, ()))
     photo_columns = _column_indexes(
         photo_header,
         {"Код постачальника", "URL"},
-        photos_sheet.title,
+        photo_worksheet.title,
     )
     photos: dict[str, list[EtiPhoto]] = defaultdict(list)
     for row in photo_rows:
