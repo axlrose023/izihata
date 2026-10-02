@@ -63,14 +63,9 @@ export function CartDrawer() {
               aria-label="Умови доставки"
             >
               <div>
-                <span>
-                  До безкоштовної доставки <strong>[залишок] ₴</strong>
-                </span>
-                <span>поріг [поріг] ₴</span>
+                <span>Доставка за тарифом перевізника</span>
+                <span>Умови підтвердить менеджер</span>
               </div>
-              <span aria-hidden="true">
-                <i />
-              </span>
             </section>
             <div className="drawer__items">
               {lines.map(({ product, quantity }) => (

@@ -652,8 +652,8 @@ export function CheckoutForm() {
           повернення.
         </p>
         <div className="checkout-assurances">
-          <span>Гарантія виробника, повернення [строк]</span>
-          <span>Оплата через захищений шлюз</span>
+          <span>Умови доставки й повернення уточнить менеджер</span>
+          <span>Оплата після підтвердження замовлення</span>
         </div>
       </aside>
     </div>

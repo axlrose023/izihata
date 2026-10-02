@@ -102,6 +102,12 @@ function renderForm(
 
 it("allows manual delivery when the city directory fails", async () => {
   renderForm();
+  expect(
+    screen.getByText("Оплата після підтвердження замовлення"),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByText(/захищений шлюз|\[строк\]/),
+  ).not.toBeInTheDocument();
   const [city, point] = screen.getAllByRole("combobox");
   fireEvent.change(city, { target: { value: "Київ" } });
   await screen.findByText(/Автопідказки Нової пошти/);

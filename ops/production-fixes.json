@@ -110,8 +110,10 @@
       "id": "R14",
       "priority": "P2",
       "title": "Несогласованные тексты доставки, возврата и оплаты",
-      "status": "pending",
-      "checks": []
+      "status": "implemented",
+      "checks": [
+        "Checkout regression asserts truthful payment text; shipping/return placeholders and unsupported payment-gateway promise removed; typecheck and lint passed."
+      ]
     },
     {
       "id": "R15",
