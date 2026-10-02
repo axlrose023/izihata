@@ -83,7 +83,7 @@ export function ProductFormDialog({
   });
 
   if (!open) return null;
-  if (product && (!detail.isSuccess || detail.data?.id !== product.id)) {
+  if (product && detail.data?.id !== product.id) {
     return (
       <Modal onClose={onClose} open title="Редагувати товар" size="wide">
         {detail.isError ? (

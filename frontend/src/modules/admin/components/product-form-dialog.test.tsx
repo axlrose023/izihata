@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   act,
+  cleanup,
   fireEvent,
   render,
   screen,
@@ -111,7 +112,10 @@ const detail: AdminProductDetail = {
   ],
 };
 
-afterEach(() => vi.clearAllMocks());
+afterEach(() => {
+  cleanup();
+  vi.clearAllMocks();
+});
 
 it("waits for full details before editing and keeps hidden fields on save", async () => {
   let resolveDetail!: (value: AdminProductDetail) => void;
@@ -167,6 +171,57 @@ it("waits for full details before editing and keeps hidden fields on save", asyn
       availability_days: null,
       wholesale_price: null,
       wholesale_min_quantity: null,
+      is_popular: true,
+      is_active: false,
+      relations: [{ product_id: "related-1", kind: "related", position: 0 }],
+    },
+  );
+});
+
+it("keeps unsaved edits when a background detail refresh fails or succeeds", async () => {
+  vi.mocked(fetchAdminProduct)
+    .mockResolvedValueOnce(detail)
+    .mockRejectedValueOnce(new Error("Temporary network failure"))
+    .mockResolvedValueOnce({ ...detail, name: "Refreshed name" });
+  vi.mocked(updateAdminProductDetails).mockResolvedValue(product);
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  queryClient.setQueryData(catalogKeys.categories(), [category]);
+  vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue();
+
+  render(
+    <QueryClientProvider client={queryClient}>
+      <ProductFormDialog onClose={vi.fn()} open product={product} />
+    </QueryClientProvider>,
+  );
+
+  const name = await screen.findByLabelText("Назва");
+  fireEvent.change(name, { target: { value: "Unsaved name" } });
+  const queryKey = ["admin", "product", product.id];
+  await act(async () => {
+    await queryClient.refetchQueries({ queryKey, exact: true });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  });
+  expect(queryClient.getQueryState(queryKey)?.status).toBe("error");
+  expect(screen.getByLabelText("Назва")).toBe(name);
+  expect(name).toHaveValue("Unsaved name");
+
+  await act(async () => {
+    await queryClient.refetchQueries({ queryKey, exact: true });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  });
+  expect(queryClient.getQueryData<AdminProductDetail>(queryKey)?.name).toBe(
+    "Refreshed name",
+  );
+  expect(screen.getByLabelText("Назва")).toBe(name);
+  expect(name).toHaveValue("Unsaved name");
+
+  fireEvent.click(screen.getByRole("button", { name: "Зберегти товар" }));
+  await waitFor(() => expect(updateAdminProductDetails).toHaveBeenCalled());
+  expect(vi.mocked(updateAdminProductDetails).mock.calls[0]?.[2]).toMatchObject(
+    {
+      name: "Unsaved name",
       is_popular: true,
       is_active: false,
       relations: [{ product_id: "related-1", kind: "related", position: 0 }],
