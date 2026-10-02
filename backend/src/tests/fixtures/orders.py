@@ -9,6 +9,7 @@ def order_payload():
         payload = {
             "items": [{"product_id": str(product_id), "quantity": 2}],
             "customer_name": "Олена Тест",
+            "email": "olena@example.com",
             "phone": "+380671234567",
             "delivery": {
                 "method": "nova_poshta_branch",

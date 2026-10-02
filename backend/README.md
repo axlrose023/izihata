@@ -36,7 +36,7 @@ The current backend implements only flows present in the reference product:
 | `GET` | `/api/v1/delivery/cities` | Nova Poshta settlement suggestions |
 | `GET` | `/api/v1/delivery/points` | Nova Poshta branch or locker suggestions |
 | `POST` | `/api/v1/checkout/quote` | Authoritative cart and promotion calculation |
-| `POST` | `/api/v1/orders` | Idempotent guest checkout |
+| `POST` | `/api/v1/orders` | Idempotent guest and customer checkout |
 | `POST` | `/api/v1/leads` | Callback, quick-buy, or wholesale lead |
 | `GET` | `/api/v1/admin/dashboard` | Real operational aggregates |
 | `POST` | `/api/v1/admin/catalog/products` | Validated product creation |
@@ -199,6 +199,8 @@ production Docker build with an idle-worker liveness smoke-test.
 - `POST /orders` requires an `Idempotency-Key` header of 8-128 safe ASCII
   characters. Repeating the same key and body returns the original order;
   reusing it with a different body returns `409`.
+- Guest orders require a contact email. Authenticated customer orders use the
+  email address stored on the customer account.
 - The frontend never submits a trusted price, discount, or total. It sends
   product IDs and quantities to `/checkout/quote`; the same pricing service is
   run again atomically when the order is created.
