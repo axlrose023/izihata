@@ -15,7 +15,6 @@ import { ProductMediaGallery } from "@/modules/catalog/components/product-media-
 import type { ProductDetail } from "@/shared/types/api";
 import { ApiError } from "@/shared/api/errors";
 import { discountPercent, formatMoney } from "@/shared/lib/format";
-import { useDocumentTitle } from "@/shared/lib/use-document-title";
 import { usePageMeta } from "@/shared/lib/use-page-meta";
 import { LeadAction } from "@/modules/leads/components/lead-action";
 import { ProductStickyBar } from "@/modules/catalog/components/product-sticky-bar";
@@ -30,13 +29,16 @@ export function ProductPage() {
   const { slug = "" } = useParams<{ slug: string }>();
   const productResult = useQuery(productQuery(slug));
   const product = productResult.data;
-  useDocumentTitle(product?.name ?? "Товар");
+  const missing =
+    productResult.error instanceof ApiError &&
+    productResult.error.status === 404;
   usePageMeta({
-    title: product?.name ?? "Товар",
-    description:
-      product?.short_description ??
-      product?.description ??
-      "Технічні характеристики, наявність та ціна в IZI HATA.",
+    title: missing ? "Товар не знайдено" : (product?.name ?? "Товар"),
+    description: missing
+      ? "Товар більше не доступний у каталозі IZI HATA."
+      : (product?.short_description ??
+        product?.description ??
+        "Технічні характеристики, наявність та ціна в IZI HATA."),
     structuredData: product ? productStructuredData(product) : undefined,
   });
 
@@ -403,7 +405,6 @@ function productStructuredData(
 }
 
 function ProductNotFound() {
-  useDocumentTitle("Товар не знайдено");
   return (
     <div className="container empty-state">
       <div className="empty-state__icon" aria-hidden="true">

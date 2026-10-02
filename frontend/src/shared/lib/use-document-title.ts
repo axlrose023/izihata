@@ -1,9 +1,9 @@
-import { useEffect } from "react";
-
-const APP_NAME = "IZI HATA";
+import { usePageMeta } from "./use-page-meta";
 
 export function useDocumentTitle(title?: string): void {
-  useEffect(() => {
-    document.title = title ? `${title} | ${APP_NAME}` : APP_NAME;
-  }, [title]);
+  usePageMeta({
+    title: title ?? "Електротовари",
+    description:
+      "Каталог електротоварів IZI HATA: товари, характеристики, доставка й оформлення замовлень.",
+  });
 }

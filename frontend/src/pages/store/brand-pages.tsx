@@ -2,7 +2,6 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
 
 import { brandsQuery } from "@/modules/catalog/api/catalog-queries";
-import { useDocumentTitle } from "@/shared/lib/use-document-title";
 import { usePageMeta } from "@/shared/lib/use-page-meta";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { ErrorNotice } from "@/shared/ui/error-notice";
@@ -12,7 +11,6 @@ import { pluralizeProducts } from "@/shared/lib/format";
 
 export function BrandsPage() {
   const result = useQuery(brandsQuery());
-  useDocumentTitle("Виробники");
   usePageMeta({
     title: "Виробники",
     description:

@@ -22,7 +22,6 @@ import { catalogHref } from "@/modules/catalog/lib/catalog-href";
 import { ActiveFilters } from "@/modules/catalog/components/active-filters";
 import { ProductCard } from "@/modules/catalog/components/product-card";
 import type { ProductBadge, ProductSort } from "@/shared/types/api";
-import { useDocumentTitle } from "@/shared/lib/use-document-title";
 import { usePageMeta } from "@/shared/lib/use-page-meta";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { ErrorNotice } from "@/shared/ui/error-notice";
@@ -136,7 +135,6 @@ export function CatalogPage({
     productsResult.data?.total ?? 0,
   );
   const pageTitle = presetTitle ?? initialActiveCategory?.name ?? "Каталог";
-  useDocumentTitle(pageTitle);
   usePageMeta({
     title: pageTitle,
     description:

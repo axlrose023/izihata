@@ -4,14 +4,17 @@ import { useLocation } from "react-router-dom";
 const APP_NAME = "IZI HATA";
 const trackingParameters = new Set(["fbclid", "gclid", "msclkid"]);
 
-function getOrCreateMeta(name: string): HTMLMetaElement {
+function getOrCreateMeta(
+  name: string,
+  attribute: "name" | "property" = "name",
+): HTMLMetaElement {
   const existing = document.head.querySelector<HTMLMetaElement>(
-    `meta[name="${name}"]`,
+    `meta[${attribute}="${name}"]`,
   );
   if (existing) return existing;
 
   const meta = document.createElement("meta");
-  meta.name = name;
+  meta.setAttribute(attribute, name);
   document.head.append(meta);
   return meta;
 }
@@ -55,6 +58,22 @@ export function usePageMeta({
     getOrCreateCanonical().href = canonicalizeUrl(
       new URL(`${pathname}${search}`, window.location.origin).href,
     );
+
+    const canonical = getOrCreateCanonical().href;
+    getOrCreateMeta("og:title", "property").content = document.title;
+    getOrCreateMeta("og:description", "property").content = description;
+    getOrCreateMeta("og:url", "property").content = canonical;
+    getOrCreateMeta("og:type", "property").content = "website";
+    const rawImage = structuredData?.image;
+    const image = Array.isArray(rawImage) ? rawImage[0] : rawImage;
+    if (typeof image === "string")
+      getOrCreateMeta("og:image", "property").content = new URL(
+        image,
+        window.location.origin,
+      ).href;
+    else document.querySelector('meta[property="og:image"]')?.remove();
+    getOrCreateMeta("twitter:card").content =
+      typeof image === "string" ? "summary_large_image" : "summary";
 
     const script = document.head.querySelector<HTMLScriptElement>(
       'script[data-page-structured-data="true"]',

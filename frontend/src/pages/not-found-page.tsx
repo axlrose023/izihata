@@ -1,10 +1,8 @@
 import { Link } from "react-router-dom";
 
-import { useDocumentTitle } from "@/shared/lib/use-document-title";
 import { usePageMeta } from "@/shared/lib/use-page-meta";
 
 export function NotFoundPage() {
-  useDocumentTitle("Сторінку не знайдено");
   usePageMeta({
     title: "Сторінку не знайдено",
     description: "Перевірте адресу або поверніться до каталогу IZI HATA.",

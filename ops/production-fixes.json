@@ -77,8 +77,10 @@
       "id": "R09",
       "priority": "P2",
       "title": "Canonical и description остаются от предыдущего товара",
-      "status": "pending",
-      "checks": []
+      "status": "implemented",
+      "checks": [
+        "3 metadata regressions passed; all title-only pages update canonical/description and clear previous product data; Open Graph fields updated; duplicate title effects removed; typecheck/lint passed."
+      ]
     },
     {
       "id": "R10",
