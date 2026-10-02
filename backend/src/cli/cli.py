@@ -227,6 +227,7 @@ def _import_supplier_workbook_command(
     public_base_url: str | None = None,
     concurrency: int = 8,
     sku_prefix_for_conflicts: str | None = None,
+    remap_categories: bool = False,
 ) -> None:
     if not path.exists():
         typer.echo(typer.style(f"File not found: {path}", fg=typer.colors.RED))
@@ -316,6 +317,7 @@ def _import_supplier_workbook_command(
                 brand_name=brand_name,
                 manufacturer_name=manufacturer_name,
                 sku_prefix_for_conflicts=sku_prefix_for_conflicts,
+                remap_categories=remap_categories,
             )
             mode = "APPLIED" if apply else "DRY RUN (nothing written)"
             typer.echo(typer.style(f"\n{mode}", fg=typer.colors.CYAN, bold=True))
@@ -342,6 +344,13 @@ def import_eti_command(
     apply: Annotated[
         bool,
         typer.Option("--apply", help="Write products to the database"),
+    ] = False,
+    remap_categories: Annotated[
+        bool,
+        typer.Option(
+            "--remap-categories",
+            help="Re-apply import category rules to existing products",
+        ),
     ] = False,
     upload_media: Annotated[
         bool,
@@ -380,6 +389,7 @@ def import_eti_command(
         brand_name="ETI",
         read_workbook=read_eti_workbook,
         apply=apply,
+        remap_categories=remap_categories,
         upload_media=upload_media,
         endpoint=endpoint,
         storage_zone=storage_zone,
@@ -395,6 +405,13 @@ def import_hager_command(
     apply: Annotated[
         bool,
         typer.Option("--apply", help="Write products to the database"),
+    ] = False,
+    remap_categories: Annotated[
+        bool,
+        typer.Option(
+            "--remap-categories",
+            help="Re-apply import category rules to existing products",
+        ),
     ] = False,
     upload_media: Annotated[
         bool,
@@ -414,6 +431,7 @@ def import_hager_command(
         brand_name="Hager",
         read_workbook=read_hager_workbook,
         apply=apply,
+        remap_categories=remap_categories,
         upload_media=upload_media,
         concurrency=concurrency,
     )
@@ -425,6 +443,13 @@ def import_enext_command(
     apply: Annotated[
         bool,
         typer.Option("--apply", help="Write products to the database"),
+    ] = False,
+    remap_categories: Annotated[
+        bool,
+        typer.Option(
+            "--remap-categories",
+            help="Re-apply import category rules to existing products",
+        ),
     ] = False,
     upload_media: Annotated[
         bool,
@@ -445,6 +470,7 @@ def import_enext_command(
         manufacturer_name="e.next",
         read_workbook=read_enext_workbook,
         apply=apply,
+        remap_categories=remap_categories,
         upload_media=upload_media,
         concurrency=concurrency,
     )
@@ -456,6 +482,13 @@ def import_acko_command(
     apply: Annotated[
         bool,
         typer.Option("--apply", help="Write products to the database"),
+    ] = False,
+    remap_categories: Annotated[
+        bool,
+        typer.Option(
+            "--remap-categories",
+            help="Re-apply import category rules to existing products",
+        ),
     ] = False,
     upload_media: Annotated[
         bool,
@@ -476,6 +509,7 @@ def import_acko_command(
         manufacturer_name="Аско-Укрем",
         read_workbook=read_acko_workbook,
         apply=apply,
+        remap_categories=remap_categories,
         upload_media=upload_media,
         concurrency=concurrency,
         sku_prefix_for_conflicts="ACKO",

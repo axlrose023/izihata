@@ -714,6 +714,7 @@ async def import_eti_workbook(
     brand_name: str = "ETI",
     manufacturer_name: str | None = None,
     sku_prefix_for_conflicts: str | None = None,
+    remap_categories: bool = False,
 ) -> EtiImportOutcome:
     """Create or refresh a supplier range in bounded, repeatable batches."""
     if batch_size < 1:
@@ -725,6 +726,7 @@ async def import_eti_workbook(
     }
     if FALLBACK_CATEGORY not in categories:
         raise ValueError(f"Fallback category '{FALLBACK_CATEGORY}' is missing")
+    categories_by_id = {category.id: category for category in categories.values()}
     subcategories = {
         (subcategory.category_id, subcategory.name): subcategory
         for subcategory in (await session.execute(select(Subcategory))).scalars().all()
@@ -869,9 +871,9 @@ async def import_eti_workbook(
             category_slug, subcategory_name, matched = classify(row.name)
             category = categories.get(category_slug) or categories[FALLBACK_CATEGORY]
             subcategory = subcategories.get((category.id, subcategory_name or ""))
-            if not matched:
-                outcome.unmapped.append(f"{row.sku} {row.name}")
             product = existing.get(product_sku)
+            if not matched and (product is None or remap_categories):
+                outcome.unmapped.append(f"{row.sku} {row.name}")
             if product is None:
                 slug = product_slug_from_sku(product_sku)
                 suffix = 2
@@ -899,16 +901,22 @@ async def import_eti_workbook(
                     session.add(product)
             else:
                 if not dry_run:
-                    product.category_id = category.id
-                    product.subcategory_id = subcategory.id if subcategory else None
+                    if remap_categories:
+                        product.category_id = category.id
+                        product.subcategory_id = subcategory.id if subcategory else None
                     product.name = row.name
                     product.brand = brand_name
                     product.price = row.price
-                    product.stock_status = StockStatus.PREORDER
-                    product.stock_quantity = 0
-                    product.is_active = True
-                    product.position = row.position
                 outcome.updated += 1
+
+            actual_category = (
+                category
+                if product is None or remap_categories
+                else categories_by_id[product.category_id]
+            )
+            outcome.per_category[actual_category.slug] = (
+                outcome.per_category.get(actual_category.slug, 0) + 1
+            )
 
             specifications = workbook.specifications.get(row.sku, [])
             attributes = _product_attributes(
@@ -935,9 +943,10 @@ async def import_eti_workbook(
                     for photo in workbook.photos.get(row.sku, [])
                     if (photo.sku, photo.position) in media_urls
                 ]
-                product.media = media
-                product.image_url = media[0].url if media else None
-                outcome.media_attached += len(media)
+                if media:
+                    product.media = media
+                    product.image_url = media[0].url
+                    outcome.media_attached += len(media)
             if not dry_run:
                 product.attributes = attributes
 
