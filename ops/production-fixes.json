@@ -181,8 +181,10 @@
       "id": "R21",
       "priority": "P2",
       "title": "Недоступные товары остаются в избранном без возможности очистки",
-      "status": "pending",
-      "checks": []
+      "status": "implemented",
+      "checks": [
+        "2 collection regressions passed; missing items can be explicitly removed, all collections can be cleared, failures preserve saved IDs, requests cancelled on changes."
+      ]
     },
     {
       "id": "R22",

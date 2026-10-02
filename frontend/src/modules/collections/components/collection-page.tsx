@@ -19,12 +19,37 @@ export function CollectionPage({ mode }: { mode: "favorites" | "compare" }) {
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["collection", mode, ids],
     enabled: ids.length > 0,
-    queryFn: () =>
+    queryFn: ({ signal }) =>
       apiClient<ProductList>(
         `/catalog/products${buildQuery({ id: ids, page_size: 100, include_facets: false })}`,
+        { signal },
       ),
   });
   const products = data?.items ?? [];
+  const missing =
+    data && !error
+      ? ids.filter((id) => !products.some((product) => product.id === id))
+      : [];
+  const clearLabel =
+    mode === "favorites" ? "Очистити обране" : "Очистити порівняння";
+  const controls = (
+    <div className="collection-controls">
+      {missing.length ? (
+        <p role="status">
+          Недоступні в каталозі: {missing.length}.
+          <button
+            type="button"
+            onClick={() => missing.forEach((id) => toggle(id))}
+          >
+            Прибрати недоступні
+          </button>
+        </p>
+      ) : null}
+      <button type="button" onClick={() => ids.forEach((id) => toggle(id))}>
+        {clearLabel}
+      </button>
+    </div>
+  );
 
   if (!ids.length) {
     return (
@@ -47,31 +72,48 @@ export function CollectionPage({ mode }: { mode: "favorites" | "compare" }) {
   if (isLoading) return <div className="page-loader">Завантажуємо товари…</div>;
   if (error)
     return (
-      <ErrorNotice
-        error={error}
-        fallback="Не вдалося завантажити товари."
-        onRetry={() => void refetch()}
-      />
+      <>
+        {controls}
+        <ErrorNotice
+          error={error}
+          fallback="Не вдалося завантажити товари."
+          onRetry={() => void refetch()}
+        />
+      </>
     );
 
   if (mode === "favorites") {
     return (
-      <div className="product-grid product-grid--catalog">
-        {products.map((product) => (
-          <ProductCard key={product.id} product={product} />
-        ))}
-      </div>
+      <>
+        {controls}
+        {!products.length ? (
+          <EmptyState
+            title="Збережені товари недоступні"
+            description="Перегляньте каталог або приберіть недоступні позиції зі списку."
+            actionHref="/catalog"
+            actionLabel="До каталогу"
+          />
+        ) : null}
+        <div className="product-grid product-grid--catalog">
+          {products.map((product) => (
+            <ProductCard key={product.id} product={product} />
+          ))}
+        </div>
+      </>
     );
   }
 
   if (products.length < 2) {
     return (
-      <EmptyState
-        actionHref="/#catalog"
-        actionLabel="Додати ще товар"
-        description="Для змістовного порівняння потрібні щонайменше два товари."
-        title="Додайте ще один товар"
-      />
+      <>
+        {controls}
+        <EmptyState
+          actionHref="/#catalog"
+          actionLabel="Додати ще товар"
+          description="Для змістовного порівняння потрібні щонайменше два товари."
+          title="Додайте ще один товар"
+        />
+      </>
     );
   }
 
@@ -79,44 +121,47 @@ export function CollectionPage({ mode }: { mode: "favorites" | "compare" }) {
     ...new Set(products.flatMap((product) => Object.keys(product.specs))),
   ];
   return (
-    <div className="compare-scroll">
-      <table className="compare-table">
-        <thead>
-          <tr>
-            <th>Параметр</th>
-            {products.map((product) => (
-              <th key={product.id}>
-                <button
-                  aria-label={`Прибрати ${product.name}`}
-                  className="compare-table__remove"
-                  onClick={() => toggle(product.id)}
-                  type="button"
-                >
-                  <X size={16} />
-                </button>
-                <strong>{product.name}</strong>
-                <span>{formatMoney(product.price)}</span>
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <th>Бренд</th>
-            {products.map((product) => (
-              <td key={product.id}>{product.brand}</td>
-            ))}
-          </tr>
-          {specNames.map((spec) => (
-            <tr key={spec}>
-              <th>{spec}</th>
+    <>
+      {controls}
+      <div className="compare-scroll">
+        <table className="compare-table">
+          <thead>
+            <tr>
+              <th>Параметр</th>
               {products.map((product) => (
-                <td key={product.id}>{product.specs[spec] ?? "—"}</td>
+                <th key={product.id}>
+                  <button
+                    aria-label={`Прибрати ${product.name}`}
+                    className="compare-table__remove"
+                    onClick={() => toggle(product.id)}
+                    type="button"
+                  >
+                    <X size={16} />
+                  </button>
+                  <strong>{product.name}</strong>
+                  <span>{formatMoney(product.price)}</span>
+                </th>
               ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody>
+            <tr>
+              <th>Бренд</th>
+              {products.map((product) => (
+                <td key={product.id}>{product.brand}</td>
+              ))}
+            </tr>
+            {specNames.map((spec) => (
+              <tr key={spec}>
+                <th>{spec}</th>
+                {products.map((product) => (
+                  <td key={product.id}>{product.specs[spec] ?? "—"}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }
