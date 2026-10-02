@@ -1,3 +1,12 @@
+import { catalogPaths } from "./catalog-paths";
+import { publicCatalogSeed } from "./public-catalog-seed";
+import type {
+  Category,
+  CatalogSection,
+  Brand,
+  ProductDetail,
+  ProductList,
+} from "@/shared/types/api";
 import { keepPreviousData, queryOptions } from "@tanstack/react-query";
 
 import type { QueryValue } from "@/shared/api/query";
@@ -25,6 +34,7 @@ export const catalogKeys = {
 export const categoriesQuery = () =>
   queryOptions({
     queryKey: catalogKeys.categories(),
+    ...publicCatalogSeed<Category[]>(catalogPaths.categories),
     queryFn: fetchCategories,
     staleTime: 5 * 60_000,
   });
@@ -32,6 +42,7 @@ export const categoriesQuery = () =>
 export const sectionsQuery = () =>
   queryOptions({
     queryKey: catalogKeys.sections(),
+    ...publicCatalogSeed<CatalogSection[]>(catalogPaths.sections),
     queryFn: fetchSections,
     staleTime: 5 * 60_000,
   });
@@ -39,6 +50,7 @@ export const sectionsQuery = () =>
 export const brandsQuery = () =>
   queryOptions({
     queryKey: catalogKeys.brands(),
+    ...publicCatalogSeed<Brand[]>(catalogPaths.brands),
     queryFn: fetchBrands,
     staleTime: 5 * 60_000,
   });
@@ -55,6 +67,7 @@ export const productsQuery = (
 ) =>
   queryOptions({
     queryKey: catalogKeys.products(params),
+    ...publicCatalogSeed<ProductList>(catalogPaths.products(params)),
     queryFn: ({ signal }) => fetchProducts(params, signal),
     // Filters apply as you click them, so keep the previous page visible
     // instead of dropping the grid into a loader on every change.
@@ -64,5 +77,7 @@ export const productsQuery = (
 export const productQuery = (slug: string) =>
   queryOptions({
     queryKey: catalogKeys.product(slug),
+    ...publicCatalogSeed<ProductDetail>(catalogPaths.product(slug)),
+    staleTime: 30_000,
     queryFn: ({ signal }) => fetchProduct(slug, signal),
   });

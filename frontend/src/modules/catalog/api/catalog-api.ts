@@ -1,3 +1,4 @@
+import { catalogPaths } from "./catalog-paths";
 import { apiClient } from "@/shared/api/client";
 import { buildQuery, type QueryValue } from "@/shared/api/query";
 import type {
@@ -12,29 +13,29 @@ import type {
 } from "@/shared/types/api";
 
 export function fetchCategories(): Promise<Category[]> {
-  return apiClient("/catalog/categories");
+  return apiClient(catalogPaths.categories);
 }
 
 export function fetchSections(): Promise<CatalogSection[]> {
-  return apiClient("/catalog/sections");
+  return apiClient(catalogPaths.sections);
 }
 
 export function fetchProducts(
   params: Record<string, QueryValue | QueryValue[]> = {},
   signal?: AbortSignal,
 ): Promise<ProductList> {
-  return apiClient(`/catalog/products${buildQuery(params)}`, { signal });
+  return apiClient(catalogPaths.products(params), { signal });
 }
 
 export function fetchBrands(): Promise<Brand[]> {
-  return apiClient("/catalog/brands");
+  return apiClient(catalogPaths.brands);
 }
 
 export function fetchProduct(
   slug: string,
   signal?: AbortSignal,
 ): Promise<ProductDetail> {
-  return apiClient(`/catalog/products/${encodeURIComponent(slug)}`, { signal });
+  return apiClient(catalogPaths.product(slug), { signal });
 }
 
 export function fetchFeaturedReviews(): Promise<ProductReview[]> {

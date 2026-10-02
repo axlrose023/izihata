@@ -284,8 +284,10 @@
       "id": "O07",
       "priority": "P3",
       "title": "Начинать нужные запросы раньше при переходах",
-      "status": "pending",
-      "checks": []
+      "status": "implemented",
+      "checks": [
+        "4 seed regressions passed; public API paths shared between transport/query options, parameter-aware seeds retain receipt time and exclude private data. Local compiled browser: home/product/section start with zero API fetches; catalog/brand need only filter facets, no duplicate initial product request."
+      ]
     },
     {
       "id": "O08",
