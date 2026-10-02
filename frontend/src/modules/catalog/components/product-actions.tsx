@@ -13,8 +13,6 @@ import { useCollectionStore } from "@/modules/collections/store";
 import { LeadAction } from "@/modules/leads/components/lead-action";
 import type { Product } from "@/shared/types/api";
 
-import { StockSubscriptionForm } from "./stock-subscription-form";
-
 export function ProductActions({ product }: { product: Product }) {
   const add = useCartStore((state) => state.add);
   const openCart = useCartStore((state) => state.open);
@@ -68,7 +66,12 @@ export function ProductActions({ product }: { product: Product }) {
         </label>
       ) : null}
       {unavailable ? (
-        <StockSubscriptionForm slug={product.slug} />
+        <LeadAction
+          className="button button--outline button--wide"
+          label="Уточнити наявність у менеджера"
+          productId={product.id}
+          type="callback"
+        />
       ) : (
         <>
           {inCart ? (

@@ -9,7 +9,6 @@ import type {
   ProductReviewPage,
   ProductReview,
   ReviewStatus,
-  StockSubscriptionStatus,
 } from "@/shared/types/api";
 
 export function fetchCategories(): Promise<Category[]> {
@@ -61,17 +60,4 @@ export function createProductReview(
     method: "POST",
     body: JSON.stringify(payload),
   });
-}
-
-export function createStockSubscription(
-  slug: string,
-  email: string,
-): Promise<{ id: string; status: StockSubscriptionStatus }> {
-  return apiClient(
-    `/catalog/products/${encodeURIComponent(slug)}/stock-subscriptions`,
-    {
-      method: "POST",
-      body: JSON.stringify({ email }),
-    },
-  );
 }
