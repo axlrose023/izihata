@@ -826,7 +826,7 @@ class CreateProductRequest(StrictSchema):
     media: list[ProductMediaInput] = Field(default_factory=list, max_length=20)
     documents: list[ProductDocumentInput] = Field(default_factory=list, max_length=20)
     relations: list[ProductRelationInput] = Field(default_factory=list, max_length=30)
-    specs: dict[str, str] = Field(default_factory=dict, max_length=30)
+    specs: dict[str, str] = Field(default_factory=dict)
 
     @field_validator("sku", mode="before")
     @classmethod
@@ -914,7 +914,7 @@ class UpdateProductRequest(StrictSchema):
     media: list[ProductMediaInput] | None = Field(default=None, max_length=20)
     documents: list[ProductDocumentInput] | None = Field(default=None, max_length=20)
     relations: list[ProductRelationInput] | None = Field(default=None, max_length=30)
-    specs: dict[str, str] | None = Field(default=None, max_length=30)
+    specs: dict[str, str] | None = None
 
     @field_validator("sku", mode="before")
     @classmethod

@@ -4,7 +4,7 @@ const moneyPattern = /^\d+(?:\.\d{1,2})?$/;
 
 const productSpecSchema = z.object({
   key: z.string().trim().min(1, "Вкажіть назву").max(120),
-  value: z.string().trim().min(1, "Вкажіть значення").max(160),
+  value: z.string().trim().min(1, "Вкажіть значення").max(1000),
 });
 
 export const productFormSchema = z
@@ -88,7 +88,7 @@ export const productFormSchema = z
       .string()
       .trim()
       .regex(/^\d*$/, "Вкажіть ціле число"),
-    specs: z.array(productSpecSchema).max(30),
+    specs: z.array(productSpecSchema),
     relations: z
       .array(
         z.object({

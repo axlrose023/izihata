@@ -92,7 +92,7 @@ def normalize_product_specs(value: object) -> dict[str, str]:
         spec_value = normalize_text(raw_value)
         if not key or not spec_value:
             raise ValueError("Specification names and values cannot be empty")
-        if len(key) > 120 or len(spec_value) > 300:
+        if len(key) > 120 or len(spec_value) > 1000:
             raise ValueError("Specification name or value is too long")
         if key in normalized:
             raise ValueError("Specification names must be unique")
