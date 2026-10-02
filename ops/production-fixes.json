@@ -34,8 +34,10 @@
       "id": "R04",
       "priority": "P1",
       "title": "Калькулятор расходует лимит расчёта корзины",
-      "status": "pending",
-      "checks": []
+      "status": "implemented",
+      "checks": [
+        "10 advisor tests and 2 UI regressions passed; dedicated rate limit, one debounced cancellable request, coordinated cable/breaker capacity and pole matching."
+      ]
     },
     {
       "id": "R05",

@@ -42,6 +42,7 @@ class CableSizeResponse(StrictSchema):
 
 
 class BreakerRequest(ElectricalLoadRequest):
+    number_of_poles: int | None = Field(default=None, ge=1, le=4)
     load_type: LoadType = LoadType.RESISTIVE
     wiring_current_limit_a: Decimal | None = Field(default=None, gt=0, le=10000)
 
@@ -82,3 +83,13 @@ class AutonomyResponse(StrictSchema):
     recommended_inverter_power_w: Decimal
     reference_notice: str
     products: list[ProductResponse]
+
+
+class LoadAdviceRequest(CableSizeRequest):
+    load_type: LoadType = LoadType.RESISTIVE
+    number_of_poles: int = Field(default=1, ge=1, le=4)
+
+
+class LoadAdviceResponse(StrictSchema):
+    cable: CableSizeResponse
+    breaker: BreakerResponse

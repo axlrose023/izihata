@@ -10,6 +10,8 @@ from app.api.modules.advisors.schema import (
     CableSizeResponse,
     LedPowerSupplyRequest,
     LedPowerSupplyResponse,
+    LoadAdviceRequest,
+    LoadAdviceResponse,
 )
 from app.api.modules.catalog.schema import ProductResponse
 from app.database.uow import UnitOfWork
@@ -44,13 +46,15 @@ class ElectricalAdvisorService:
     def __init__(self, uow: UnitOfWork):
         self._uow = uow
 
-    async def calculate_cable(self, request: CableSizeRequest) -> CableSizeResponse:
+    async def calculate_cable(
+        self, request: CableSizeRequest, *, minimum_capacity_a: Decimal = Decimal("0")
+    ) -> CableSizeResponse:
         current = request.calculated_current_a
         length_factor = Decimal("1") + max(request.length_m - 30, Decimal("0")) / 300
         design_current = current * length_factor
         cross_section = self._select_cross_section(
             request.conductor_material,
-            design_current,
+            max(design_current, minimum_capacity_a),
         )
         products = (
             await self._uow.products.list_matching_attributes(
@@ -118,6 +122,19 @@ class ElectricalAdvisorService:
                             self._number_labels(Decimal(nominal), {"", " A", " А"}),  # noqa: RUF001
                         ),
                         ({"Характеристика", "Характеристика спрацювання"}, {curve}),
+                        *(
+                            [
+                                (
+                                    {"Полюси", "Кількість полюсів"},
+                                    self._number_labels(
+                                        Decimal(request.number_of_poles),
+                                        {"", "P", " P"},
+                                    ),
+                                ),
+                            ]
+                            if request.number_of_poles is not None
+                            else []
+                        ),
                     ],
                 )
             )
@@ -129,6 +146,26 @@ class ElectricalAdvisorService:
             reference_notice=_REFERENCE_NOTICE,
             products=[ProductResponse.from_product(product) for product in products],
         )
+
+    async def calculate_load(self, request: LoadAdviceRequest) -> LoadAdviceResponse:
+        breaker = await self.calculate_breaker(
+            BreakerRequest(
+                current_a=request.calculated_current_a,
+                voltage_v=request.voltage_v,
+                load_type=request.load_type,
+                number_of_poles=request.number_of_poles,
+            )
+        )
+        cable = await self.calculate_cable(
+            CableSizeRequest(
+                current_a=request.calculated_current_a,
+                voltage_v=request.voltage_v,
+                length_m=request.length_m,
+                conductor_material=request.conductor_material,
+            ),
+            minimum_capacity_a=Decimal(breaker.recommended_nominal_a or 0),
+        )
+        return LoadAdviceResponse(cable=cable, breaker=breaker)
 
     async def calculate_led_power_supply(
         self,

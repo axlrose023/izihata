@@ -14,6 +14,7 @@ def test_openapi_contains_only_confirmed_business_routes(app: FastAPI):
         ("POST", "/api/v1/advisors/breaker"),
         ("POST", "/api/v1/advisors/cable-size"),
         ("POST", "/api/v1/advisors/led-power-supply"),
+        ("POST", "/api/v1/advisors/load"),
         ("POST", "/api/v1/auth/login"),
         ("POST", "/api/v1/auth/logout"),
         ("POST", "/api/v1/auth/refresh"),

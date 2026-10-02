@@ -4,6 +4,31 @@ from httpx import AsyncClient
 
 @pytest.mark.asyncio
 class TestElectricalAdvisors:
+    async def test_combined_load_coordinates_cable_capacity_and_poles(
+        self, client: AsyncClient
+    ):
+        response = await client.post(
+            "/api/v1/advisors/load",
+            json={"current_a": "15.2", "length_m": "20", "number_of_poles": 3},
+        )
+        assert response.status_code == 200, response.text
+        data = response.json()
+        assert data["breaker"]["recommended_nominal_a"] == 20
+        assert data["cable"]["recommended_cross_section_mm2"] == "2.5"
+        assert (
+            float(data["cable"]["current_capacity_a"])
+            >= data["breaker"]["recommended_nominal_a"]
+        )
+        assert all(
+            product["specs"].get("Полюси") == "3P"
+            for product in data["breaker"]["products"]
+        )
+
+    async def test_advisors_do_not_share_checkout_rate_limit(self):
+        from app.api.common.rate_limit import ADVISOR_RATE_LIMIT, QUOTE_RATE_LIMIT
+
+        assert ADVISOR_RATE_LIMIT.scope != QUOTE_RATE_LIMIT.scope
+
     async def test_calculates_cable_size_and_returns_matching_products(
         self,
         client: AsyncClient,

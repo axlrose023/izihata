@@ -2,7 +2,7 @@ from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
 from fastapi import APIRouter, Depends
 
-from app.api.common.rate_limit import QUOTE_RATE_LIMIT, RateLimit
+from app.api.common.rate_limit import ADVISOR_RATE_LIMIT, RateLimit
 from app.api.modules.advisors.schema import (
     AutonomyRequest,
     AutonomyResponse,
@@ -12,6 +12,8 @@ from app.api.modules.advisors.schema import (
     CableSizeResponse,
     LedPowerSupplyRequest,
     LedPowerSupplyResponse,
+    LoadAdviceRequest,
+    LoadAdviceResponse,
 )
 from app.api.modules.advisors.service import ElectricalAdvisorService
 
@@ -21,7 +23,7 @@ router = APIRouter(route_class=DishkaRoute)
 @router.post(
     "/cable-size",
     response_model=CableSizeResponse,
-    dependencies=[Depends(RateLimit(QUOTE_RATE_LIMIT))],
+    dependencies=[Depends(RateLimit(ADVISOR_RATE_LIMIT))],
 )
 async def calculate_cable_size(
     request: CableSizeRequest,
@@ -33,7 +35,7 @@ async def calculate_cable_size(
 @router.post(
     "/breaker",
     response_model=BreakerResponse,
-    dependencies=[Depends(RateLimit(QUOTE_RATE_LIMIT))],
+    dependencies=[Depends(RateLimit(ADVISOR_RATE_LIMIT))],
 )
 async def calculate_breaker(
     request: BreakerRequest,
@@ -45,7 +47,7 @@ async def calculate_breaker(
 @router.post(
     "/led-power-supply",
     response_model=LedPowerSupplyResponse,
-    dependencies=[Depends(RateLimit(QUOTE_RATE_LIMIT))],
+    dependencies=[Depends(RateLimit(ADVISOR_RATE_LIMIT))],
 )
 async def calculate_led_power_supply(
     request: LedPowerSupplyRequest,
@@ -57,10 +59,22 @@ async def calculate_led_power_supply(
 @router.post(
     "/autonomy",
     response_model=AutonomyResponse,
-    dependencies=[Depends(RateLimit(QUOTE_RATE_LIMIT))],
+    dependencies=[Depends(RateLimit(ADVISOR_RATE_LIMIT))],
 )
 async def calculate_autonomy(
     request: AutonomyRequest,
     service: FromDishka[ElectricalAdvisorService],
 ) -> AutonomyResponse:
     return await service.calculate_autonomy(request)
+
+
+@router.post(
+    "/load",
+    response_model=LoadAdviceResponse,
+    dependencies=[Depends(RateLimit(ADVISOR_RATE_LIMIT))],
+)
+async def calculate_load(
+    request: LoadAdviceRequest,
+    service: FromDishka[ElectricalAdvisorService],
+) -> LoadAdviceResponse:
+    return await service.calculate_load(request)

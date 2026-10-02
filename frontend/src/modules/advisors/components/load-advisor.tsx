@@ -1,11 +1,10 @@
 import { AlertCircle, LoaderCircle, Plus } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 
-import {
-  calculateBreaker,
-  calculateCable,
-} from "@/modules/advisors/api/advisor-api";
+import { calculateLoad } from "@/modules/advisors/api/advisor-api";
+import { useDebouncedValue } from "@/shared/lib/use-debounced-value";
 import { ProductVisual } from "@/modules/catalog/components/product-visual";
 import { useCartStore } from "@/modules/cart/store";
 import { formatMoney } from "@/shared/lib/format";
@@ -18,12 +17,6 @@ import type {
 type Calculation = {
   cable: CableSizeResult;
   breaker: BreakerResult;
-};
-
-type CalculationState = {
-  requestKey: string;
-  result: Calculation | null;
-  error: boolean;
 };
 
 const presets = [
@@ -46,11 +39,6 @@ export function LoadAdvisor() {
   const [power, setPower] = useState(3.5);
   const [length, setLength] = useState(20);
   const [phase, setPhase] = useState<"single" | "three">("single");
-  const [calculation, setCalculation] = useState<CalculationState>({
-    requestKey: "",
-    result: null,
-    error: false,
-  });
   const [selectedCableId, setSelectedCableId] = useState<string | null>(null);
   const [selectedBreakerId, setSelectedBreakerId] = useState<string | null>(
     null,
@@ -65,51 +53,29 @@ export function LoadAdvisor() {
         : (power * 1000) / (Math.sqrt(3) * voltage * 0.95),
     [phase, power, voltage],
   );
-  const requestKey = `${current.toFixed(1)}:${length}`;
-
-  useEffect(() => {
-    let currentRequest = true;
-    void Promise.all([
-      calculateCable({
-        current_a: current.toFixed(1),
-        length_m: String(length),
-        conductor_material: "copper",
-      }),
-      calculateBreaker({
-        current_a: current.toFixed(1),
-        load_type: "resistive",
-      }),
-    ])
-      .then(([cable, breaker]) => {
-        if (currentRequest) {
-          setCalculation({
-            requestKey,
-            result: { cable, breaker },
-            error: false,
-          });
-        }
-      })
-      .catch(() => {
-        if (currentRequest) {
-          setCalculation((previous) => ({
-            requestKey,
-            result: previous.result,
-            error: true,
-          }));
-        }
-      });
-    return () => {
-      currentRequest = false;
-    };
-  }, [current, length, requestKey]);
-
-  const isLoading = calculation.requestKey !== requestKey;
-  const error = !isLoading && calculation.error;
-  const result = isLoading || error ? null : calculation.result;
+  const requestKey = JSON.stringify({
+    current_a: current.toFixed(1),
+    length_m: String(length),
+    conductor_material: "copper" as const,
+    number_of_poles: phase === "single" ? 1 : 3,
+  });
+  const debouncedRequest = useDebouncedValue(requestKey, 350);
+  const calculation = useQuery({
+    queryKey: ["advisors", "load", debouncedRequest],
+    queryFn: ({ signal }) =>
+      calculateLoad(JSON.parse(debouncedRequest), signal),
+    staleTime: 60_000,
+  });
+  const isLoading = requestKey !== debouncedRequest || calculation.isPending;
+  const error = calculation.isError;
+  const result = isLoading || error ? null : (calculation.data ?? null);
 
   const section = Number(result?.cable.recommended_cross_section_mm2 ?? 0);
   const voltageDrop = section
-    ? ((2 * length * current * 0.0175) / section / voltage) * 100
+    ? (((phase === "single" ? 2 : Math.sqrt(3)) * length * current * 0.0175) /
+        section /
+        voltage) *
+      100
     : null;
   const products = bundleItems(result);
   const selectedCable = result?.cable.products.find(
