@@ -386,6 +386,14 @@ class ProductGateway:
         stmt = select(func.count(Product.id)).where(*self._admin_conditions(params))
         return int((await self._session.execute(stmt)).scalar_one())
 
+    async def list_active_slugs(self) -> Sequence[str]:
+        stmt = (
+            select(Product.slug)
+            .where(Product.is_active.is_(True))
+            .order_by(Product.slug)
+        )
+        return (await self._session.execute(stmt)).scalars().all()
+
     async def get_by_sku(self, sku: str) -> Product | None:
         stmt = (
             select(Product)

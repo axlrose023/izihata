@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://izihata.com.ua/sitemap.xml

@@ -217,8 +217,17 @@ class ServicesProvider(Provider):
         return LogoutSessionService(uow, jwt_service)
 
     @provide(scope=Scope.REQUEST)
-    def get_catalog_query_service(self, uow: UnitOfWork) -> CatalogQueryService:
-        return CatalogQueryService(uow)
+    def get_catalog_query_service(
+        self,
+        uow: UnitOfWork,
+        config: Config,
+    ) -> CatalogQueryService:
+        site_origin = (
+            config.api.allowed_origins[0]
+            if config.api.allowed_origins
+            else "http://localhost:3000"
+        )
+        return CatalogQueryService(uow, site_origin)
 
     @provide(scope=Scope.REQUEST)
     def get_catalog_administration_service(

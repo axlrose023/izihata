@@ -376,9 +376,9 @@ function productStructuredData(
     name: product.name,
     sku: product.sku,
     brand: { "@type": "Brand", name: product.brand },
-    image: [product.image_url, ...product.media.map((item) => item.url)].filter(
-      Boolean,
-    ),
+    image: [product.image_url, ...product.media.map((item) => item.url)]
+      .filter((url): url is string => Boolean(url))
+      .filter((url, index, urls) => urls.indexOf(url) === index),
     description: product.short_description ?? product.description ?? undefined,
     aggregateRating:
       product.reviews_count > 0
@@ -393,9 +393,11 @@ function productStructuredData(
       priceCurrency: "UAH",
       price: product.price,
       availability:
-        product.stock_status === "out_of_stock"
-          ? "https://schema.org/OutOfStock"
-          : "https://schema.org/InStock",
+        product.stock_status === "preorder"
+          ? "https://schema.org/PreOrder"
+          : product.stock_status === "out_of_stock"
+            ? "https://schema.org/OutOfStock"
+            : "https://schema.org/InStock",
     },
   };
 }

@@ -3,7 +3,7 @@ from uuid import UUID
 
 from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
-from fastapi import APIRouter, Depends, Path, Query
+from fastapi import APIRouter, Depends, Path, Query, Response
 
 from app.api.common.rate_limit import LEAD_RATE_LIMIT, RateLimit
 from app.api.modules.catalog.schema import (
@@ -83,6 +83,17 @@ async def get_featured_reviews(
     service: FromDishka[CatalogQueryService],
 ) -> list[ProductReviewResponse]:
     return await service.get_featured_reviews()
+
+
+@router.get("/sitemap.xml", include_in_schema=False)
+async def get_sitemap(
+    service: FromDishka[CatalogQueryService],
+) -> Response:
+    return Response(
+        content=await service.get_sitemap(),
+        media_type="application/xml",
+        headers={"Cache-Control": "public, max-age=3600"},
+    )
 
 
 @router.get("/products/{product_slug}", response_model=ProductDetailResponse)

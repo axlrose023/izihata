@@ -1,5 +1,7 @@
 from collections.abc import Sequence
+from urllib.parse import quote
 from uuid import UUID
+from xml.etree.ElementTree import Element, SubElement, tostring
 
 from app.api.common.exceptions import NotFoundError
 from app.api.modules.catalog.enums import ProductRelationKind
@@ -21,8 +23,32 @@ from app.database.uow import UnitOfWork
 
 
 class CatalogQueryService:
-    def __init__(self, uow: UnitOfWork):
+    def __init__(self, uow: UnitOfWork, site_origin: str = "http://localhost:3000"):
         self._uow = uow
+        self._site_origin = site_origin.rstrip("/")
+
+    async def get_sitemap(self) -> str:
+        namespace = "http://www.sitemaps.org/schemas/sitemap/0.9"
+        root = Element(f"{{{namespace}}}urlset")
+        urls = {"/", "/catalog", "/brands"}
+        for section in await self._uow.categories.list_active_sections():
+            urls.add(f"/sections/{section.slug}")
+        urls.update(
+            f"/catalog/{category.slug}"
+            for category in await self._uow.categories.list_active()
+        )
+        urls.update(
+            f"/brands/{brand.slug}"
+            for brand in await self._uow.brands.list(only_active=True)
+        )
+        urls.update(
+            f"/product/{slug}" for slug in await self._uow.products.list_active_slugs()
+        )
+        for path in sorted(urls):
+            url = SubElement(root, f"{{{namespace}}}url")
+            location = SubElement(url, f"{{{namespace}}}loc")
+            location.text = f"{self._site_origin}{quote(path, safe='/')}"
+        return tostring(root, encoding="unicode", xml_declaration=True)
 
     async def get_categories(self) -> list[CategoryResponse]:
         categories = await self._uow.categories.list_active()
