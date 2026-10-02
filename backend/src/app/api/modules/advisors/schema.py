@@ -34,7 +34,9 @@ class CableSizeRequest(ElectricalLoadRequest):
 
 class CableSizeResponse(StrictSchema):
     current_a: Decimal
-    recommended_cross_section_mm2: Decimal
+    recommended_cross_section_mm2: Decimal | None
+    current_capacity_a: Decimal | None
+    requires_specialist: bool
     reference_notice: str
     products: list[ProductResponse]
 

@@ -18,6 +18,28 @@ class TestElectricalAdvisors:
         assert body["recommended_cross_section_mm2"] == "1.5"
         assert any(product["sku"] == "AX-10013" for product in body["products"])
         assert body["reference_notice"]
+        assert body["current_capacity_a"] == "16"
+        assert body["requires_specialist"] is False
+
+    @pytest.mark.parametrize("material", ["copper", "aluminum"])
+    async def test_does_not_recommend_a_cable_outside_its_table(
+        self, client: AsyncClient, material: str
+    ):
+        response = await client.post(
+            "/api/v1/advisors/cable-size",
+            json={
+                "current_a": "200",
+                "length_m": "20",
+                "conductor_material": material,
+            },
+        )
+
+        assert response.status_code == 200, response.text
+        body = response.json()
+        assert body["recommended_cross_section_mm2"] is None
+        assert body["current_capacity_a"] is None
+        assert body["requires_specialist"] is True
+        assert body["products"] == []
 
     async def test_calculates_breaker_and_detects_wire_limit_conflict(
         self,

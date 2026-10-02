@@ -356,7 +356,9 @@ export interface AdvisorProductResult {
 
 export interface CableSizeResult extends AdvisorProductResult {
   current_a: string;
-  recommended_cross_section_mm2: string;
+  recommended_cross_section_mm2: string | null;
+  current_capacity_a: string | null;
+  requires_specialist: boolean;
 }
 
 export interface BreakerResult extends AdvisorProductResult {

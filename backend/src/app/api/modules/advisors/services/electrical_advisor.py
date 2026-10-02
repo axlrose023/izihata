@@ -52,14 +52,28 @@ class ElectricalAdvisorService:
             request.conductor_material,
             design_current,
         )
-        products = await self._uow.products.list_by_attribute(
-            category_slug="cable",
-            key="Переріз",
-            values={self._cross_section_label(cross_section)},
+        products = (
+            await self._uow.products.list_by_attribute(
+                category_slug="cable",
+                key="Переріз",
+                values={self._cross_section_label(cross_section)},
+            )
+            if cross_section is not None
+            else []
+        )
+        capacity = next(
+            (
+                capacity
+                for section, capacity in _CABLE_CAPACITY_A[request.conductor_material]
+                if section == cross_section
+            ),
+            None,
         )
         return CableSizeResponse(
             current_a=self._round(current),
             recommended_cross_section_mm2=cross_section,
+            current_capacity_a=capacity,
+            requires_specialist=cross_section is None,
             reference_notice=_REFERENCE_NOTICE,
             products=[ProductResponse.from_product(product) for product in products],
         )
@@ -136,11 +150,11 @@ class ElectricalAdvisorService:
     def _select_cross_section(
         material: ConductorMaterial,
         design_current: Decimal,
-    ) -> Decimal:
+    ) -> Decimal | None:
         for cross_section, capacity in _CABLE_CAPACITY_A[material]:
             if capacity >= design_current:
                 return cross_section
-        return _CABLE_CAPACITY_A[material][-1][0]
+        return None
 
     @staticmethod
     def _cross_section_label(cross_section: Decimal) -> str:

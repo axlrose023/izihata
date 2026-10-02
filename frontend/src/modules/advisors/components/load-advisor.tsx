@@ -238,8 +238,8 @@ export function LoadAdvisor() {
               <span>
                 Допустимий струм перерізу{" "}
                 <b>
-                  {result?.cable.current_a
-                    ? `${result.cable.current_a} А`
+                  {result?.cable.current_capacity_a
+                    ? `${result.cable.current_capacity_a} А`
                     : "—"}
                 </b>
               </span>
@@ -252,6 +252,12 @@ export function LoadAdvisor() {
             {error ? (
               <span className="load-advisor__loading is-error">
                 Не вдалося оновити підбір
+              </span>
+            ) : null}
+            {!isLoading && result?.cable.requires_specialist ? (
+              <span className="load-advisor__loading is-error" role="status">
+                Навантаження виходить за межі таблиці. Потрібен окремий підбір
+                електриком.
               </span>
             ) : null}
           </div>

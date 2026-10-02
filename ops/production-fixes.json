@@ -16,8 +16,10 @@
       "id": "R02",
       "priority": "P1",
       "title": "Калькулятор кабеля возвращает рекомендацию за пределами своей таблицы",
-      "status": "pending",
-      "checks": []
+      "status": "implemented",
+      "checks": [
+        "6 advisor API tests passed, including both materials above the supported range; capacity and specialist state returned."
+      ]
     },
     {
       "id": "R03",
