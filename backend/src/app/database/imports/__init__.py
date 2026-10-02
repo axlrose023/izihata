@@ -6,6 +6,7 @@ from app.database.imports.eti import (
     import_eti_workbook,
     planned_media_urls,
     read_eti_workbook,
+    read_hager_workbook,
     upload_eti_media,
 )
 from app.database.imports.products import (
@@ -26,6 +27,7 @@ __all__ = [
     "import_products",
     "planned_media_urls",
     "read_eti_workbook",
+    "read_hager_workbook",
     "read_rows",
     "upload_eti_media",
 ]

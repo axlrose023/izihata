@@ -1,4 +1,4 @@
-"""ETI workbook import and Bunny Storage media transfer.
+"""Supplier workbook import and Bunny Storage media transfer.
 
 The supplier workbook is kept as the source of truth.  Product data is read
 from its three sheets, while the image bytes live in Bunny Storage and only the
@@ -40,6 +40,8 @@ CHARACTERISTICS_SHEET: Final = "characteristics"
 PHOTOS_SHEET: Final = "photos"
 PRIMARY_SOURCE_LABEL: Final = "основні"
 ETIM_SOURCE_LABEL: Final = "ETIM"
+HAGER_PRICE_HEADER: Final = "Прайс грн. з/ПДВ"
+HAGER_PHOTOS_SHEET: Final = "photo"
 MAX_IMAGE_BYTES: Final = 20 * 1024 * 1024
 MAX_ATTRIBUTE_KEY_LENGTH: Final = 120
 MAX_ATTRIBUTE_VALUE_LENGTH: Final = 300
@@ -69,11 +71,15 @@ class EtiPhoto:
     sku: str
     source_url: str
     position: int
+    supplier_slug: str = "eti"
 
     @property
     def object_key(self) -> str:
         extension = Path(urlparse(self.source_url).path).suffix.lower() or ".webp"
-        return f"products/eti/{self.sku}/{self.position + 1}{extension}"
+        return (
+            f"products/{self.supplier_slug}/{self.sku}/"
+            f"{self.position + 1}{extension}"
+        )
 
 
 @dataclass(frozen=True)
@@ -187,11 +193,40 @@ def _display_value(value: object, number: object, unit: object) -> str:
 
 def read_eti_workbook(path: Path) -> EtiWorkbook:
     """Read the ETI supplier workbook without altering its source order."""
+    return _read_supplier_workbook(
+        path,
+        price_header="Ціна в грн. з ПДВ",
+        photos_sheet=PHOTOS_SHEET,
+        has_source_column=True,
+        supplier_slug="eti",
+    )
+
+
+def read_hager_workbook(path: Path) -> EtiWorkbook:
+    """Read Hager's workbook, where all characteristics are primary."""
+    return _read_supplier_workbook(
+        path,
+        price_header=HAGER_PRICE_HEADER,
+        photos_sheet=HAGER_PHOTOS_SHEET,
+        has_source_column=False,
+        supplier_slug="hager",
+    )
+
+
+def _read_supplier_workbook(
+    path: Path,
+    *,
+    price_header: str,
+    photos_sheet: str,
+    has_source_column: bool,
+    supplier_slug: str,
+) -> EtiWorkbook:
+    """Read a supplier workbook using the shared catalogue import rules."""
     workbook = load_workbook(path, read_only=True, data_only=True)
     missing_sheets = {
         PRODUCTS_SHEET,
         CHARACTERISTICS_SHEET,
-        PHOTOS_SHEET,
+        photos_sheet,
     } - set(workbook.sheetnames)
     if missing_sheets:
         raise ValueError(
@@ -204,7 +239,7 @@ def read_eti_workbook(path: Path) -> EtiWorkbook:
     product_header = tuple(next(product_rows, ()))
     product_columns = _column_indexes(
         product_header,
-        {"Код постачальника", "Назва товару", "Ціна в грн. з ПДВ"},
+        {"Код постачальника", "Назва товару", price_header},
         PRODUCTS_SHEET,
     )
     products_by_sku: dict[str, EtiProductRow] = {}
@@ -215,7 +250,7 @@ def read_eti_workbook(path: Path) -> EtiWorkbook:
         if sku_value is None and not name:
             continue
         sku = _supplier_code(sku_value)
-        price = _decimal(_cell(row, product_columns["Ціна в грн. з ПДВ"]))
+        price = _decimal(_cell(row, product_columns[price_header]))
         if not name or price is None or price <= 0:
             raise ValueError(f"Invalid product row for supplier code {sku}")
         product = EtiProductRow(
@@ -235,16 +270,18 @@ def read_eti_workbook(path: Path) -> EtiWorkbook:
     characteristics_sheet = workbook[CHARACTERISTICS_SHEET]
     characteristic_rows = characteristics_sheet.iter_rows(values_only=True)
     characteristic_header = tuple(next(characteristic_rows, ()))
+    required_characteristic_columns = {
+        "Код постачальника",
+        "Характеристика",
+        "Значення",
+        "Число",
+        "Одиниця",
+    }
+    if has_source_column:
+        required_characteristic_columns.add("Джерело")
     characteristic_columns = _column_indexes(
         characteristic_header,
-        {
-            "Код постачальника",
-            "Джерело",
-            "Характеристика",
-            "Значення",
-            "Число",
-            "Одиниця",
-        },
+        required_characteristic_columns,
         CHARACTERISTICS_SHEET,
     )
     specifications: dict[str, list[EtiSpecification]] = defaultdict(list)
@@ -254,7 +291,11 @@ def read_eti_workbook(path: Path) -> EtiWorkbook:
         sku = _supplier_code(_cell(row, characteristic_columns["Код постачальника"]))
         if sku not in products_by_sku:
             raise ValueError(f"Characteristic references unknown supplier code {sku}")
-        source_label = _text(_cell(row, characteristic_columns["Джерело"]))
+        source_label = (
+            _text(_cell(row, characteristic_columns["Джерело"]))
+            if has_source_column
+            else PRIMARY_SOURCE_LABEL
+        )
         source = (
             ProductAttributeSource.PRIMARY
             if source_label.casefold() == PRIMARY_SOURCE_LABEL
@@ -298,13 +339,13 @@ def read_eti_workbook(path: Path) -> EtiWorkbook:
         )
         positions[position_key] += 1
 
-    photos_sheet = workbook[PHOTOS_SHEET]
+    photos_sheet = workbook[photos_sheet]
     photo_rows = photos_sheet.iter_rows(values_only=True)
     photo_header = tuple(next(photo_rows, ()))
     photo_columns = _column_indexes(
         photo_header,
         {"Код постачальника", "URL"},
-        PHOTOS_SHEET,
+        photos_sheet.title,
     )
     photos: dict[str, list[EtiPhoto]] = defaultdict(list)
     for row in photo_rows:
@@ -316,7 +357,12 @@ def read_eti_workbook(path: Path) -> EtiWorkbook:
         if parsed_url.scheme != "https" or not parsed_url.netloc:
             raise ValueError(f"Photo URL is invalid for supplier code {sku}")
         photos[sku].append(
-            EtiPhoto(sku=sku, source_url=source_url, position=len(photos[sku]))
+            EtiPhoto(
+                sku=sku,
+                source_url=source_url,
+                position=len(photos[sku]),
+                supplier_slug=supplier_slug,
+            )
         )
 
     return EtiWorkbook(
@@ -568,6 +614,8 @@ def planned_media_urls(
 def _product_attributes(
     row: EtiProductRow,
     specifications: list[EtiSpecification],
+    *,
+    brand_name: str = "ETI",
 ) -> list[ProductAttribute]:
     reserved_keys = {"Код виробника", "Виробник"}
     if any(
@@ -575,7 +623,7 @@ def _product_attributes(
         and specification.key in reserved_keys
         for specification in specifications
     ):
-        raise ValueError(f"ETI specification duplicates a reserved key for {row.sku}")
+        raise ValueError(f"Specification duplicates a reserved key for {row.sku}")
     attributes = [
         ProductAttribute(
             key="Код виробника",
@@ -585,7 +633,7 @@ def _product_attributes(
         ),
         ProductAttribute(
             key="Виробник",
-            value="ETI",
+            value=brand_name,
             source=ProductAttributeSource.PRIMARY,
             position=1,
         ),
@@ -612,10 +660,11 @@ async def import_eti_workbook(
     media_urls: dict[tuple[str, int], str] | None = None,
     dry_run: bool = True,
     batch_size: int = 200,
+    brand_name: str = "ETI",
 ) -> EtiImportOutcome:
-    """Create or refresh the full ETI range in bounded, repeatable batches."""
+    """Create or refresh a supplier range in bounded, repeatable batches."""
     if batch_size < 1:
-        raise ValueError("ETI import batch size must be positive")
+        raise ValueError("Import batch size must be positive")
     outcome = EtiImportOutcome()
     categories = {
         category.slug: category
@@ -629,17 +678,38 @@ async def import_eti_workbook(
     }
     used_slugs = set((await session.execute(select(Product.slug))).scalars().all())
 
+    existing_brands = (
+        await session.execute(
+            select(Product.sku, Product.brand).where(
+                Product.sku.in_([row.sku for row in workbook.products])
+            )
+        )
+    ).all()
+    foreign_brand_products = [
+        (sku, existing_brand)
+        for sku, existing_brand in existing_brands
+        if (existing_brand or "").casefold() != brand_name.casefold()
+    ]
+    if foreign_brand_products:
+        conflicts = ", ".join(
+            f"{sku} ({existing_brand})"
+            for sku, existing_brand in foreign_brand_products[:10]
+        )
+        raise ValueError(
+            f"Supplier codes already belong to another brand: {conflicts}"
+        )
+
     if (
         not dry_run
         and (
-            await session.execute(select(Brand.id).where(Brand.name == "ETI"))
+            await session.execute(select(Brand.id).where(Brand.name == brand_name))
         ).scalar_one_or_none()
         is None
     ):
         session.add(
             Brand(
-                slug=slugify("ETI"),
-                name="ETI",
+                slug=slugify(brand_name),
+                name=brand_name,
                 position=int(
                     (
                         await session.execute(
@@ -698,7 +768,7 @@ async def import_eti_workbook(
                     sku=row.sku,
                     slug=slug,
                     name=row.name,
-                    brand="ETI",
+                    brand=brand_name,
                     price=row.price,
                     stock_status=StockStatus.PREORDER,
                     stock_quantity=0,
@@ -715,7 +785,7 @@ async def import_eti_workbook(
                     product.category_id = category.id
                     product.subcategory_id = subcategory.id if subcategory else None
                     product.name = row.name
-                    product.brand = "ETI"
+                    product.brand = brand_name
                     product.price = row.price
                     product.stock_status = StockStatus.PREORDER
                     product.stock_quantity = 0
@@ -724,7 +794,11 @@ async def import_eti_workbook(
                 outcome.updated += 1
 
             specifications = workbook.specifications.get(row.sku, [])
-            attributes = _product_attributes(row, specifications)
+            attributes = _product_attributes(
+                row,
+                specifications,
+                brand_name=brand_name,
+            )
             outcome.primary_specifications += sum(
                 specification.source == ProductAttributeSource.PRIMARY
                 for specification in attributes
