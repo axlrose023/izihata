@@ -79,7 +79,11 @@ export function ProductSearch() {
               to={`/products/${product.slug}`}
             >
               <span className="search-suggestions__visual">
-                <ProductVisual iconSize={24} product={product} />
+                <ProductVisual
+                  imageSizes="80px"
+                  iconSize={24}
+                  product={product}
+                />
               </span>
               <span>
                 <strong>{product.name}</strong>

@@ -521,7 +521,11 @@ export function CheckoutForm() {
           {lines.map((line) => (
             <div className="order-summary__line" key={line.product.id}>
               <span className="order-summary__visual">
-                <ProductVisual iconSize={20} product={line.product} />
+                <ProductVisual
+                  imageSizes="80px"
+                  iconSize={20}
+                  product={line.product}
+                />
               </span>
               <span className="order-summary__line-name">
                 {line.product.name}

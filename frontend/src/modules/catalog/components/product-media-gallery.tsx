@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 
+import { responsiveImage } from "@/modules/catalog/lib/responsive-image";
 import type { ProductDetail, ProductMedia } from "@/shared/types/api";
 
 import { ProductVisual } from "./product-visual";
@@ -39,7 +40,11 @@ export function ProductMediaGallery({ product }: { product: ProductDetail }) {
           alt={selected.alt}
           decoding="async"
           fetchPriority="high"
-          src={selected.url}
+          {...responsiveImage(
+            selected.url,
+            "(max-width: 820px) 100vw, 50vw",
+            [480, 960, 1600],
+          )}
         />
       </div>
       {media.length > 1 ? (
@@ -55,7 +60,12 @@ export function ProductMediaGallery({ product }: { product: ProductDetail }) {
               onClick={() => setSelectedIndex(index)}
               type="button"
             >
-              <img alt="" decoding="async" loading="lazy" src={item.url} />
+              <img
+                alt=""
+                decoding="async"
+                loading="lazy"
+                {...responsiveImage(item.url, "80px", [80, 160])}
+              />
             </button>
           ))}
         </div>

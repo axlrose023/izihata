@@ -71,7 +71,11 @@ export function CartDrawer() {
               {lines.map(({ product, quantity }) => (
                 <article className="cart-line" key={product.id}>
                   <div className="cart-line__visual">
-                    <ProductVisual iconSize={25} product={product} />
+                    <ProductVisual
+                      imageSizes="80px"
+                      iconSize={25}
+                      product={product}
+                    />
                   </div>
                   <div className="cart-line__content">
                     <div className="cart-line__top">

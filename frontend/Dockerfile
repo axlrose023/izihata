@@ -7,6 +7,8 @@ FROM node:24-alpine AS builder
 WORKDIR /app
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
+ARG VITE_BUNNY_OPTIMIZER_ENABLED=false
+ENV VITE_BUNNY_OPTIMIZER_ENABLED=$VITE_BUNNY_OPTIMIZER_ENABLED
 RUN npm run build
 
 FROM nginx:1.29-alpine AS production

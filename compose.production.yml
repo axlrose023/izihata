@@ -99,6 +99,8 @@ services:
   frontend:
     build:
       context: ./frontend
+      args:
+        VITE_BUNNY_OPTIMIZER_ENABLED: "${BUNNY_OPTIMIZER_ENABLED:-false}"
     restart: unless-stopped
     logging: *default-logging
     networks:

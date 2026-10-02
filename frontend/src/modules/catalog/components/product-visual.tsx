@@ -1,14 +1,17 @@
 import { useState } from "react";
 
+import { responsiveImage } from "@/modules/catalog/lib/responsive-image";
 import type { Product } from "@/shared/types/api";
 import { CategoryIcon } from "@/shared/ui/category-icon";
 
 export function ProductVisual({
   product,
   iconSize,
+  imageSizes = "(max-width: 820px) 50vw, 400px",
 }: {
   product: Product;
   iconSize: number;
+  imageSizes?: string;
 }) {
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
 
@@ -20,7 +23,7 @@ export function ProductVisual({
         decoding="async"
         loading="lazy"
         onError={() => setFailedUrl(product.image_url)}
-        src={product.image_url}
+        {...responsiveImage(product.image_url, imageSizes)}
       />
     );
   }

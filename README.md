@@ -94,3 +94,10 @@ PostgreSQL database with the same major version: verify `SHA256SUMS`, run
 `pg_restore --no-owner --no-acl --exit-on-error -d <isolated_database> database.dump`,
 and extract `media.tar.gz` to a separate media directory. Compare product,
 attribute and gallery counts before switching any application to that copy.
+
+Responsive product image URLs are prepared behind `BUNNY_OPTIMIZER_ENABLED=true`
+in `.env.production` (frontend build argument). Enable this only after Bunny
+Optimizer is active on the product Pull Zone and a `?width=320` request actually
+returns a smaller image. The default is `false`: the current CDN returns the
+original unchanged when this option is inactive. Images from other hosts and
+local uploads keep their original URLs.
