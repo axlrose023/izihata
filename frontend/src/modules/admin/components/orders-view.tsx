@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 
 import { useAuth } from "@/modules/auth/auth-provider";
 import { formatDate, formatMoney } from "@/shared/lib/format";
@@ -12,6 +13,7 @@ import { ErrorNotice } from "@/shared/ui/error-notice";
 import { StatusBadge } from "@/shared/ui/status-badge";
 
 import { StatusAction } from "./status-action";
+import { AdminPagination } from "@/shared/ui/admin-pagination";
 import { AdminTableWrap } from "@/shared/ui/admin-table-wrap";
 
 const transitions: Record<OrderStatus, OrderStatus[]> = {
@@ -59,10 +61,13 @@ function OrderAction({ order }: { order: OrderSummary }) {
 
 export function OrdersView() {
   const { request } = useAuth();
+  const [page, setPage] = useState(1);
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ["admin", "orders"],
+    queryKey: ["admin", "orders", page],
     queryFn: () =>
-      request<Paginated<OrderSummary>>("/admin/orders?page_size=100"),
+      request<Paginated<OrderSummary>>(
+        `/admin/orders?page=${page}&page_size=100`,
+      ),
   });
   if (isLoading)
     return <div className="admin-loader">Завантажуємо замовлення…</div>;
@@ -76,54 +81,65 @@ export function OrdersView() {
       />
     );
   return (
-    <AdminTableWrap label="Замовлення">
-      <table className="admin-table">
-        <thead>
-          <tr>
-            <th>Замовлення</th>
-            <th>Клієнт</th>
-            <th>Доставка</th>
-            <th>Сума</th>
-            <th>Статус</th>
-            <th>Дія</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data?.items.map((order) => (
-            <tr key={order.id}>
-              <td>
-                <strong>{order.number}</strong>
-                <small>{formatDate(order.created_at)}</small>
-              </td>
-              <td>
-                <span>{order.customer_name}</span>
-                <small>{order.phone}</small>
-                {order.email ? <small>{order.email}</small> : null}
-              </td>
-              <td>
-                <span>
-                  {order.delivery.method === "pickup"
-                    ? "Самовивіз"
-                    : order.delivery.city}
-                </span>
-                <small>{order.delivery.point ?? "За погодженням"}</small>
-              </td>
-              <td>
-                <strong>{formatMoney(order.total)}</strong>
-                <small>
-                  <StatusBadge status={order.payment_status} />
-                </small>
-              </td>
-              <td>
-                <StatusBadge status={order.status} />
-              </td>
-              <td>
-                <OrderAction order={order} />
-              </td>
+    <>
+      <AdminTableWrap label="Замовлення">
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th>Замовлення</th>
+              <th>Клієнт</th>
+              <th>Доставка</th>
+              <th>Сума</th>
+              <th>Статус</th>
+              <th>Дія</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </AdminTableWrap>
+          </thead>
+          <tbody>
+            {data?.items.map((order) => (
+              <tr key={order.id}>
+                <td>
+                  <strong>{order.number}</strong>
+                  <small>{formatDate(order.created_at)}</small>
+                </td>
+                <td>
+                  <span>{order.customer_name}</span>
+                  <small>{order.phone}</small>
+                  {order.email ? <small>{order.email}</small> : null}
+                </td>
+                <td>
+                  <span>
+                    {order.delivery.method === "pickup"
+                      ? "Самовивіз"
+                      : order.delivery.city}
+                  </span>
+                  <small>{order.delivery.point ?? "За погодженням"}</small>
+                </td>
+                <td>
+                  <strong>{formatMoney(order.total)}</strong>
+                  <small>
+                    <StatusBadge status={order.payment_status} />
+                  </small>
+                </td>
+                <td>
+                  <StatusBadge status={order.status} />
+                </td>
+                <td>
+                  <OrderAction order={order} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </AdminTableWrap>
+      {data ? (
+        <AdminPagination
+          hasNext={data.has_next}
+          hasPrev={data.has_prev}
+          onPageChange={setPage}
+          page={data.page}
+          totalPages={data.total_pages}
+        />
+      ) : null}
+    </>
   );
 }

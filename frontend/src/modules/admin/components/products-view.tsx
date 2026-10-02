@@ -23,6 +23,7 @@ import { getUserErrorMessage } from "@/shared/api/errors";
 import { useDebouncedValue } from "@/shared/lib/use-debounced-value";
 import type { AdminProduct, Paginated, StockStatus } from "@/shared/types/api";
 import { ErrorNotice } from "@/shared/ui/error-notice";
+import { AdminPagination } from "@/shared/ui/admin-pagination";
 import { AdminTableWrap } from "@/shared/ui/admin-table-wrap";
 
 function ProductRow({
@@ -169,13 +170,15 @@ export function ProductsView() {
     null,
   );
   const [onlyHidden, setOnlyHidden] = useState(false);
+  const [page, setPage] = useState(1);
   const { request } = useAuth();
   const debouncedSearch = useDebouncedValue(search.trim(), 350);
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ["admin", "products", debouncedSearch, onlyHidden],
+    queryKey: ["admin", "products", debouncedSearch, onlyHidden, page],
     queryFn: () =>
       request<Paginated<AdminProduct>>(
         `/admin/catalog/products${buildQuery({
+          page,
           page_size: 100,
           ...(debouncedSearch.length >= 2 ? { search: debouncedSearch } : {}),
           ...(onlyHidden ? { is_active: false } : {}),
@@ -191,7 +194,10 @@ export function ProductsView() {
         <label className="admin-search">
           <Search size={18} />
           <input
-            onChange={(event) => setSearch(event.target.value)}
+            onChange={(event) => {
+              setSearch(event.target.value);
+              setPage(1);
+            }}
             placeholder="Назва, бренд або SKU"
             value={search}
           />
@@ -199,7 +205,10 @@ export function ProductsView() {
         <label className="admin-products-toolbar__filter">
           <input
             checked={onlyHidden}
-            onChange={(event) => setOnlyHidden(event.target.checked)}
+            onChange={(event) => {
+              setOnlyHidden(event.target.checked);
+              setPage(1);
+            }}
             type="checkbox"
           />
           Лише приховані
@@ -251,6 +260,15 @@ export function ProductsView() {
           </table>
         </AdminTableWrap>
       )}
+      {data ? (
+        <AdminPagination
+          hasNext={data.has_next}
+          hasPrev={data.has_prev}
+          onPageChange={setPage}
+          page={data.page}
+          totalPages={data.total_pages}
+        />
+      ) : null}
       <ProductFormDialog
         onClose={() => setFormOpen(false)}
         open={formOpen}

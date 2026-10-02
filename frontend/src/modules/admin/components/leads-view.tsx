@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 
 import { useAuth } from "@/modules/auth/auth-provider";
 import { formatDate } from "@/shared/lib/format";
@@ -7,6 +8,7 @@ import { ErrorNotice } from "@/shared/ui/error-notice";
 import { StatusBadge } from "@/shared/ui/status-badge";
 
 import { StatusAction } from "./status-action";
+import { AdminPagination } from "@/shared/ui/admin-pagination";
 import { AdminTableWrap } from "@/shared/ui/admin-table-wrap";
 
 const transitions: Record<LeadStatus, LeadStatus[]> = {
@@ -52,9 +54,11 @@ function LeadAction({ lead }: { lead: AdminLead }) {
 
 export function LeadsView() {
   const { request } = useAuth();
+  const [page, setPage] = useState(1);
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ["admin", "leads"],
-    queryFn: () => request<Paginated<AdminLead>>("/admin/leads?page_size=100"),
+    queryKey: ["admin", "leads", page],
+    queryFn: () =>
+      request<Paginated<AdminLead>>(`/admin/leads?page=${page}&page_size=100`),
   });
   if (isLoading)
     return <div className="admin-loader">Завантажуємо звернення…</div>;
@@ -68,45 +72,56 @@ export function LeadsView() {
       />
     );
   return (
-    <AdminTableWrap label="Звернення">
-      <table className="admin-table">
-        <thead>
-          <tr>
-            <th>Тип</th>
-            <th>Контакт</th>
-            <th>Компанія / товар</th>
-            <th>Створено</th>
-            <th>Статус</th>
-            <th>Дія</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data?.items.map((lead) => (
-            <tr key={lead.id}>
-              <td>{typeLabels[lead.type]}</td>
-              <td>
-                <strong>{lead.name}</strong>
-                <small>{lead.phone}</small>
-              </td>
-              <td>
-                <span>{lead.company ?? "—"}</span>
-                <small>
-                  {lead.product_id
-                    ? `Товар: ${lead.product_id.slice(0, 8)}…`
-                    : ""}
-                </small>
-              </td>
-              <td>{formatDate(lead.created_at)}</td>
-              <td>
-                <StatusBadge status={lead.status} />
-              </td>
-              <td>
-                <LeadAction lead={lead} />
-              </td>
+    <>
+      <AdminTableWrap label="Звернення">
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th>Тип</th>
+              <th>Контакт</th>
+              <th>Компанія / товар</th>
+              <th>Створено</th>
+              <th>Статус</th>
+              <th>Дія</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </AdminTableWrap>
+          </thead>
+          <tbody>
+            {data?.items.map((lead) => (
+              <tr key={lead.id}>
+                <td>{typeLabels[lead.type]}</td>
+                <td>
+                  <strong>{lead.name}</strong>
+                  <small>{lead.phone}</small>
+                </td>
+                <td>
+                  <span>{lead.company ?? "—"}</span>
+                  <small>
+                    {lead.product_id
+                      ? `Товар: ${lead.product_id.slice(0, 8)}…`
+                      : ""}
+                  </small>
+                </td>
+                <td>{formatDate(lead.created_at)}</td>
+                <td>
+                  <StatusBadge status={lead.status} />
+                </td>
+                <td>
+                  <LeadAction lead={lead} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </AdminTableWrap>
+      {data ? (
+        <AdminPagination
+          hasNext={data.has_next}
+          hasPrev={data.has_prev}
+          onPageChange={setPage}
+          page={data.page}
+          totalPages={data.total_pages}
+        />
+      ) : null}
+    </>
   );
 }

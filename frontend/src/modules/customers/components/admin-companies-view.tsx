@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 
 import { useAuth } from "@/modules/auth/auth-provider";
 import { getUserErrorMessage } from "@/shared/api/errors";
@@ -10,6 +11,7 @@ import type {
 } from "@/shared/types/api";
 import { ErrorNotice } from "@/shared/ui/error-notice";
 import { StatusBadge } from "@/shared/ui/status-badge";
+import { AdminPagination } from "@/shared/ui/admin-pagination";
 import { AdminTableWrap } from "@/shared/ui/admin-table-wrap";
 
 const labels: Record<CompanyStatus, string> = {
@@ -64,11 +66,12 @@ function CompanyReview({ company }: { company: AdminCompany }) {
 
 export function AdminCompaniesView() {
   const { request } = useAuth();
+  const [page, setPage] = useState(1);
   const result = useQuery({
-    queryKey: ["admin", "companies"],
+    queryKey: ["admin", "companies", page],
     queryFn: () =>
       request<Paginated<AdminCompany>>(
-        "/admin/customers/companies?page_size=100",
+        `/admin/customers/companies?page=${page}&page_size=100`,
       ),
   });
   if (result.isPending)
@@ -83,46 +86,55 @@ export function AdminCompaniesView() {
       />
     );
   return (
-    <AdminTableWrap label="Компанії">
-      <table className="admin-table">
-        <thead>
-          <tr>
-            <th>Компанія</th>
-            <th>Контакт</th>
-            <th>Статус</th>
-            <th>Знижка</th>
-            <th>Створено</th>
-            <th>Дія</th>
-          </tr>
-        </thead>
-        <tbody>
-          {result.data.items.map((company) => (
-            <tr key={company.id}>
-              <td>
-                <strong>{company.name}</strong>
-                <small>
-                  {company.kind === "fop" ? "ФОП" : "Юридична особа"} ·{" "}
-                  {company.edrpou}
-                </small>
-              </td>
-              <td>
-                <span>{company.customer_name}</span>
-                <small>{company.customer_email}</small>
-              </td>
-              <td>
-                <StatusBadge status={company.status} />
-              </td>
-              <td>
-                {(Number(company.cumulative_discount_rate) * 100).toFixed(0)}%
-              </td>
-              <td>{formatDate(company.created_at)}</td>
-              <td>
-                <CompanyReview company={company} />
-              </td>
+    <>
+      <AdminTableWrap label="Компанії">
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th>Компанія</th>
+              <th>Контакт</th>
+              <th>Статус</th>
+              <th>Знижка</th>
+              <th>Створено</th>
+              <th>Дія</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </AdminTableWrap>
+          </thead>
+          <tbody>
+            {result.data.items.map((company) => (
+              <tr key={company.id}>
+                <td>
+                  <strong>{company.name}</strong>
+                  <small>
+                    {company.kind === "fop" ? "ФОП" : "Юридична особа"} ·{" "}
+                    {company.edrpou}
+                  </small>
+                </td>
+                <td>
+                  <span>{company.customer_name}</span>
+                  <small>{company.customer_email}</small>
+                </td>
+                <td>
+                  <StatusBadge status={company.status} />
+                </td>
+                <td>
+                  {(Number(company.cumulative_discount_rate) * 100).toFixed(0)}%
+                </td>
+                <td>{formatDate(company.created_at)}</td>
+                <td>
+                  <CompanyReview company={company} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </AdminTableWrap>
+      <AdminPagination
+        hasNext={result.data.has_next}
+        hasPrev={result.data.has_prev}
+        onPageChange={setPage}
+        page={result.data.page}
+        totalPages={result.data.total_pages}
+      />
+    </>
   );
 }

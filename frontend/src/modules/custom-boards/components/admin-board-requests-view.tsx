@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 
 import { useAuth } from "@/modules/auth/auth-provider";
 import { getUserErrorMessage } from "@/shared/api/errors";
@@ -10,6 +11,7 @@ import type {
 } from "@/shared/types/api";
 import { ErrorNotice } from "@/shared/ui/error-notice";
 import { StatusBadge } from "@/shared/ui/status-badge";
+import { AdminPagination } from "@/shared/ui/admin-pagination";
 import { AdminTableWrap } from "@/shared/ui/admin-table-wrap";
 
 const statuses: Array<{ value: BoardRequestStatus; label: string }> = [
@@ -68,11 +70,12 @@ function BoardStatusAction({
 
 export function AdminBoardRequestsView() {
   const { request } = useAuth();
+  const [page, setPage] = useState(1);
   const result = useQuery({
-    queryKey: ["admin", "board-requests"],
+    queryKey: ["admin", "board-requests", page],
     queryFn: () =>
       request<Paginated<AdminCustomBoardRequest>>(
-        "/admin/custom-boards/requests?page_size=100",
+        `/admin/custom-boards/requests?page=${page}&page_size=100`,
       ),
   });
   if (result.isPending)
@@ -87,47 +90,56 @@ export function AdminBoardRequestsView() {
       />
     );
   return (
-    <AdminTableWrap label="Заявки на щити">
-      <table className="admin-table">
-        <thead>
-          <tr>
-            <th>Клієнт</th>
-            <th>Щит</th>
-            <th>Оцінка</th>
-            <th>Створено</th>
-            <th>Статус</th>
-            <th>Дія</th>
-          </tr>
-        </thead>
-        <tbody>
-          {result.data.items.map((item) => (
-            <tr key={item.id}>
-              <td>
-                <strong>{item.customer_name}</strong>
-                <small>
-                  {item.phone}
-                  {item.email ? ` · ${item.email}` : ""}
-                </small>
-              </td>
-              <td>
-                <span>
-                  {item.application} · {item.groups_count} груп ·{" "}
-                  {item.ip_class}
-                </span>
-                <small>{item.automation_brand ?? "Бренд не вказано"}</small>
-              </td>
-              <td>{formatMoney(item.estimated_from_price)}</td>
-              <td>{formatDate(item.created_at)}</td>
-              <td>
-                <StatusBadge status={item.status} />
-              </td>
-              <td>
-                <BoardStatusAction requestItem={item} />
-              </td>
+    <>
+      <AdminTableWrap label="Заявки на щити">
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th>Клієнт</th>
+              <th>Щит</th>
+              <th>Оцінка</th>
+              <th>Створено</th>
+              <th>Статус</th>
+              <th>Дія</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </AdminTableWrap>
+          </thead>
+          <tbody>
+            {result.data.items.map((item) => (
+              <tr key={item.id}>
+                <td>
+                  <strong>{item.customer_name}</strong>
+                  <small>
+                    {item.phone}
+                    {item.email ? ` · ${item.email}` : ""}
+                  </small>
+                </td>
+                <td>
+                  <span>
+                    {item.application} · {item.groups_count} груп ·{" "}
+                    {item.ip_class}
+                  </span>
+                  <small>{item.automation_brand ?? "Бренд не вказано"}</small>
+                </td>
+                <td>{formatMoney(item.estimated_from_price)}</td>
+                <td>{formatDate(item.created_at)}</td>
+                <td>
+                  <StatusBadge status={item.status} />
+                </td>
+                <td>
+                  <BoardStatusAction requestItem={item} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </AdminTableWrap>
+      <AdminPagination
+        hasNext={result.data.has_next}
+        hasPrev={result.data.has_prev}
+        onPageChange={setPage}
+        page={result.data.page}
+        totalPages={result.data.total_pages}
+      />
+    </>
   );
 }

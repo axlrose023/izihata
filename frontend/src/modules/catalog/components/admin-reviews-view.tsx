@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 
 import { useAuth } from "@/modules/auth/auth-provider";
 import { getUserErrorMessage } from "@/shared/api/errors";
@@ -10,6 +11,7 @@ import type {
 } from "@/shared/types/api";
 import { ErrorNotice } from "@/shared/ui/error-notice";
 import { StatusBadge } from "@/shared/ui/status-badge";
+import { AdminPagination } from "@/shared/ui/admin-pagination";
 import { AdminTableWrap } from "@/shared/ui/admin-table-wrap";
 
 function ModerateReview({ review }: { review: AdminProductReview }) {
@@ -53,11 +55,12 @@ function ModerateReview({ review }: { review: AdminProductReview }) {
 
 export function AdminReviewsView() {
   const { request } = useAuth();
+  const [page, setPage] = useState(1);
   const result = useQuery({
-    queryKey: ["admin", "reviews"],
+    queryKey: ["admin", "reviews", page],
     queryFn: () =>
       request<Paginated<AdminProductReview>>(
-        "/admin/catalog/reviews?page_size=100",
+        `/admin/catalog/reviews?page=${page}&page_size=100`,
       ),
   });
   if (result.isPending)
@@ -72,39 +75,48 @@ export function AdminReviewsView() {
       />
     );
   return (
-    <AdminTableWrap label="Відгуки">
-      <table className="admin-table">
-        <thead>
-          <tr>
-            <th>Товар і автор</th>
-            <th>Відгук</th>
-            <th>Створено</th>
-            <th>Статус</th>
-            <th>Дія</th>
-          </tr>
-        </thead>
-        <tbody>
-          {result.data.items.map((review) => (
-            <tr key={review.id}>
-              <td>
-                <strong>{review.product_name}</strong>
-                <small>
-                  {review.author} · {review.email ?? "без email"} ·{" "}
-                  {review.rating}/5
-                </small>
-              </td>
-              <td>{review.text}</td>
-              <td>{formatDate(review.created_at)}</td>
-              <td>
-                <StatusBadge status={review.status} />
-              </td>
-              <td>
-                <ModerateReview review={review} />
-              </td>
+    <>
+      <AdminTableWrap label="Відгуки">
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th>Товар і автор</th>
+              <th>Відгук</th>
+              <th>Створено</th>
+              <th>Статус</th>
+              <th>Дія</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </AdminTableWrap>
+          </thead>
+          <tbody>
+            {result.data.items.map((review) => (
+              <tr key={review.id}>
+                <td>
+                  <strong>{review.product_name}</strong>
+                  <small>
+                    {review.author} · {review.email ?? "без email"} ·{" "}
+                    {review.rating}/5
+                  </small>
+                </td>
+                <td>{review.text}</td>
+                <td>{formatDate(review.created_at)}</td>
+                <td>
+                  <StatusBadge status={review.status} />
+                </td>
+                <td>
+                  <ModerateReview review={review} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </AdminTableWrap>
+      <AdminPagination
+        hasNext={result.data.has_next}
+        hasPrev={result.data.has_prev}
+        onPageChange={setPage}
+        page={result.data.page}
+        totalPages={result.data.total_pages}
+      />
+    </>
   );
 }
