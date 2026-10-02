@@ -5,11 +5,15 @@ The unit suite runs on SQLite, which accepts constructs PostgreSQL rejects
 queries that fan out over relations are exercised here against the real engine.
 """
 
+import uuid
+
 import pytest
-from sqlalchemy import select
+from sqlalchemy import delete, select
 
 from app.api.modules.catalog.enums import ProductRelationKind
 from app.api.modules.catalog.models import Product, ProductRelation
+from app.api.modules.catalog.schema import CreateProductRequest, UpdateProductRequest
+from app.api.modules.catalog.services.product_management import ProductManagementService
 from app.database.engine import SessionFactory
 from app.database.uow import UnitOfWork
 
@@ -70,3 +74,74 @@ async def test_admin_product_detail_loads_relations():
             isinstance(target, Product) and relation.kind is not None
             for relation, target in relations
         )
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_repeated_collection_edits_preserve_variants_and_unique_positions():
+    async with SessionFactory() as session, UnitOfWork(session) as uow:
+        base = await session.scalar(select(Product).where(Product.sku == "AX-10001"))
+        media = [
+            {
+                "url": f"https://cdn.example/{index}.jpg",
+                "alt": "Photo",
+                "position": index,
+            }
+            for index in range(2)
+        ]
+        documents = [
+            {
+                "title": "Certificate",
+                "url": "https://cdn.example/file.pdf",
+                "position": 0,
+            }
+        ]
+        service = ProductManagementService(uow)
+        created = await service.create_product(
+            CreateProductRequest.model_validate(
+                {
+                    "category_id": base.category_id,
+                    "sku": "integration-gallery-" + uuid.uuid4().hex,
+                    "name": "Gallery regression",
+                    "brand": base.brand,
+                    "price": "100.00",
+                    "media": media,
+                    "documents": documents,
+                }
+            )
+        )
+        try:
+            saved = await uow.products.get_by_id_for_update(created.id)
+            for item in saved.media:
+                item.image_variants = {
+                    "source": item.url,
+                    "generator": "webp-v2",
+                    "sizes": {"80": item.url + "-small.webp"},
+                }
+            saved.image_variants = saved.media[0].image_variants
+            await uow.commit()
+            for ordered in [media, list(reversed(media)), media]:
+                await service.update_product(
+                    created.id,
+                    UpdateProductRequest.model_validate(
+                        {
+                            "media": [
+                                {**item, "position": index}
+                                for index, item in enumerate(ordered)
+                            ],
+                            "documents": documents,
+                        }
+                    ),
+                )
+                saved = await uow.products.get_by_id_for_update(created.id)
+                assert [item.url for item in saved.media] == [
+                    item["url"] for item in ordered
+                ]
+                assert saved.image_variants["source"] == ordered[0]["url"]
+                assert all(
+                    item.image_variants["sizes"]["80"] == item.url + "-small.webp"
+                    for item in saved.media
+                )
+                assert len(saved.documents) == 1
+        finally:
+            await session.execute(delete(Product).where(Product.id == created.id))
+            await uow.commit()

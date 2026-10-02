@@ -345,6 +345,15 @@
         "Browser network capture identified the validation/form chunk being loaded while the reviews tab was hidden. Lazy loading starts only on first opening; the mounted form and draft remain intact on later tab changes. Dedicated regression passed for deferred mounting and retained input.",
         "Full frontend suite 123 passed, lint/typecheck/build passed, and 65 browser scenarios passed with 3 viewport-specific skips. Product reviews retain drafts after hiding/reopening the tab."
       ]
+    },
+    {
+      "id": "R27",
+      "priority": "P1",
+      "title": "Повторное сохранение фото и документов конфликтует с позициями и теряет варианты",
+      "status": "implemented",
+      "checks": [
+        "Reproduced actual API 409 on repeating an unchanged gallery/documents patch. Delete obsolete positions and flush before inserting replacements within the same guarded transaction. Preserve image variant metadata by unchanged URL, including reordering the primary image. Twenty-eight admin regressions passed; four PostgreSQL regressions passed including repeat/reorder/restore with both collections."
+      ]
     }
   ],
   "deployments": [

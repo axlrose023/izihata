@@ -175,3 +175,63 @@ class TestCreateProduct:
         )
         assert response.status_code == 409
         assert response.json()["code"] == "product_slug_exists"
+
+    async def test_repeated_gallery_and_document_edits_preserve_image_variants(
+        self, client, authenticated_user, product, uow
+    ):
+        headers = {"Authorization": f"Bearer {authenticated_user['access_token']}"}
+        media = [
+            {
+                "url": f"https://cdn.example/{index}.jpg",
+                "alt": "Photo",
+                "position": index,
+            }
+            for index in range(2)
+        ]
+        documents = [
+            {
+                "title": "Certificate",
+                "url": "https://cdn.example/file.pdf",
+                "position": 0,
+            }
+        ]
+        created = await client.post(
+            self.endpoint,
+            json=product_payload(product, media=media, documents=documents),
+            headers=headers,
+        )
+        assert created.status_code == 201, created.text
+        body = created.json()
+        saved = await uow.session.get(Product, UUID(body["id"]))
+        await uow.session.refresh(saved, ["media"])
+        for item in saved.media:
+            item.image_variants = {
+                "source": item.url,
+                "generator": "webp-v2",
+                "sizes": {"80": item.url + "-small.webp"},
+            }
+        saved.image_variants = saved.media[0].image_variants
+        await uow.commit()
+        for ordered in [media, list(reversed(media)), media]:
+            request_media = [
+                {**item, "position": index} for index, item in enumerate(ordered)
+            ]
+            edited = await client.patch(
+                f"{self.endpoint}/{body['id']}",
+                json={"media": request_media, "documents": documents},
+                headers=headers,
+            )
+            assert edited.status_code == 200, edited.text
+            detail = (
+                await client.get(f"/api/v1/catalog/products/{body['slug']}")
+            ).json()
+            assert [item["url"] for item in detail["media"]] == [
+                item["url"] for item in ordered
+            ]
+            assert detail["image_url"] == ordered[0]["url"]
+            assert detail["image_variants"]["80"] == ordered[0]["url"] + "-small.webp"
+            assert all(
+                item["image_variants"]["80"] == item["url"] + "-small.webp"
+                for item in detail["media"]
+            )
+            assert len(detail["documents"]) == 1

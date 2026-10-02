@@ -136,20 +136,41 @@ class ProductManagementService:
                 code="invalid_numeric_product_attribute",
             ) from exc
 
-    @staticmethod
-    def _replace_media(product: Product, media: list[ProductMediaInput]) -> None:
+    async def _replace_media(
+        self, product: Product, media: list[ProductMediaInput]
+    ) -> None:
+        variants = {item.url: item.image_variants for item in product.media}
+        if (
+            product.image_url
+            and product.image_variants
+            and product.image_variants.get("source") == product.image_url
+        ):
+            variants[product.image_url] = (
+                variants.get(product.image_url) or product.image_variants
+            )
+        # Delete old positions before inserting replacements under the unique index.
+        product.media = []
+        await self._uow.session.flush()
         product.media = [
-            ProductMedia(url=item.url, alt=item.alt, position=item.position)
+            ProductMedia(
+                url=item.url,
+                alt=item.alt,
+                position=item.position,
+                image_variants=variants.get(item.url),
+            )
             for item in media
         ]
         if media:
             product.image_url = media[0].url
+            product.image_variants = variants.get(product.image_url)
 
-    @staticmethod
-    def _replace_documents(
+    async def _replace_documents(
+        self,
         product: Product,
         documents: list[ProductDocumentInput],
     ) -> None:
+        product.documents = []
+        await self._uow.session.flush()
         product.documents = [
             ProductDocument(
                 kind=item.kind,
@@ -348,25 +369,25 @@ class ProductManagementService:
             wholesale_price=resulting_wholesale_price,
             wholesale_min_quantity=resulting_wholesale_min_quantity,
         )
-        for field, value in data.items():
-            setattr(product, field, value)
-        if specs is not None:
-            await self._replace_specs(product, specs, category_id=category_id)
-        elif category_changed:
-            await self._replace_specs(
-                product,
-                {
-                    attribute.key: attribute.value
-                    for attribute in product.attributes
-                    if attribute.source == ProductAttributeSource.PRIMARY
-                },
-                category_id=category_id,
-            )
-        if media is not None:
-            self._replace_media(product, media)
-        if documents is not None:
-            self._replace_documents(product, documents)
         try:
+            for field, value in data.items():
+                setattr(product, field, value)
+            if specs is not None:
+                await self._replace_specs(product, specs, category_id=category_id)
+            elif category_changed:
+                await self._replace_specs(
+                    product,
+                    {
+                        attribute.key: attribute.value
+                        for attribute in product.attributes
+                        if attribute.source == ProductAttributeSource.PRIMARY
+                    },
+                    category_id=category_id,
+                )
+            if media is not None:
+                await self._replace_media(product, media)
+            if documents is not None:
+                await self._replace_documents(product, documents)
             await ensure_brand(self._uow, product.brand)
             await self._uow.products.update(product)
             if relations is not None:
