@@ -238,8 +238,10 @@
       "id": "O03",
       "priority": "P2",
       "title": "Уменьшить лишнюю работу выдачи и рекомендаций",
-      "status": "pending",
-      "checks": []
+      "status": "implemented",
+      "checks": [
+        "65 backend regressions and 3 catalog UI tests passed; public lists load PRIMARY specifications only, detail reloads all sources, recommendation requests start on visibility; typecheck/lint passed."
+      ]
     },
     {
       "id": "O04",

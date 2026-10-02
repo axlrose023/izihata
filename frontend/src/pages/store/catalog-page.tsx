@@ -22,6 +22,7 @@ import { catalogHref } from "@/modules/catalog/lib/catalog-href";
 import { ActiveFilters } from "@/modules/catalog/components/active-filters";
 import { ProductCard } from "@/modules/catalog/components/product-card";
 import type { ProductBadge, ProductSort } from "@/shared/types/api";
+import { useInView } from "@/shared/lib/use-in-view";
 import { usePageMeta } from "@/shared/lib/use-page-meta";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { ErrorNotice } from "@/shared/ui/error-notice";
@@ -110,8 +111,9 @@ export function CatalogPage({
     : rankedSubcategories.slice(0, 6);
   const hiddenSubcategories =
     rankedSubcategories.length - visibleSubcategories.length;
-  // Блок «також купують» тримаємо на найпопулярнішому в цій категорії й без
-  // решти фільтрів — інакше він повторював би те, що вже в сітці.
+  // Інші товари запитуємо лише коли користувач наближається до блоку.
+  const { ref: recommendationsRef, isVisible: recommendationsVisible } =
+    useInView<HTMLDivElement>();
   const alsoBoughtResult = useQuery({
     ...productsQuery({
       category: query.category,
@@ -120,7 +122,11 @@ export function CatalogPage({
       page_size: 20,
       include_facets: false,
     }),
-    enabled: Boolean(query.category),
+    enabled:
+      Boolean(query.category) &&
+      recommendationsVisible &&
+      productsResult.isSuccess &&
+      !productsResult.isPlaceholderData,
   });
   // Беремо ширшу вибірку, бо найпопулярніше зазвичай уже стоїть у сітці —
   // показуємо чотири позиції, яких на екрані ще немає.
@@ -365,12 +371,15 @@ export function CatalogPage({
           ) : null}
         </section>
       </div>
+      {query.category ? (
+        <div ref={recommendationsRef} aria-hidden="true" />
+      ) : null}
       {alsoBought.length ? (
         <section className="also-bought">
           <div className="section-heading">
             <div>
-              <span className="eyebrow">Популярне поруч</span>
-              <h2>Також купують з цієї категорії</h2>
+              <span className="eyebrow">Інші товари</span>
+              <h2>Інші товари цієї категорії</h2>
             </div>
           </div>
           <div className="product-grid">

@@ -10,6 +10,7 @@ from sqlalchemy.orm import joinedload, selectinload
 from sqlalchemy.sql.elements import ColumnElement
 
 from app.api.modules.catalog.enums import (
+    ProductAttributeSource,
     ProductBadge,
     ProductRelationKind,
     ProductSort,
@@ -479,7 +480,11 @@ class ProductGateway:
             .options(
                 joinedload(Product.category),
                 joinedload(Product.subcategory),
-                selectinload(Product.attributes),
+                selectinload(
+                    Product.attributes.and_(
+                        ProductAttribute.source == ProductAttributeSource.PRIMARY
+                    )
+                ),
             )
             .offset(params.offset)
             .limit(params.page_size)
@@ -716,6 +721,7 @@ class ProductGateway:
         stmt = (
             select(Product)
             .where(Product.slug == slug, Product.is_active.is_(True))
+            .execution_options(populate_existing=True)
             .options(
                 joinedload(Product.category),
                 joinedload(Product.subcategory),
@@ -777,7 +783,11 @@ class ProductGateway:
             .options(
                 joinedload(Product.category),
                 joinedload(Product.subcategory),
-                selectinload(Product.attributes),
+                selectinload(
+                    Product.attributes.and_(
+                        ProductAttribute.source == ProductAttributeSource.PRIMARY
+                    )
+                ),
             )
             .order_by(ProductRelation.position, Product.id)
             .limit(limit)
@@ -1008,7 +1018,11 @@ class ProductGateway:
             .options(
                 joinedload(Product.category),
                 joinedload(Product.subcategory),
-                selectinload(Product.attributes),
+                selectinload(
+                    Product.attributes.and_(
+                        ProductAttribute.source == ProductAttributeSource.PRIMARY
+                    )
+                ),
             )
             .order_by(Product.position, Product.id)
             .limit(limit)

@@ -22,7 +22,10 @@ vi.mock("@/modules/catalog/api/catalog-api", () => ({
 vi.mock("@/modules/catalog/components/catalog-filters", () => ({
   CatalogFilters: () => null,
 }));
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
 it("preserves repeated filters and resets only pagination during mobile search", async () => {
   const router = createMemoryRouter(
     [{ path: "/catalog/:category", element: <CatalogPage /> }],
@@ -103,4 +106,51 @@ it("marks retained results as updating and exposes a failed refresh", async () =
   });
   await screen.findByRole("alert");
   expect(screen.getByRole("button", { name: "Повторити" })).toBeInTheDocument();
+});
+
+it("waits for the recommendations block before requesting extra products", async () => {
+  let notify!: IntersectionObserverCallback;
+  vi.stubGlobal(
+    "IntersectionObserver",
+    class {
+      constructor(callback: IntersectionObserverCallback) {
+        notify = callback;
+      }
+      observe() {}
+      disconnect() {}
+    },
+  );
+  vi.mocked(fetchProducts).mockClear();
+  vi.mocked(fetchProducts).mockResolvedValue(productListFixture());
+  const router = createMemoryRouter(
+    [{ path: "/catalog/:category", element: <CatalogPage /> }],
+    { initialEntries: ["/catalog/tools"] },
+  );
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  render(
+    <QueryClientProvider client={client}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>,
+  );
+  await screen.findByRole("textbox", { name: "Пошук у каталозі" });
+  expect(
+    vi
+      .mocked(fetchProducts)
+      .mock.calls.some(([params]) => params?.page_size === 20),
+  ).toBe(false);
+  await act(async () => {
+    notify(
+      [{ isIntersecting: true } as IntersectionObserverEntry],
+      {} as IntersectionObserver,
+    );
+  });
+  await waitFor(() =>
+    expect(
+      vi
+        .mocked(fetchProducts)
+        .mock.calls.some(([params]) => params?.page_size === 20),
+    ).toBe(true),
+  );
 });
