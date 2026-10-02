@@ -72,6 +72,15 @@ export function BrandProductsPage() {
 
   if (result.isPending)
     return <div className="page-loader">Завантажуємо бренд…</div>;
+  if (result.isError)
+    return (
+      <ErrorNotice
+        className="container service-notice"
+        error={result.error}
+        fallback="Не вдалося завантажити бренд."
+        onRetry={() => void result.refetch()}
+      />
+    );
   if (!brand)
     return (
       <EmptyState

@@ -179,8 +179,10 @@
       "id": "R23",
       "priority": "P2",
       "title": "Сбой загрузки выдаётся за отсутствие бренда",
-      "status": "pending",
-      "checks": []
+      "status": "implemented",
+      "checks": [
+        "Brand page regression passed: 503 shows an error and retry, missing-brand state appears only after a successful empty response; typecheck and lint passed."
+      ]
     },
     {
       "id": "R24",
