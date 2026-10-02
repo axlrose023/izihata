@@ -1,3 +1,4 @@
+from dataclasses import replace
 from decimal import Decimal
 from pathlib import Path
 
@@ -8,7 +9,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.orm import selectinload
 
 from app.api.modules.catalog.enums import ProductAttributeSource, StockStatus
-from app.api.modules.catalog.models import Brand, Category, Product
+from app.api.modules.catalog.models import Brand, Category, Product, ProductMedia
 from app.database.imports import (
     BunnyS3Config,
     import_eti_workbook,
@@ -239,6 +240,69 @@ class TestEtiWorkbookImport:
         ).scalar_one_or_none()
         assert outcome.created == 1
         assert stored is None
+
+    async def test_reimport_keeps_gallery_until_all_replacement_photos_exist(
+        self, tmp_path, uow
+    ):
+        workbook = read_eti_workbook(write_workbook(tmp_path / "eti.xlsx"))
+        original_urls = {
+            (
+                photo.sku,
+                photo.position,
+            ): f"https://cdn.example/old-{photo.position}.webp"
+            for photos in workbook.photos.values()
+            for photo in photos
+        }
+        await import_eti_workbook(
+            uow.session, workbook, media_urls=original_urls, dry_run=False
+        )
+        product_id = (
+            await uow.session.execute(
+                select(Product.id).where(Product.sku == "ETI-TEST-1")
+            )
+        ).scalar_one()
+
+        async def saved_gallery() -> list[str]:
+            return list(
+                (
+                    await uow.session.execute(
+                        select(ProductMedia.url)
+                        .where(ProductMedia.product_id == product_id)
+                        .order_by(ProductMedia.position)
+                    )
+                )
+                .scalars()
+                .all()
+            )
+
+        async def saved_primary() -> str | None:
+            return (
+                await uow.session.execute(
+                    select(Product.image_url).where(Product.id == product_id)
+                )
+            ).scalar_one()
+
+        for retry_workbook, incomplete_urls in (
+            (workbook, {}),
+            (workbook, {("ETI-TEST-1", 0): "https://cdn.example/new-0.webp"}),
+            (replace(workbook, photos={}), original_urls),
+        ):
+            outcome = await import_eti_workbook(
+                uow.session, retry_workbook, media_urls=incomplete_urls, dry_run=False
+            )
+            assert outcome.media_attached == 0
+            assert await saved_gallery() == list(original_urls.values())
+            assert await saved_primary() == original_urls[("ETI-TEST-1", 0)]
+
+        replacement_urls = {
+            key: value.replace("old", "new") for key, value in original_urls.items()
+        }
+        outcome = await import_eti_workbook(
+            uow.session, workbook, media_urls=replacement_urls, dry_run=False
+        )
+        assert outcome.media_attached == 2
+        assert await saved_gallery() == list(replacement_urls.values())
+        assert await saved_primary() == replacement_urls[("ETI-TEST-1", 0)]
 
     async def test_imports_enext_primary_specs_and_all_photos(self, tmp_path, uow):
         brand_existed = (

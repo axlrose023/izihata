@@ -841,6 +841,14 @@ async def import_eti_workbook(
 
     for start in range(0, len(workbook.products), batch_size):
         batch = workbook.products[start : start + batch_size]
+        replace_media_skus = set()
+        if media_urls is not None:
+            for row in batch:
+                photos = workbook.photos.get(row.sku, [])
+                if photos and all(
+                    media_urls.get((photo.sku, photo.position)) for photo in photos
+                ):
+                    replace_media_skus.add(product_skus[row.sku])
         existing = {
             product.sku: product
             for product in (
@@ -862,7 +870,7 @@ async def import_eti_workbook(
             # position constraints on a repeat import.
             for existing_product in existing.values():
                 existing_product.attributes = []
-                if media_urls is not None:
+                if existing_product.sku in replace_media_skus:
                     existing_product.media = []
             await session.flush()
         for row in batch:
@@ -923,7 +931,11 @@ async def import_eti_workbook(
                 specification.source == ProductAttributeSource.ETIM
                 for specification in attributes
             )
-            if media_urls is not None and not dry_run:
+            if (
+                media_urls is not None
+                and not dry_run
+                and product_sku in replace_media_skus
+            ):
                 media = [
                     ProductMedia(
                         url=media_urls[(photo.sku, photo.position)],
@@ -931,12 +943,10 @@ async def import_eti_workbook(
                         position=photo.position,
                     )
                     for photo in workbook.photos.get(row.sku, [])
-                    if (photo.sku, photo.position) in media_urls
                 ]
-                if media:
-                    product.media = media
-                    product.image_url = media[0].url
-                    outcome.media_attached += len(media)
+                product.media = media
+                product.image_url = media[0].url
+                outcome.media_attached += len(media)
             if not dry_run:
                 product.attributes = attributes
 
