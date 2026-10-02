@@ -4,7 +4,7 @@ from collections.abc import Sequence
 from decimal import Decimal
 from uuid import UUID
 
-from sqlalchemy import Select, and_, case, delete, func, or_, select, update
+from sqlalchemy import Select, and_, case, delete, func, or_, select, tuple_, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
 from sqlalchemy.sql.elements import ColumnElement
@@ -256,6 +256,67 @@ class CategoryGateway:
 class ProductGateway:
     def __init__(self, session: AsyncSession):
         self._session = session
+
+    async def _filterable_attribute_conditions(
+        self, params: ProductListParams
+    ) -> list[ColumnElement[bool]]:
+        metadata = (
+            await self._session.execute(
+                select(
+                    CategoryAttribute.category_id,
+                    CatalogAttribute.name,
+                    Category.slug,
+                    CatalogAttribute.is_active,
+                    CatalogAttribute.is_filterable,
+                )
+                .join(
+                    CatalogAttribute,
+                    CatalogAttribute.id == CategoryAttribute.attribute_id,
+                )
+                .join(Category, Category.id == CategoryAttribute.category_id)
+            )
+        ).all()
+        if not metadata:
+            return []
+        configured = select(CategoryAttribute.category_id)
+        filterable = (
+            select(CategoryAttribute.category_id, CatalogAttribute.name)
+            .join(
+                CatalogAttribute, CatalogAttribute.id == CategoryAttribute.attribute_id
+            )
+            .where(
+                CatalogAttribute.is_active.is_(True),
+                CatalogAttribute.is_filterable.is_(True),
+            )
+        )
+        # Imported attributes retain their original keys and need no backfill.
+        # New/unconfigured categories keep the existing paginated fallback.
+        conditions = [
+            or_(
+                Product.category_id.not_in(configured),
+                tuple_(Product.category_id, ProductAttribute.key).in_(filterable),
+            )
+        ]
+        unconfigured_product = await self._session.scalar(
+            select(Product.id)
+            .where(
+                *self._conditions(params, include_specs=False),
+                Product.category_id.not_in(configured),
+            )
+            .limit(1)
+        )
+        if unconfigured_product is None:
+            # Limit the covering-index scan to candidate keys. The category/key
+            # membership above still prevents leaking another category's fields.
+            names = {
+                name
+                for _, name, slug, active, enabled in metadata
+                if active
+                and enabled
+                and (not params.category or slug == params.category)
+            }
+            conditions.append(ProductAttribute.key.in_(names))
+        return conditions
 
     def _spec_filter_conditions(
         self,
@@ -510,6 +571,7 @@ class ProductGateway:
             .where(
                 *self._conditions(params, include_specs=False),
                 *self._spec_filter_conditions(params, include_facet_key=True),
+                *await self._filterable_attribute_conditions(params),
             )
             .group_by(ProductAttribute.key, ProductAttribute.value)
             .order_by(ProductAttribute.key, ProductAttribute.value)
@@ -533,6 +595,7 @@ class ProductGateway:
             column = ProductAttribute.key
             count = func.count(func.distinct(ProductAttribute.value))
             conditions = self._spec_filter_conditions(params, include_facet_key=True)
+            conditions.extend(await self._filterable_attribute_conditions(params))
         if params.facet_search:
             conditions.append(column.ilike(f"%{params.facet_search}%"))
         stmt = (

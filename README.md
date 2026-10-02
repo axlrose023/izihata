@@ -74,6 +74,26 @@ The production environment file contains credentials and is intentionally
 ignored by Git. Keep database backups outside this server before treating a
 deployment as recoverable.
 
+### Category filters
+
+The curated keys in `backend/src/app/database/seed/category_filters.json` come
+from existing supplier specifications. Configure them after importing products:
+
+```bash
+docker compose --env-file .env.production -f compose.production.yml exec -T app cli configure-catalog-filters
+# Review the dry run, then apply:
+docker compose --env-file .env.production -f compose.production.yml exec -T app cli configure-catalog-filters --apply
+```
+
+This adds only observed keys to the existing `CatalogAttribute` and
+`CategoryAttribute` tables. It preserves existing definitions and assignments,
+is safe to repeat, and does not modify products, specification values or media.
+Configured categories expose their active, filterable definitions; unconfigured
+categories keep the paginated fallback. Old links to other specifications still
+filter products. Manufacturer codes remain in product details and SKU search.
+Filter definitions do not forbid free-form supplier fields in the editor;
+explicit required fields and numeric definitions still validate their values.
+
 ### Production backups and health
 
 `ops/backup-production.sh` saves a custom PostgreSQL dump, local uploaded media,

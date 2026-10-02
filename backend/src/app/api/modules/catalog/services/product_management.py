@@ -77,12 +77,8 @@ class ProductManagementService:
             definition.name: definition for _, definition in assignments
         }
         if assignments:
-            unknown_names = set(specs) - definitions_by_name.keys()
-            if unknown_names:
-                raise UnprocessableError(
-                    "Product contains attributes not configured for its category",
-                    code="unknown_product_attribute",
-                )
+            # Filter definitions describe a useful subset, not every supplier
+            # field. Preserve free-form specifications alongside defined ones.
             required_names = {
                 definition.name
                 for assignment, definition in assignments

@@ -30,6 +30,7 @@ from app.database.imports import (
     upload_eti_media,
 )
 from app.database.seed import seed_database
+from app.database.seed.category_filters import configure_category_filters
 from app.database.uow import UnitOfWork
 from app.ioc import get_async_container
 
@@ -105,6 +106,28 @@ def seed() -> None:
 
     anyio.run(_seed)
     typer.echo(typer.style("Database seed completed.", fg=typer.colors.GREEN))
+
+
+@app.command("configure-catalog-filters")
+def configure_catalog_filters(
+    apply: Annotated[
+        bool,
+        typer.Option(
+            "--apply", help="Add observed category filters (default: dry run)"
+        ),
+    ] = False,
+) -> None:
+    """Configure existing filter metadata without changing products or specs."""
+
+    async def _configure() -> None:
+        async with SessionFactory() as session:
+            result = await configure_category_filters(session, dry_run=not apply)
+            if apply:
+                await session.commit()
+            typer.echo("APPLIED" if apply else "DRY RUN (nothing written)")
+            typer.echo(asdict(result))
+
+    anyio.run(_configure)
 
 
 @app.command("import-products")
