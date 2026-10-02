@@ -53,10 +53,20 @@ class ElectricalAdvisorService:
             design_current,
         )
         products = (
-            await self._uow.products.list_by_attribute(
+            await self._uow.products.list_matching_attributes(
                 category_slug="cable",
-                key="Переріз",
-                values={self._cross_section_label(cross_section)},
+                requirements=[
+                    (
+                        {"Переріз", "Поперечний переріз, мм²", "Переріз жили, мм²"},
+                        self._number_labels(cross_section, {"", " мм²", " mm²"}),
+                    ),
+                    (
+                        {"Матеріал", "Матеріал жили", "Матеріал провідника"},
+                        {"мідь", "Мідь", "Cu", "copper"}
+                        if request.conductor_material == ConductorMaterial.COPPER
+                        else {"алюміній", "Алюміній", "Al", "aluminum"},
+                    ),
+                ],
             )
             if cross_section is not None
             else []
@@ -100,10 +110,15 @@ class ElectricalAdvisorService:
         products = []
         if nominal is not None:
             products = list(
-                await self._uow.products.list_by_attribute(
+                await self._uow.products.list_matching_attributes(
                     category_slug="lowvoltage",
-                    key="Номінал",
-                    values={f"{nominal} А"},  # noqa: RUF001
+                    requirements=[
+                        (
+                            {"Номінал", "Номінальний струм", "Номінальний струм In, А"},  # noqa: RUF001
+                            self._number_labels(Decimal(nominal), {"", " A", " А"}),  # noqa: RUF001
+                        ),
+                        ({"Характеристика", "Характеристика спрацювання"}, {curve}),
+                    ],
                 )
             )
         return BreakerResponse(
@@ -121,7 +136,10 @@ class ElectricalAdvisorService:
     ) -> LedPowerSupplyResponse:
         load = request.length_m * request.watts_per_meter
         recommended = load * (Decimal("1") + Decimal(request.reserve_percent) / 100)
-        products = await self._uow.products.list_by_category("power")
+        # These requests do not specify the electrical compatibility needed to
+        # select equipment (for example output voltage or battery technology).
+        # An arbitrary item from the power category is not a recommendation.
+        products = []
         return LedPowerSupplyResponse(
             load_w=self._round(load),
             recommended_power_w=self._round(recommended),
@@ -137,7 +155,10 @@ class ElectricalAdvisorService:
             * request.discharge_depth
         )
         inverter_power = request.load_w * Decimal("1.25")
-        products = await self._uow.products.list_by_category("power")
+        # These requests do not specify the electrical compatibility needed to
+        # select equipment (for example output voltage or battery technology).
+        # An arbitrary item from the power category is not a recommendation.
+        products = []
         return AutonomyResponse(
             required_energy_wh=self._round(energy),
             recommended_battery_capacity_ah=self._round(capacity),
@@ -157,10 +178,12 @@ class ElectricalAdvisorService:
         return None
 
     @staticmethod
-    def _cross_section_label(cross_section: Decimal) -> str:
-        return (
-            f"{cross_section:.1f} мм²" if cross_section < 10 else f"{cross_section} мм²"
-        )
+    def _number_labels(value: Decimal, suffixes: set[str]) -> set[str]:
+        number = format(value.normalize(), "f")
+        forms = {number, number.replace(".", ",")}
+        if "." not in number:
+            forms.update({f"{number}.0", f"{number},0"})
+        return {form + suffix for form in forms for suffix in suffixes}
 
     @staticmethod
     def _round(value: Decimal) -> Decimal:

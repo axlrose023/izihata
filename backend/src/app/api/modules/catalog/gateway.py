@@ -969,49 +969,32 @@ class ProductGateway:
         )
         return (await self._session.execute(stmt)).scalars().all()
 
-    async def list_by_attribute(
+    async def list_matching_attributes(
         self,
         *,
         category_slug: str,
-        key: str,
-        values: set[str],
+        requirements: Sequence[tuple[set[str], set[str]]],
         limit: int = 8,
     ) -> Sequence[Product]:
-        if not values:
+        if not requirements or any(
+            not keys or not values for keys, values in requirements
+        ):
             return []
         stmt = (
             select(Product)
             .where(
                 Product.is_active.is_(True),
+                Product.stock_status != StockStatus.OUT_OF_STOCK,
                 Product.category.has(Category.slug == category_slug),
-                Product.attributes.any(
-                    and_(
-                        ProductAttribute.key == key,
-                        ProductAttribute.value.in_(values),
+                *(
+                    Product.attributes.any(
+                        and_(
+                            ProductAttribute.key.in_(keys),
+                            ProductAttribute.value.in_(values),
+                        )
                     )
+                    for keys, values in requirements
                 ),
-            )
-            .options(
-                joinedload(Product.category),
-                joinedload(Product.subcategory),
-                selectinload(Product.attributes),
-            )
-            .order_by(Product.position, Product.id)
-            .limit(limit)
-        )
-        return (await self._session.execute(stmt)).scalars().unique().all()
-
-    async def list_by_category(
-        self,
-        category_slug: str,
-        *,
-        limit: int = 8,
-    ) -> Sequence[Product]:
-        stmt = (
-            select(Product)
-            .where(
-                Product.is_active.is_(True),
-                Product.category.has(Category.slug == category_slug),
             )
             .options(
                 joinedload(Product.category),

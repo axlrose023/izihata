@@ -25,8 +25,10 @@
       "id": "R03",
       "priority": "P1",
       "title": "Рекомендации товаров не соответствуют параметрам калькуляторов",
-      "status": "pending",
-      "checks": []
+      "status": "implemented",
+      "checks": [
+        "8 advisor regressions and explicit bundle selection test passed; material, nominal and curve matched using supplier aliases; arbitrary power products removed."
+      ]
     },
     {
       "id": "R04",

@@ -79,9 +79,11 @@ class TestElectricalAdvisors:
         assert led.status_code == 200, led.text
         assert led.json()["load_w"] == "50.00"
         assert led.json()["recommended_power_w"] == "60.00"
+        assert led.json()["products"] == []
         assert autonomy.status_code == 200, autonomy.text
         assert autonomy.json()["required_energy_wh"] == "400.00"
         assert autonomy.json()["recommended_inverter_power_w"] == "125.00"
+        assert autonomy.json()["products"] == []
 
     async def test_rejects_ambiguous_electrical_load(self, client: AsyncClient):
         response = await client.post(
@@ -94,3 +96,58 @@ class TestElectricalAdvisors:
         )
 
         assert response.status_code == 422
+
+    async def test_matching_respects_material_and_breaker_curve(
+        self, client: AsyncClient
+    ):
+        copper = await client.post(
+            "/api/v1/advisors/cable-size",
+            json={
+                "current_a": "10",
+                "length_m": "10",
+                "conductor_material": "aluminum",
+            },
+        )
+        assert copper.json()["products"] == []
+        motor = await client.post(
+            "/api/v1/advisors/breaker", json={"current_a": "10", "load_type": "motor"}
+        )
+        resistive = await client.post(
+            "/api/v1/advisors/breaker",
+            json={"current_a": "10", "load_type": "resistive"},
+        )
+        assert any(product["sku"] == "AX-10001" for product in motor.json()["products"])
+        assert all(
+            product["specs"].get("Характеристика") == "B"
+            for product in resistive.json()["products"]
+        )
+
+    async def test_matches_supplier_keys_without_changing_stored_attributes(
+        self, uow, product
+    ):
+        from sqlalchemy import select
+
+        from app.api.modules.advisors.schema import BreakerRequest
+        from app.api.modules.advisors.service import ElectricalAdvisorService
+        from app.api.modules.catalog.models import ProductAttribute
+
+        attributes = list(
+            (
+                await uow.session.scalars(
+                    select(ProductAttribute).where(
+                        ProductAttribute.product_id == product.id
+                    )
+                )
+            ).all()
+        )
+        for attribute in attributes:
+            if attribute.key == "Номінал":
+                attribute.key = "Номінальний струм"
+                attribute.value = "16 A"
+            elif attribute.key == "Характеристика":
+                attribute.key = "Характеристика спрацювання"
+        await uow.session.flush()
+        response = await ElectricalAdvisorService(uow).calculate_breaker(
+            BreakerRequest(current_a="10", load_type="motor")
+        )
+        assert any(item.sku == product.sku for item in response.products)

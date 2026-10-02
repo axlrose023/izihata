@@ -51,6 +51,10 @@ export function LoadAdvisor() {
     result: null,
     error: false,
   });
+  const [selectedCableId, setSelectedCableId] = useState<string | null>(null);
+  const [selectedBreakerId, setSelectedBreakerId] = useState<string | null>(
+    null,
+  );
   const add = useCartStore((state) => state.add);
 
   const voltage = phase === "single" ? 230 : 400;
@@ -101,16 +105,32 @@ export function LoadAdvisor() {
 
   const isLoading = calculation.requestKey !== requestKey;
   const error = !isLoading && calculation.error;
-  const result = calculation.result;
+  const result = isLoading || error ? null : calculation.result;
 
   const section = Number(result?.cable.recommended_cross_section_mm2 ?? 0);
   const voltageDrop = section
     ? ((2 * length * current * 0.0175) / section / voltage) * 100
     : null;
   const products = bundleItems(result);
+  const selectedCable = result?.cable.products.find(
+    (product) => product.id === selectedCableId,
+  );
+  const selectedBreaker = result?.breaker.products.find(
+    (product) => product.id === selectedBreakerId,
+  );
+  const selectedProducts = [selectedCable, selectedBreaker].filter(
+    (product): product is Product => Boolean(product),
+  );
+  const bundleReady =
+    !isLoading &&
+    !error &&
+    Boolean(selectedCable && selectedBreaker) &&
+    !result?.cable.requires_specialist &&
+    !result?.breaker.requires_specialist;
 
   const addBundle = () => {
-    products.forEach((product) => {
+    if (!bundleReady) return;
+    selectedProducts.forEach((product) => {
       const quantity = product.sale_unit === "meter" ? length : 1;
       add(product, quantity);
     });
@@ -275,8 +295,10 @@ export function LoadAdvisor() {
             <h2>Підібрані позиції з каталогу</h2>
             <span>
               {products.length
-                ? `${products.length} позиції для комплекту`
-                : "Підбираємо позиції"}
+                ? `${products.length} варіантів — оберіть кабель і автомат`
+                : isLoading
+                  ? "Підбираємо позиції"
+                  : "Відповідних позицій немає"}
             </span>
           </div>
           <small>кошторис на {length} м</small>
@@ -284,6 +306,27 @@ export function LoadAdvisor() {
         <div className="load-advisor__pick-list">
           {products.map((product) => (
             <article key={product.id}>
+              <input
+                type="radio"
+                aria-label={`Обрати ${product.name}`}
+                name={
+                  result?.cable.products.some((item) => item.id === product.id)
+                    ? "cable"
+                    : "breaker"
+                }
+                checked={selectedProducts.some(
+                  (item) => item.id === product.id,
+                )}
+                onChange={() => {
+                  if (
+                    result?.cable.products.some(
+                      (item) => item.id === product.id,
+                    )
+                  )
+                    setSelectedCableId(product.id);
+                  else setSelectedBreakerId(product.id);
+                }}
+              />
               <span className="load-advisor__pick-visual">
                 <ProductVisual iconSize={24} product={product} />
               </span>
@@ -323,9 +366,9 @@ export function LoadAdvisor() {
             </div>
             <div>
               <strong>
-                {products.length
+                {bundleReady
                   ? formatMoney(
-                      products.reduce(
+                      selectedProducts.reduce(
                         (sum, product) =>
                           sum +
                           Number(product.price) *
@@ -337,7 +380,7 @@ export function LoadAdvisor() {
               </strong>
               <button
                 className="button button--primary"
-                disabled={!products.length}
+                disabled={!bundleReady}
                 onClick={addBundle}
                 type="button"
               >
