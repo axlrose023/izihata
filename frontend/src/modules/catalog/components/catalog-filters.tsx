@@ -218,62 +218,28 @@ export function CatalogFilters({
                     activeBrands.size > 0,
                 )
                 .map(([key, options]) => {
-                  const isSeries = key.toLocaleLowerCase("uk") === "серія";
-                  const hasActive = options.some(({ value }) =>
-                    activeSpecs.has(`${key}:${value}`),
-                  );
-                  const isExpanded = expandedSpecs[key] ?? hasActive;
+                  const activeOptions = options
+                    .filter(({ value }) => activeSpecs.has(`${key}:${value}`))
+                    .map(({ value }) => `${key}:${value}`);
+                  const isExpanded =
+                    expandedSpecs[key] ?? activeOptions.length > 0;
                   return (
-                    <details
-                      className="filter-spec"
+                    <SpecFacet
+                      activeOptions={activeOptions}
+                      isExpanded={isExpanded}
                       key={key}
-                      onToggle={(event) => {
-                        const next = event.currentTarget.open;
+                      label={key}
+                      onExpandedChange={(open) =>
                         setExpandedSpecs((current) =>
-                          current[key] === next
+                          current[key] === open
                             ? current
-                            : { ...current, [key]: next },
-                        );
-                      }}
-                      open={isExpanded}
-                    >
-                      <summary>
-                        {key} <small>({options.length})</small>
-                      </summary>
-                      {isExpanded ? (
-                        <fieldset>
-                          <legend className="visually-hidden">{key}</legend>
-                          {isSeries ? (
-                            <p className="filter-series-note">
-                              Вибір серії покаже всі сумісні елементи цього
-                              дизайну.
-                            </p>
-                          ) : null}
-                          <div className="filter-options">
-                            {options.map((option) => {
-                              const value = `${key}:${option.value}`;
-                              return (
-                                <label key={value}>
-                                  <input
-                                    checked={activeSpecs.has(value)}
-                                    onChange={(event) =>
-                                      toggleMulti(
-                                        "spec",
-                                        value,
-                                        event.target.checked,
-                                      )
-                                    }
-                                    type="checkbox"
-                                  />
-                                  <span>{option.value}</span>
-                                  <small>{option.count}</small>
-                                </label>
-                              );
-                            })}
-                          </div>
-                        </fieldset>
-                      ) : null}
-                    </details>
+                            : { ...current, [key]: open },
+                        )
+                      }
+                      onToggle={toggleMulti}
+                      options={options}
+                      showSeriesNote={key.toLocaleLowerCase("uk") === "серія"}
+                    />
                   );
                 })}
               <label className="stock-filter">
@@ -311,6 +277,108 @@ export function CatalogFilters({
         </div>
       </aside>
     </>
+  );
+}
+
+function SpecFacet({
+  activeOptions,
+  isExpanded,
+  label,
+  onExpandedChange,
+  onToggle,
+  options,
+  showSeriesNote,
+}: {
+  activeOptions: string[];
+  isExpanded: boolean;
+  label: string;
+  onExpandedChange: (open: boolean) => void;
+  onToggle: (name: string, value: string, checked: boolean) => void;
+  options: ProductList["facets"]["brands"];
+  showSeriesNote: boolean;
+}) {
+  const [search, setSearch] = useState("");
+  const activeValues = new Set(
+    activeOptions.map((value) => value.slice(label.length + 1)),
+  );
+  const searchable = options.length > 8;
+  const matches = searchable
+    ? options.filter((option) =>
+        option.value
+          .toLocaleLowerCase("uk")
+          .includes(search.toLocaleLowerCase("uk")),
+      )
+    : options;
+  const shown = searchable
+    ? search
+      ? matches.slice(0, 100)
+      : [
+          ...options.filter((option) => activeValues.has(option.value)),
+          ...options.slice(0, 8),
+        ].filter(
+          (option, index, all) =>
+            all.findIndex((item) => item.value === option.value) === index,
+        )
+    : options;
+
+  return (
+    <details
+      className="filter-spec"
+      onToggle={(event) => onExpandedChange(event.currentTarget.open)}
+      open={isExpanded}
+    >
+      <summary>
+        {label} <small>({options.length})</small>
+      </summary>
+      {isExpanded ? (
+        <fieldset>
+          <legend className="visually-hidden">{label}</legend>
+          {showSeriesNote ? (
+            <p className="filter-series-note">
+              Вибір серії покаже всі сумісні елементи цього дизайну.
+            </p>
+          ) : null}
+          {searchable ? (
+            <input
+              aria-label={`Пошук: ${label.toLocaleLowerCase("uk")}`}
+              className="facet-search"
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder={`Пошук: ${label.toLocaleLowerCase("uk")}`}
+              type="search"
+              value={search}
+            />
+          ) : null}
+          {searchable ? (
+            <small className="facet-search__hint">
+              {search
+                ? `Знайдено ${matches.length}; показано ${shown.length}`
+                : `Показано ${shown.length} з ${options.length}. Уточніть пошук.`}
+            </small>
+          ) : null}
+          <div className="filter-options">
+            {shown.map((option) => {
+              const value = `${label}:${option.value}`;
+              return (
+                <label key={value}>
+                  <input
+                    checked={activeValues.has(option.value)}
+                    onChange={(event) =>
+                      onToggle("spec", value, event.target.checked)
+                    }
+                    type="checkbox"
+                  />
+                  <span>{option.value}</span>
+                  <small>{option.count}</small>
+                </label>
+              );
+            })}
+            {searchable && search && !shown.length ? (
+              <p className="filter-options__empty">Нічого не знайдено</p>
+            ) : null}
+          </div>
+        </fieldset>
+      ) : null}
+    </details>
   );
 }
 
