@@ -14,6 +14,9 @@ RUN npm run build
 FROM nginx:1.29-alpine AS production
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=builder /app/dist /usr/share/nginx/html
+COPY --from=builder /app/dist/assets /opt/frontend-assets
+COPY retain-assets.sh /docker-entrypoint.d/40-retain-assets.sh
+RUN chmod +x /docker-entrypoint.d/40-retain-assets.sh
 EXPOSE 3000
 HEALTHCHECK --interval=10s --timeout=5s --retries=5 \
-  CMD wget -q --spider http://127.0.0.1:3000/ || exit 1
+  CMD wget -q --spider http://127.0.0.1:3000/index.html || exit 1

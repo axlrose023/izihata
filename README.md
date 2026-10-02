@@ -176,3 +176,8 @@ Set `APP__PUBLIC_CATALOG_CACHE__ENABLED=false` to disable it, or set
 default to one second and are configurable via
 `APP__REDIS__SOCKET_CONNECT_TIMEOUT_SECONDS` and
 `APP__REDIS__SOCKET_TIMEOUT_SECONDS`; blocking task queue reads are separate.
+
+Frontend releases retain previous hashed assets in the `frontend_assets` volume
+for 14 days so an already open tab can load its remaining route chunks after
+deployment. The current HTML always comes from the current image. These assets
+are build outputs and do not contain customer data.

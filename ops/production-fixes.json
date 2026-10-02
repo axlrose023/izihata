@@ -322,6 +322,15 @@
       "checks": [
         "Found during production verification with isolated media worker; shell syntax checked, one-off containers excluded while every regular instance is checked."
       ]
+    },
+    {
+      "id": "R26",
+      "priority": "P2",
+      "title": "Открытые вкладки теряют отложенные JS-модули после деплоя",
+      "status": "implemented",
+      "checks": [
+        "Production reproduced 404 for the previous product-page hashed chunk after deployment. Existing startup hook now retains hashed assets in a bounded 14-day volume. Nginx Alpine regression passed across two releases: new and previous chunks survive, expired files are removed. Current HTML stays in the release image."
+      ]
     }
   ],
   "deployments": [

@@ -102,6 +102,8 @@ services:
       args:
         VITE_BUNNY_OPTIMIZER_ENABLED: "${BUNNY_OPTIMIZER_ENABLED:-false}"
     restart: unless-stopped
+    volumes:
+      - frontend_assets:/usr/share/nginx/html/assets
     logging: *default-logging
     networks:
       - proxy
@@ -223,6 +225,7 @@ networks:
         - subnet: 172.30.0.0/24
 
 volumes:
+  frontend_assets:
   traefik_data:
   media_data:
   db_data:
