@@ -118,6 +118,7 @@ export function CheckoutForm() {
   const [promoCode, setPromoCode] = useState<string | null>(null);
   const [selectedCityRef, setSelectedCityRef] = useState<string | null>(null);
   const [selectedPointRef, setSelectedPointRef] = useState<string | null>(null);
+  const [manualDelivery, setManualDelivery] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -154,26 +155,29 @@ export function CheckoutForm() {
   const isNovaPoshta = deliveryMethod !== "pickup";
   const cities = useQuery({
     queryKey: ["delivery", "cities", deferredCity],
-    enabled: isNovaPoshta && deferredCity.length >= 2,
-    queryFn: () =>
+    enabled: isNovaPoshta && !manualDelivery && deferredCity.length >= 2,
+    queryFn: ({ signal }) =>
       apiClient<DeliveryCityOption[]>(
         `/delivery/cities?${new URLSearchParams({ search: deferredCity })}`,
+        { signal },
       ),
   });
   const pointKind =
     deliveryMethod === "nova_poshta_locker" ? "locker" : "branch";
   const points = useQuery({
     queryKey: ["delivery", "points", selectedCityRef, pointKind, deferredPoint],
-    enabled: isNovaPoshta && selectedCityRef !== null,
-    queryFn: () =>
+    enabled: isNovaPoshta && !manualDelivery && selectedCityRef !== null,
+    queryFn: ({ signal }) =>
       apiClient<DeliveryPointOption[]>(
         `/delivery/points?${new URLSearchParams({
           city_ref: selectedCityRef ?? "",
           kind: pointKind,
           ...(deferredPoint ? { search: deferredPoint } : {}),
         })}`,
+        { signal },
       ),
   });
+  const canEnterManually = manualDelivery || cities.isError || points.isError;
   const items = lines.map((line) => ({
     product_id: line.product.id,
     quantity: line.quantity,
@@ -220,7 +224,7 @@ export function CheckoutForm() {
   const submit = handleSubmit(async (values) => {
     if (
       values.delivery_method !== "pickup" &&
-      !cities.isError &&
+      !canEnterManually &&
       !selectedCityRef
     ) {
       setError("city", { message: "Оберіть місто зі списку" });
@@ -228,7 +232,7 @@ export function CheckoutForm() {
     }
     if (
       values.delivery_method !== "pickup" &&
-      !points.isError &&
+      !canEnterManually &&
       !selectedPointRef
     ) {
       setError("point", { message: "Оберіть відділення зі списку" });
@@ -375,18 +379,21 @@ export function CheckoutForm() {
                         isLoading={cities.isFetching}
                         minimumQueryLength={2}
                         onChange={(value) => {
+                          if (canEnterManually) setManualDelivery(true);
                           field.onChange(value);
                           setSelectedCityRef(null);
                           setSelectedPointRef(null);
                           setValue("point", "");
                         }}
                         onSelect={(option) => {
+                          setManualDelivery(false);
                           field.onChange(option.label);
                           setSelectedCityRef(option.ref);
                           setSelectedPointRef(null);
                           setValue("point", "");
                         }}
                         options={cities.data ?? []}
+                        suggestionsEnabled={!manualDelivery}
                         placeholder="Почніть вводити місто й оберіть зі списку"
                         value={field.value}
                       />
@@ -405,7 +412,7 @@ export function CheckoutForm() {
                     name="point"
                     render={({ field }) => (
                       <DeliveryAutocomplete
-                        disabled={!selectedCityRef && !cities.isError}
+                        disabled={!selectedCityRef && !canEnterManually}
                         emptyMessage={
                           deliveryMethod === "nova_poshta_locker"
                             ? "Поштомат не знайдено"
@@ -413,6 +420,7 @@ export function CheckoutForm() {
                         }
                         isLoading={points.isFetching}
                         onChange={(value) => {
+                          if (canEnterManually) setManualDelivery(true);
                           field.onChange(value);
                           setSelectedPointRef(null);
                         }}
@@ -421,6 +429,7 @@ export function CheckoutForm() {
                           setSelectedPointRef(option.ref);
                         }}
                         options={points.data ?? []}
+                        suggestionsEnabled={!manualDelivery}
                         placeholder={
                           selectedCityRef
                             ? `Почніть вводити номер або адресу й оберіть ${
@@ -442,7 +451,11 @@ export function CheckoutForm() {
                 Менеджер підтвердить адресу і час самовивозу.
               </p>
             )}
-            {cities.error || points.error ? (
+            {manualDelivery ? (
+              <p className="delivery-fallback-note" role="status">
+                Адресу введено вручну. Менеджер перевірить пункт доставки.
+              </p>
+            ) : cities.error || points.error ? (
               <p className="delivery-fallback-note" role="status">
                 {getUserErrorMessage(
                   cities.error ?? points.error,

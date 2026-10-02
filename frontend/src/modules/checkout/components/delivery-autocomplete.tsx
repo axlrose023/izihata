@@ -16,6 +16,7 @@ interface DeliveryAutocompleteProps<TOption extends DeliverySuggestion> {
   placeholder: string;
   value: string;
   disabled?: boolean;
+  suggestionsEnabled?: boolean;
 }
 
 export function DeliveryAutocomplete<TOption extends DeliverySuggestion>({
@@ -28,13 +29,14 @@ export function DeliveryAutocomplete<TOption extends DeliverySuggestion>({
   placeholder,
   value,
   disabled = false,
+  suggestionsEnabled = true,
 }: DeliveryAutocompleteProps<TOption>) {
   const [isOpen, setIsOpen] = useState(false);
   const [activeRef, setActiveRef] = useState<string | null>(null);
   const activeIndex = options.findIndex((option) => option.ref === activeRef);
   const listboxId = useId();
   const canSuggest = value.trim().length >= minimumQueryLength;
-  const showListbox = isOpen && canSuggest;
+  const showListbox = suggestionsEnabled && isOpen && canSuggest;
 
   const select = (option: TOption) => {
     onSelect(option);
@@ -65,6 +67,7 @@ export function DeliveryAutocomplete<TOption extends DeliverySuggestion>({
         }}
         onFocus={() => setIsOpen(true)}
         onKeyDown={(event) => {
+          if (!suggestionsEnabled || !canSuggest) return;
           if (event.key === "Escape") {
             setIsOpen(false);
             setActiveRef(null);

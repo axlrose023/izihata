@@ -130,8 +130,10 @@
       "id": "R18",
       "priority": "P1",
       "title": "Ручной ввод доставки не работает при сбое справочника городов",
-      "status": "pending",
-      "checks": []
+      "status": "implemented",
+      "checks": [
+        "5 delivery regressions passed; manual addresses survive city/point directory failures, normal directory validation retained; TypeScript checked."
+      ]
     },
     {
       "id": "R19",
