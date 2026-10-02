@@ -61,9 +61,18 @@ export function usePageMeta({
     }
 
     const target = script ?? document.createElement("script");
+    const content = JSON.stringify(structuredData);
     target.type = "application/ld+json";
     target.dataset.pageStructuredData = "true";
-    target.textContent = JSON.stringify(structuredData);
+    target.textContent = content;
     if (!script) document.head.append(target);
+
+    return () => {
+      const current = document.head.querySelector<HTMLScriptElement>(
+        'script[data-page-structured-data="true"]',
+      );
+      if (current === target && current.textContent === content)
+        current.remove();
+    };
   }, [description, structuredData, title]);
 }

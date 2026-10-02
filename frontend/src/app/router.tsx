@@ -3,10 +3,15 @@ import { createBrowserRouter, Link, useRouteError } from "react-router-dom";
 import { AdminShell } from "@/modules/admin/components/admin-shell";
 import { AuthBoundary } from "@/modules/auth/components/auth-boundary";
 import { NotFoundPage } from "@/pages/not-found-page";
+import { usePageMeta } from "@/shared/lib/use-page-meta";
 import { StoreShell } from "@/widgets/store-shell";
 
 function RouteErrorPage() {
   const error = useRouteError();
+  usePageMeta({
+    title: "Не вдалося відкрити сторінку",
+    description: "Оновіть сторінку або поверніться до каталогу IZI HATA.",
+  });
   console.error(error);
   return (
     <main className="container empty-state">
