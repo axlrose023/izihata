@@ -192,3 +192,29 @@ class TestPopularProducts:
 
         assert str(product.id) in {item["id"] for item in popular.json()["items"]}
         assert str(product.id) in {item["id"] for item in discounted.json()["items"]}
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        (
+            '["Тип: розетка/вилка", "розетка: 230 В"]',
+            {"Тип: розетка/вилка": {"розетка: 230 В"}},
+        ),
+        ("Полюси:1P", {"Полюси": {"1P"}}),
+    ],
+)
+def test_spec_filters_preserve_keys_and_legacy_links(raw, expected):
+    from app.api.modules.catalog.schema import ProductListParams
+
+    assert ProductListParams(spec=[raw]).spec_filters == expected
+
+
+@pytest.mark.parametrize("raw", ['["a"]', '["a", 5]', '["", "b"]', "invalid"])
+def test_spec_filters_reject_invalid_pairs(raw):
+    from pydantic import ValidationError
+
+    from app.api.modules.catalog.schema import ProductListParams
+
+    with pytest.raises(ValidationError):
+        ProductListParams(spec=[raw])

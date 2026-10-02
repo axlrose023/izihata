@@ -34,6 +34,7 @@ from app.api.modules.catalog.utils import (
     normalize_image_url,
     normalize_product_specs,
     normalize_sku,
+    parse_spec_filter,
 )
 
 
@@ -434,9 +435,7 @@ class ProductListParams(PaginationParams):
         if len(values) > 30:
             raise ValueError("At most 30 specification filters are allowed")
         for value in values:
-            key, separator, option = value.partition(":")
-            if not separator or not key.strip() or not option.strip():
-                raise ValueError("Specification filters must use 'key:value' format")
+            parse_spec_filter(value)
         return values
 
     @model_validator(mode="after")
@@ -453,8 +452,8 @@ class ProductListParams(PaginationParams):
     def spec_filters(self) -> dict[str, set[str]]:
         filters: dict[str, set[str]] = {}
         for raw_filter in self.spec:
-            key, _, value = raw_filter.partition(":")
-            filters.setdefault(key.strip(), set()).add(value.strip())
+            key, value = parse_spec_filter(raw_filter)
+            filters.setdefault(key, set()).add(value)
         return filters
 
 

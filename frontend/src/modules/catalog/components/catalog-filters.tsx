@@ -2,6 +2,10 @@ import { Filter, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 
+import {
+  decodeSpecFilter,
+  encodeSpecFilter,
+} from "@/modules/catalog/lib/spec-filter";
 import { useBodyScrollLock } from "@/shared/lib/use-body-scroll-lock";
 import { useCloseOnEscape } from "@/shared/lib/use-close-on-escape";
 import { useDebouncedValue } from "@/shared/lib/use-debounced-value";
@@ -64,7 +68,12 @@ export function CatalogFilters({
   );
   useBodyScrollLock(isOpen);
   const activeBrands = new Set(query.brand);
-  const activeSpecs = new Set(query.spec);
+  const activeSpecs = new Set(
+    query.spec.map((raw) => {
+      const pair = decodeSpecFilter(raw);
+      return pair ? encodeSpecFilter(...pair) : raw;
+    }),
+  );
   const activeAvailability = new Set(query.availability);
   const activeSaleUnits = new Set(query.sale_unit);
   const activeCount =
@@ -91,7 +100,10 @@ export function CatalogFilters({
     setValues({ [name]: value });
   const toggleMulti = (name: string, value: string, checked: boolean) =>
     update((params) => {
-      const kept = params.getAll(name).filter((item) => item !== value);
+      const kept = params.getAll(name).filter((item) => {
+        const pair = name === "spec" ? decodeSpecFilter(item) : null;
+        return (pair ? encodeSpecFilter(...pair) : item) !== value;
+      });
       params.delete(name);
       for (const item of kept) params.append(name, item);
       if (checked) params.append(name, value);
@@ -219,8 +231,10 @@ export function CatalogFilters({
                 )
                 .map(([key, options]) => {
                   const activeOptions = options
-                    .filter(({ value }) => activeSpecs.has(`${key}:${value}`))
-                    .map(({ value }) => `${key}:${value}`);
+                    .filter(({ value }) =>
+                      activeSpecs.has(encodeSpecFilter(key, value)),
+                    )
+                    .map(({ value }) => encodeSpecFilter(key, value));
                   const isExpanded =
                     expandedSpecs[key] ?? activeOptions.length > 0;
                   return (
@@ -299,7 +313,7 @@ function SpecFacet({
 }) {
   const [search, setSearch] = useState("");
   const activeValues = new Set(
-    activeOptions.map((value) => value.slice(label.length + 1)),
+    activeOptions.map((value) => decodeSpecFilter(value)?.[1]),
   );
   const searchable = options.length > 8;
   const matches = searchable
@@ -357,7 +371,7 @@ function SpecFacet({
           ) : null}
           <div className="filter-options">
             {shown.map((option) => {
-              const value = `${label}:${option.value}`;
+              const value = encodeSpecFilter(label, option.value);
               return (
                 <label key={value}>
                   <input

@@ -1,6 +1,7 @@
 import { X } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 
+import { decodeSpecFilter } from "@/modules/catalog/lib/spec-filter";
 import { saleUnitLabel } from "@/shared/lib/format";
 import type { SaleUnit } from "@/shared/types/api";
 import { labels as statusLabels } from "@/shared/lib/status-labels";
@@ -27,12 +28,8 @@ export function ActiveFilters({ resetHref }: { resetHref: string }) {
     push("sale_unit", value, saleUnitLabel(value as SaleUnit));
   }
   for (const value of searchParams.getAll("spec")) {
-    const at = value.indexOf(":");
-    push(
-      "spec",
-      value,
-      at > 0 ? `${value.slice(0, at)}: ${value.slice(at + 1)}` : value,
-    );
+    const pair = decodeSpecFilter(value);
+    push("spec", value, pair ? `${pair[0]}: ${pair[1]}` : value);
   }
   const min = searchParams.get("min_price");
   const max = searchParams.get("max_price");

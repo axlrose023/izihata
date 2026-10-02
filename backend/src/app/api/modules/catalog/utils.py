@@ -1,3 +1,4 @@
+import json
 import re
 
 from app.api.common.utils import (
@@ -96,3 +97,22 @@ def normalize_product_specs(value: object) -> dict[str, str]:
             raise ValueError("Specification names must be unique")
         normalized[key] = spec_value
     return normalized
+
+
+def parse_spec_filter(raw: str) -> tuple[str, str]:
+    if raw.startswith("["):
+        try:
+            pair = json.loads(raw)
+        except ValueError as exc:
+            raise ValueError("Invalid specification filter pair") from exc
+        if (
+            not isinstance(pair, list)
+            or len(pair) != 2
+            or any(not isinstance(part, str) or not part.strip() for part in pair)
+        ):
+            raise ValueError("Specification filters must contain two non-empty strings")
+        return pair[0].strip(), pair[1].strip()
+    key, separator, value = raw.partition(":")
+    if not separator or not key.strip() or not value.strip():
+        raise ValueError("Specification filters must use a JSON pair or 'key:value'")
+    return key.strip(), value.strip()
