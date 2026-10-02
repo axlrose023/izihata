@@ -100,6 +100,7 @@ export function ProductFormDialog({
     name: "specs",
   });
   const categoryId = useWatch({ control, name: "category_id" });
+  const editDetailsReady = !product || (detail.isSuccess && detail.data != null);
   const selectedCategory = categories.data?.find(
     (category) => category.id === categoryId,
   );
@@ -564,6 +565,19 @@ export function ProductFormDialog({
             раз.
           </p>
         ) : null}
+        {product && detail.isError ? (
+          <div className="form-error" role="alert">
+            <span>Не вдалося завантажити всі дані товару. Збереження вимкнено.</span>
+            <button onClick={() => void detail.refetch()} type="button">
+              Спробувати ще раз
+            </button>
+          </div>
+        ) : null}
+        {product && detail.isPending ? (
+          <p className="inline-note" role="status">
+            Завантажуємо повні дані товару…
+          </p>
+        ) : null}
         {errors.root?.message ? (
           <p className="form-error" role="alert">
             {errors.root.message}
@@ -581,7 +595,10 @@ export function ProductFormDialog({
           <button
             className="button button--primary"
             disabled={
-              isSubmitting || categories.isError || categories.isPending
+              isSubmitting ||
+              categories.isError ||
+              categories.isPending ||
+              !editDetailsReady
             }
             type="submit"
           >
