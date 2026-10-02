@@ -305,7 +305,8 @@
       "title": "Настроить реальные товарные подборки главной",
       "status": "implemented",
       "checks": [
-        "2 homepage rail regressions passed; default selection now shows real catalog products without inventing popularity/badges, requests wait for visibility, errors show retry; typecheck/lint passed."
+        "2 homepage rail regressions passed; default selection now shows real catalog products without inventing popularity/badges, requests wait for visibility, errors show retry; typecheck/lint passed.",
+        "Browser suite updated to the actual catalog selection heading; fixture-based end-to-end flow covers the new default rail."
       ]
     },
     {
