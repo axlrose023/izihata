@@ -14,7 +14,14 @@ def test_default_load_budget_leaves_rate_limit_headroom():
 
 @pytest.mark.parametrize(
     ("workers", "requests"),
-    [([], 55), ([0], 55), ([21], 55), ([20], 10), ([1, 5, 10, 20], 110)],
+    [
+        ([], 55),
+        ([0], 55),
+        ([21], 55),
+        ([20], 10),
+        ([1, 5, 10, 20], 110),
+        ([1, 5, 10, 20], 75),
+    ],
 )
 def test_invalid_load_budgets_are_rejected(workers: list[int], requests: int):
     with pytest.raises(ValueError):

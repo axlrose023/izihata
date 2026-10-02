@@ -28,7 +28,7 @@ from app.api.modules.checkout.schema import QuoteResponse
 
 API = "/api/v1"
 CASE_COUNT = 11
-CATALOG_CASES = 7
+CATALOG_CASES = frozenset({0, 1, 2, 3, 4, 5, 6, 9})
 
 
 @dataclass(frozen=True)
@@ -60,7 +60,7 @@ def validate_budget(concurrency: Sequence[int], requests_per_stage: int) -> None
     if len(concurrency) * requests_per_stage > 300:
         raise ValueError("At most 300 requests are allowed per run")
     catalog = sum(
-        index % CASE_COUNT < CATALOG_CASES for index in range(requests_per_stage)
+        index % CASE_COUNT in CATALOG_CASES for index in range(requests_per_stage)
     )
     quotes = sum(
         index % CASE_COUNT == CASE_COUNT - 1 for index in range(requests_per_stage)
