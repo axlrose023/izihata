@@ -9,6 +9,9 @@ x-app: &app
   environment:
     APP__ENV: prod
     APP__POSTGRES__HOST: db
+    # API + four task workers + scheduler: at most 6 * (4 + 4) = 48 DB sessions.
+    APP__POSTGRES__POOL_SIZE: "4"
+    APP__POSTGRES__MAX_OVERFLOW: "4"
     APP__REDIS__HOST: cache
     APP__API__ALLOWED_ORIGINS: '["https://izihata.com.ua","https://www.izihata.com.ua"]'
     APP__API__ALLOWED_HOSTS: '["izihata.com.ua","www.izihata.com.ua","app","localhost","127.0.0.1"]'
