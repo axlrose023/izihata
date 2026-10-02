@@ -77,8 +77,7 @@ class EtiPhoto:
     def object_key(self) -> str:
         extension = Path(urlparse(self.source_url).path).suffix.lower() or ".webp"
         return (
-            f"products/{self.supplier_slug}/{self.sku}/"
-            f"{self.position + 1}{extension}"
+            f"products/{self.supplier_slug}/{self.sku}/{self.position + 1}{extension}"
         )
 
 
@@ -695,9 +694,7 @@ async def import_eti_workbook(
             f"{sku} ({existing_brand})"
             for sku, existing_brand in foreign_brand_products[:10]
         )
-        raise ValueError(
-            f"Supplier codes already belong to another brand: {conflicts}"
-        )
+        raise ValueError(f"Supplier codes already belong to another brand: {conflicts}")
 
     if (
         not dry_run
