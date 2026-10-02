@@ -1,7 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Grid2x2, Grid3x3, Search } from "lucide-react";
-import { Form, Link, useParams, useSearchParams } from "react-router-dom";
+import {
+  Form,
+  Link,
+  useLocation,
+  useParams,
+  useSearchParams,
+} from "react-router-dom";
 
 import {
   categoriesQuery,
@@ -12,6 +18,7 @@ import {
   CatalogFilters,
   type CatalogFilterQuery,
 } from "@/modules/catalog/components/catalog-filters";
+import { catalogHref } from "@/modules/catalog/lib/catalog-href";
 import { ActiveFilters } from "@/modules/catalog/components/active-filters";
 import { ProductCard } from "@/modules/catalog/components/product-card";
 import type { ProductBadge, ProductSort } from "@/shared/types/api";
@@ -32,39 +39,6 @@ const sorts: Array<{ value: ProductSort; label: string }> = [
   { value: "reviews", label: "За відгуками" },
   { value: "availability", label: "За наявністю" },
 ];
-
-function pageHref(params: URLSearchParams, page: number, category?: string) {
-  const next = new URLSearchParams(params);
-  next.set("page", String(page));
-  next.delete("category");
-  return `${category ? `/catalog/${category}` : "/catalog"}?${next}`;
-}
-
-function subcategoryHref(
-  params: URLSearchParams,
-  slug: string,
-  category?: string,
-) {
-  const next = new URLSearchParams(params);
-  next.delete("page");
-  if (next.get("subcategory") === slug) next.delete("subcategory");
-  else next.set("subcategory", slug);
-  const search = next.toString();
-  return `${category ? `/catalog/${category}` : "/catalog"}${search ? `?${search}` : ""}`;
-}
-
-function viewHref(
-  params: URLSearchParams,
-  view: "grid" | "large",
-  category?: string,
-) {
-  const next = new URLSearchParams(params);
-  next.delete("page");
-  if (view === "grid") next.delete("view");
-  else next.set("view", view);
-  const query = next.toString();
-  return `${category ? `/catalog/${category}` : "/catalog"}${query ? `?${query}` : ""}`;
-}
 
 const saleBadges: ProductBadge[] = ["sale", "promotion", "clearance"];
 
@@ -99,6 +73,7 @@ export function CatalogPage({
   presetTitle?: string;
   presetDescription?: string;
 } = {}) {
+  const { pathname } = useLocation();
   const { category } = useParams<{ category?: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const view = searchParams.get("view") === "large" ? "large" : "grid";
@@ -191,7 +166,7 @@ export function CatalogPage({
   const activeCategory = categories.find(
     (item) => item.slug === query.category,
   );
-  const basePath = category ? `/catalog/${category}` : "/catalog";
+  const basePath = pathname;
   const filterQuery: CatalogFilterQuery = query;
 
   return (
@@ -220,7 +195,9 @@ export function CatalogPage({
             <Link
               data-active={query.subcategory === item.slug ? "true" : undefined}
               key={item.id}
-              to={subcategoryHref(searchParams, item.slug, category)}
+              to={catalogHref(pathname, searchParams, {
+                subcategory: query.subcategory === item.slug ? null : item.slug,
+              })}
             >
               {item.name}
               <small>{item.product_count}</small>
@@ -289,14 +266,14 @@ export function CatalogPage({
               <Link
                 aria-label="Дрібніша сітка"
                 aria-current={view === "grid" ? "true" : undefined}
-                to={viewHref(searchParams, "grid", category)}
+                to={catalogHref(pathname, searchParams, { view: null })}
               >
                 <Grid3x3 size={17} />
               </Link>
               <Link
                 aria-label="Більша сітка"
                 aria-current={view === "large" ? "true" : undefined}
-                to={viewHref(searchParams, "large", category)}
+                to={catalogHref(pathname, searchParams, { view: "large" })}
               >
                 <Grid2x2 size={17} />
               </Link>
@@ -339,7 +316,11 @@ export function CatalogPage({
           {products.total_pages > 1 ? (
             <nav aria-label="Сторінки каталогу" className="pagination">
               {products.has_prev ? (
-                <Link to={pageHref(searchParams, products.page - 1, category)}>
+                <Link
+                  to={catalogHref(pathname, searchParams, {
+                    page: String(products.page - 1),
+                  })}
+                >
                   ← Назад
                 </Link>
               ) : null}
@@ -347,7 +328,11 @@ export function CatalogPage({
                 {products.page} / {products.total_pages}
               </span>
               {products.has_next ? (
-                <Link to={pageHref(searchParams, products.page + 1, category)}>
+                <Link
+                  to={catalogHref(pathname, searchParams, {
+                    page: String(products.page + 1),
+                  })}
+                >
                   Далі →
                 </Link>
               ) : null}
