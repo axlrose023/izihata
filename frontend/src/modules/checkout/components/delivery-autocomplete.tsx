@@ -30,7 +30,8 @@ export function DeliveryAutocomplete<TOption extends DeliverySuggestion>({
   disabled = false,
 }: DeliveryAutocompleteProps<TOption>) {
   const [isOpen, setIsOpen] = useState(false);
-  const [activeIndex, setActiveIndex] = useState(-1);
+  const [activeRef, setActiveRef] = useState<string | null>(null);
+  const activeIndex = options.findIndex((option) => option.ref === activeRef);
   const listboxId = useId();
   const canSuggest = value.trim().length >= minimumQueryLength;
   const showListbox = isOpen && canSuggest;
@@ -38,7 +39,7 @@ export function DeliveryAutocomplete<TOption extends DeliverySuggestion>({
   const select = (option: TOption) => {
     onSelect(option);
     setIsOpen(false);
-    setActiveIndex(-1);
+    setActiveRef(null);
   };
 
   return (
@@ -55,33 +56,37 @@ export function DeliveryAutocomplete<TOption extends DeliverySuggestion>({
         disabled={disabled}
         onBlur={() => {
           setIsOpen(false);
-          setActiveIndex(-1);
+          setActiveRef(null);
         }}
         onChange={(event) => {
           onChange(event.target.value);
           setIsOpen(true);
-          setActiveIndex(-1);
+          setActiveRef(null);
         }}
         onFocus={() => setIsOpen(true)}
         onKeyDown={(event) => {
           if (event.key === "Escape") {
             setIsOpen(false);
-            setActiveIndex(-1);
+            setActiveRef(null);
+            return;
+          }
+          if (event.key === "Enter" && isOpen) {
+            event.preventDefault();
+            const option = options[activeIndex];
+            if (option) select(option);
             return;
           }
           if (!options.length) return;
           if (event.key === "ArrowDown") {
             event.preventDefault();
             setIsOpen(true);
-            setActiveIndex((index) => Math.min(index + 1, options.length - 1));
+            setActiveRef(
+              options[Math.min(activeIndex + 1, options.length - 1)].ref,
+            );
           }
           if (event.key === "ArrowUp") {
             event.preventDefault();
-            setActiveIndex((index) => Math.max(index - 1, 0));
-          }
-          if (event.key === "Enter" && isOpen && activeIndex >= 0) {
-            event.preventDefault();
-            select(options[activeIndex]);
+            setActiveRef(options[Math.max(activeIndex - 1, 0)].ref);
           }
         }}
         placeholder={placeholder}

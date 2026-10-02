@@ -172,8 +172,10 @@
       "id": "R24",
       "priority": "P2",
       "title": "Выбор города клавиатурой падает после обновления подсказок",
-      "status": "pending",
-      "checks": []
+      "status": "implemented",
+      "checks": [
+        "2 autocomplete regressions passed: shortened and reordered suggestions; selected references remain valid."
+      ]
     },
     {
       "id": "O01",
