@@ -142,6 +142,10 @@ export function CatalogPage({
   );
   const pageTitle = presetTitle ?? initialActiveCategory?.name ?? "Каталог";
   usePageMeta({
+    noindex:
+      categoriesResult.isSuccess &&
+      Boolean(query.category) &&
+      !initialActiveCategory,
     title: pageTitle,
     description:
       presetDescription ??

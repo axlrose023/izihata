@@ -33,6 +33,7 @@ export function ProductPage() {
     productResult.error instanceof ApiError &&
     productResult.error.status === 404;
   usePageMeta({
+    noindex: missing,
     title: missing ? "Товар не знайдено" : (product?.name ?? "Товар"),
     description: missing
       ? "Товар більше не доступний у каталозі IZI HATA."

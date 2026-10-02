@@ -153,8 +153,10 @@
       "id": "R17",
       "priority": "P3",
       "title": "Прямые HTML-ответы не содержат данных страницы; несуществующий URL отдаёт 200",
-      "status": "pending",
-      "checks": []
+      "status": "implemented",
+      "checks": [
+        "15 backend HTML/API contract tests passed; meaningful public HTML with canonical/Open Graph/JSON-LD, exact 404/422/503 statuses, escaped supplier data and script-safe JSON; nginx syntax validated. 6 local browser routes passed; robots metadata resets on valid navigation."
+      ]
     },
     {
       "id": "R18",

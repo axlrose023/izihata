@@ -79,15 +79,7 @@ export function BrandProductsPage() {
         onRetry={() => void result.refetch()}
       />
     );
-  if (!brand)
-    return (
-      <EmptyState
-        actionHref="/brands"
-        actionLabel="Усі виробники"
-        description="Бренд не знайдено або він більше не представлений у каталозі."
-        title="Бренд не знайдено"
-      />
-    );
+  if (!brand) return <BrandNotFound />;
 
   return (
     <CatalogPage
@@ -97,6 +89,22 @@ export function BrandProductsPage() {
         `Товари бренду ${brand.name} у каталозі IZI HATA: ціни, наявність і характеристики.`
       }
       presetTitle={brand.name}
+    />
+  );
+}
+
+function BrandNotFound() {
+  usePageMeta({
+    title: "Бренд не знайдено",
+    description: "Бренд більше не представлений у каталозі IZI HATA.",
+    noindex: true,
+  });
+  return (
+    <EmptyState
+      actionHref="/brands"
+      actionLabel="Усі виробники"
+      description="Бренд не знайдено або він більше не представлений у каталозі."
+      title="Бренд не знайдено"
     />
   );
 }

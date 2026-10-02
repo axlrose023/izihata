@@ -63,7 +63,7 @@ function TitleOnlyPage() {
 it("replaces product metadata when entering a page with only a title", async () => {
   document.head.insertAdjacentHTML(
     "beforeend",
-    '<meta property="og:image" content="https://example.com/old.jpg"><script data-page-structured-data="true" type="application/ld+json">{}</script>',
+    '<meta name="robots" content="noindex"><meta property="og:image" content="https://example.com/old.jpg"><script data-page-structured-data="true" type="application/ld+json">{}</script>',
   );
   render(
     createElement(
@@ -97,6 +97,7 @@ it("replaces product metadata when entering a page with only a title", async () 
     `${window.location.origin}/catalog?page=2`,
   );
   expect(document.querySelector('meta[property="og:image"]')).toBeNull();
+  expect(document.querySelector('meta[name="robots"]')).toBeNull();
   expect(
     document.querySelector('script[data-page-structured-data="true"]'),
   ).toBeNull();

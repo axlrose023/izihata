@@ -46,10 +46,12 @@ export function usePageMeta({
   title,
   description,
   structuredData,
+  noindex = false,
 }: {
   title: string;
   description: string;
   structuredData?: Record<string, unknown>;
+  noindex?: boolean;
 }): void {
   const { pathname, search } = useLocation();
   useEffect(() => {
@@ -59,11 +61,15 @@ export function usePageMeta({
       new URL(`${pathname}${search}`, window.location.origin).href,
     );
 
+    if (noindex) getOrCreateMeta("robots").content = "noindex";
+    else document.querySelector('meta[name="robots"]')?.remove();
+
     const canonical = getOrCreateCanonical().href;
     getOrCreateMeta("og:title", "property").content = document.title;
     getOrCreateMeta("og:description", "property").content = description;
     getOrCreateMeta("og:url", "property").content = canonical;
-    getOrCreateMeta("og:type", "property").content = "website";
+    getOrCreateMeta("og:type", "property").content =
+      structuredData?.["@type"] === "Product" ? "product" : "website";
     const rawImage = structuredData?.image;
     const image = Array.isArray(rawImage) ? rawImage[0] : rawImage;
     if (typeof image === "string")
@@ -97,5 +103,5 @@ export function usePageMeta({
       if (current === target && current.textContent === content)
         current.remove();
     };
-  }, [description, pathname, search, structuredData, title]);
+  }, [description, noindex, pathname, search, structuredData, title]);
 }

@@ -4,7 +4,7 @@ import { Link, useParams } from "react-router-dom";
 
 import { sectionsQuery } from "@/modules/catalog/api/catalog-queries";
 import { sectionVisual } from "@/modules/catalog/lib/section-presentation";
-import { useDocumentTitle } from "@/shared/lib/use-document-title";
+import { usePageMeta } from "@/shared/lib/use-page-meta";
 import { EmptyState } from "@/shared/ui/empty-state";
 import { ErrorNotice } from "@/shared/ui/error-notice";
 import { pluralizePositions, pluralizeProducts } from "@/shared/lib/format";
@@ -13,7 +13,12 @@ export function SectionPage() {
   const { section: sectionSlug = "" } = useParams<{ section: string }>();
   const result = useQuery(sectionsQuery());
   const section = result.data?.find((item) => item.slug === sectionSlug);
-  useDocumentTitle(section?.name ?? "Розділ каталогу");
+  usePageMeta({
+    title: section?.name ?? "Розділ каталогу",
+    description:
+      section?.description ?? "Розділи каталогу електротоварів IZI HATA.",
+    noindex: result.isSuccess && !section,
+  });
 
   if (result.isPending) {
     return <div className="page-loader">Завантажуємо розділ…</div>;

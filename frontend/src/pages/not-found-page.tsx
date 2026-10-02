@@ -5,6 +5,7 @@ import { usePageMeta } from "@/shared/lib/use-page-meta";
 export function NotFoundPage() {
   usePageMeta({
     title: "Сторінку не знайдено",
+    noindex: true,
     description: "Перевірте адресу або поверніться до каталогу IZI HATA.",
   });
   return (

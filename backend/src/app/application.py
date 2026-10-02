@@ -97,4 +97,7 @@ def get_production_app() -> FastAPI:
     instrumentator = Instrumentator()
     instrumentator.instrument(app).expose(app, include_in_schema=False)
 
+    from app.api.public_pages import router as public_pages_router
+
+    app.include_router(public_pages_router)
     return app

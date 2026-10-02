@@ -56,6 +56,7 @@ from app.api.modules.outbox.service import OutboxRecoveryService
 from app.clients.nova_poshta import NovaPoshtaClient
 from app.database.engine import SessionFactory
 from app.database.uow import UnitOfWork
+from app.services.public_pages import FrontendTemplateClient, PublicPageService
 from app.services.rate_limit import RateLimitService
 from app.settings import Config, get_config
 
@@ -91,6 +92,16 @@ class AppProvider(Provider):
             await redis.aclose()
 
     @provide(scope=Scope.APP)
+    async def get_frontend_template(
+        self, config: Config
+    ) -> AsyncIterator[FrontendTemplateClient]:
+        client = FrontendTemplateClient(config.frontend_template_url)
+        try:
+            yield client
+        finally:
+            await client.close()
+
+    @provide(scope=Scope.APP)
     async def get_nova_poshta_client(
         self,
         config: Config,
@@ -114,6 +125,21 @@ class ServicesProvider(Provider):
             enabled=config.public_catalog_cache.enabled,
             ttl=config.public_catalog_cache.ttl_seconds,
         )
+
+    @provide(scope=Scope.REQUEST)
+    def get_public_page_service(
+        self,
+        catalog: CatalogQueryService,
+        brands: BrandQueryService,
+        template: FrontendTemplateClient,
+        config: Config,
+    ) -> PublicPageService:
+        origin = (
+            config.api.allowed_origins[0]
+            if config.api.allowed_origins
+            else "http://localhost:3000"
+        )
+        return PublicPageService(catalog, brands, template, origin)
 
     @provide(scope=Scope.APP)
     def get_jwt_service(self, config: Config) -> JwtService:
