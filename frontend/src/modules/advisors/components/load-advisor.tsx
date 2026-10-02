@@ -43,7 +43,7 @@ export function LoadAdvisor() {
   const [selectedBreakerId, setSelectedBreakerId] = useState<string | null>(
     null,
   );
-  const add = useCartStore((state) => state.add);
+  const addMany = useCartStore((state) => state.addMany);
 
   const voltage = phase === "single" ? 230 : 400;
   const current = useMemo(
@@ -96,10 +96,12 @@ export function LoadAdvisor() {
 
   const addBundle = () => {
     if (!bundleReady) return;
-    selectedProducts.forEach((product) => {
-      const quantity = product.sale_unit === "meter" ? length : 1;
-      add(product, quantity);
-    });
+    addMany(
+      selectedProducts.map((product) => ({
+        product,
+        quantity: product.sale_unit === "meter" ? length : 1,
+      })),
+    );
   };
 
   return (

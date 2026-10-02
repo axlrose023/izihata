@@ -73,4 +73,38 @@ describe("cart store", () => {
     await useCartStore.persist.rehydrate();
     expect(useCartStore.getState().lines).toEqual([{ product, quantity: 2 }]);
   });
+  it("rejects a new line over the limit but permits existing quantities", () => {
+    for (let index = 0; index < 100; index++)
+      expect(
+        useCartStore.getState().add({ ...product, id: String(index) }),
+      ).toBe(true);
+    expect(useCartStore.getState().add({ ...product, id: "overflow" })).toBe(
+      false,
+    );
+    expect(useCartStore.getState().lines).toHaveLength(100);
+    expect(useCartStore.getState().error).toContain("100");
+    expect(useCartStore.getState().add({ ...product, id: "0" })).toBe(true);
+    expect(useCartStore.getState().lines[0].quantity).toBe(2);
+  });
+  it("adds a bundle atomically and retains oversized persisted carts for editing", async () => {
+    const lines = Array.from({ length: 101 }, (_, index) => ({
+      product: { ...product, id: String(index) },
+      quantity: 1,
+    }));
+    localStorage.setItem(
+      "izihata-cart-v1",
+      JSON.stringify({ state: { lines }, version: 0 }),
+    );
+    await useCartStore.persist.rehydrate();
+    expect(useCartStore.getState().lines).toHaveLength(101);
+    useCartStore.getState().remove("100");
+    useCartStore.getState().remove("99");
+    expect(
+      useCartStore.getState().addMany([
+        { product: { ...product, id: "new-1" }, quantity: 1 },
+        { product: { ...product, id: "new-2" }, quantity: 1 },
+      ]),
+    ).toBe(false);
+    expect(useCartStore.getState().lines).toHaveLength(99);
+  });
 });

@@ -4,6 +4,8 @@ import { persist } from "zustand/middleware";
 import { normalizeCartQuantity } from "./quantity";
 import type { Product } from "@/shared/types/api";
 
+export const MAX_CART_LINES = 100;
+
 export interface CartLine {
   product: Product;
   quantity: number;
@@ -12,7 +14,9 @@ export interface CartLine {
 interface CartState {
   lines: CartLine[];
   isOpen: boolean;
-  add: (product: Product, quantity?: number) => void;
+  error: string | null;
+  add: (product: Product, quantity?: number) => boolean;
+  addMany: (lines: CartLine[]) => boolean;
   remove: (productId: string) => void;
   setQuantity: (productId: string, quantity: number) => void;
   clear: () => void;
@@ -22,34 +26,48 @@ interface CartState {
 
 export const useCartStore = create<CartState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       lines: [],
       isOpen: false,
-      add: (product, quantity = 1) =>
+      error: null,
+      add: (product, quantity = 1) => get().addMany([{ product, quantity }]),
+      addMany: (additions) => {
+        let accepted = true;
         set((state) => {
-          const existing = state.lines.find(
-            (line) => line.product.id === product.id,
-          );
-          const lines = existing
-            ? state.lines.map((line) =>
-                line.product.id === product.id
-                  ? {
-                      ...line,
-                      quantity: normalizeCartQuantity(
-                        line.quantity + normalizeCartQuantity(quantity),
-                      ),
-                    }
-                  : line,
-              )
-            : [
-                ...state.lines,
-                { product, quantity: normalizeCartQuantity(quantity) },
-              ];
-          return { lines, isOpen: true };
-        }),
+          const lines = [...state.lines];
+          for (const { product, quantity } of additions) {
+            const index = lines.findIndex(
+              (line) => line.product.id === product.id,
+            );
+            if (index >= 0) {
+              lines[index] = {
+                product,
+                quantity: normalizeCartQuantity(
+                  lines[index].quantity + normalizeCartQuantity(quantity),
+                ),
+              };
+            } else {
+              lines.push({
+                product,
+                quantity: normalizeCartQuantity(quantity),
+              });
+            }
+          }
+          if (lines.length > MAX_CART_LINES) {
+            accepted = false;
+            return {
+              isOpen: true,
+              error: `У кошику може бути до ${MAX_CART_LINES} різних товарів. Видаліть зайві позиції.`,
+            };
+          }
+          return { lines, isOpen: true, error: null };
+        });
+        return accepted;
+      },
       remove: (productId) =>
         set((state) => ({
           lines: state.lines.filter((line) => line.product.id !== productId),
+          error: null,
         })),
       setQuantity: (productId, quantity) =>
         set((state) => ({
@@ -59,7 +77,7 @@ export const useCartStore = create<CartState>()(
               : line,
           ),
         })),
-      clear: () => set({ lines: [], isOpen: false }),
+      clear: () => set({ lines: [], isOpen: false, error: null }),
       open: () => set({ isOpen: true }),
       close: () => set({ isOpen: false }),
     }),

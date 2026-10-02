@@ -6,7 +6,7 @@ import { Controller, useForm, useWatch } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
 
-import { useCartStore } from "@/modules/cart/store";
+import { MAX_CART_LINES, useCartStore } from "@/modules/cart/store";
 import { ProductVisual } from "@/modules/catalog/components/product-visual";
 import { DeliveryAutocomplete } from "@/modules/checkout/components/delivery-autocomplete";
 import { useCustomerAuth } from "@/modules/customers/customer-auth-context";
@@ -178,6 +178,7 @@ export function CheckoutForm() {
       ),
   });
   const canEnterManually = manualDelivery || cities.isError || points.isError;
+  const tooManyItems = lines.length > MAX_CART_LINES;
   const items = lines.map((line) => ({
     product_id: line.product.id,
     quantity: line.quantity,
@@ -188,7 +189,7 @@ export function CheckoutForm() {
   const quoteIsStale = serializedItems !== quotedItems;
   const quote = useQuery({
     queryKey: ["quote", sessionVersion, customerStatus, quotedItems, promoCode],
-    enabled: items.length > 0,
+    enabled: items.length > 0 && !tooManyItems,
     queryFn: ({ signal }) => {
       const send =
         customerStatus === "authenticated" ? customerRequest : apiClient;
@@ -530,6 +531,17 @@ export function CheckoutForm() {
           <ShoppingBag size={20} />
           <h2>Ваше замовлення</h2>
         </div>
+        {tooManyItems ? (
+          <p className="form-error" role="alert">
+            У замовленні може бути до {MAX_CART_LINES} різних товарів.
+            <button
+              type="button"
+              onClick={() => useCartStore.getState().open()}
+            >
+              Редагувати кошик
+            </button>
+          </p>
+        ) : null}
         <div className="order-summary__items">
           {lines.map((line) => (
             <div className="order-summary__line" key={line.product.id}>

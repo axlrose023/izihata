@@ -12,7 +12,7 @@ import { useCloseOnEscape } from "@/shared/lib/use-close-on-escape";
 import { cartCount, useCartStore } from "../store";
 
 export function CartDrawer() {
-  const { lines, isOpen, close, remove, setQuantity } = useCartStore();
+  const { lines, isOpen, close, remove, setQuantity, error } = useCartStore();
   useBodyScrollLock(isOpen);
   useCloseOnEscape(isOpen, close);
   const total = lines.reduce(
@@ -51,6 +51,11 @@ export function CartDrawer() {
             <X size={20} />
           </button>
         </header>
+        {error ? (
+          <p className="form-error" role="alert">
+            {error}
+          </p>
+        ) : null}
         {lines.length ? (
           <>
             <section

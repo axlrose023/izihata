@@ -52,8 +52,10 @@
       "id": "R06",
       "priority": "P2",
       "title": "Корзина разрешает больше строк, чем контракт checkout",
-      "status": "pending",
-      "checks": []
+      "status": "implemented",
+      "checks": [
+        "11 cart, checkout and advisor regressions passed; limit 100 lines enforced, bundle additions atomic, oversized persisted carts retained for manual editing."
+      ]
     },
     {
       "id": "R07",
