@@ -16,14 +16,18 @@ import { AdminPagination } from "@/shared/ui/admin-pagination";
 import { StatusBadge } from "@/shared/ui/status-badge";
 
 export function CustomerAccountPage() {
-  const { logout, restore, status, request } = useCustomerAuth();
+  const { logout, restore, status, request, sessionVersion } =
+    useCustomerAuth();
   const [ordersPage, setOrdersPage] = useState(1);
   const navigate = useNavigate();
   const [profileResult, ordersResult] = useQueries({
     queries: [
-      { ...customerProfileQuery(request), enabled: status === "authenticated" },
       {
-        ...customerOrdersQuery(request, ordersPage),
+        ...customerProfileQuery(request, sessionVersion),
+        enabled: status === "authenticated",
+      },
+      {
+        ...customerOrdersQuery(request, sessionVersion, ordersPage),
         enabled: status === "authenticated",
       },
     ],
@@ -31,8 +35,8 @@ export function CustomerAccountPage() {
   useDocumentTitle("Особистий кабінет");
 
   useEffect(() => {
-    void restore();
-  }, [restore]);
+    if (status === "idle") void restore();
+  }, [restore, status]);
 
   if (status === "idle" || status === "loading") {
     return <div className="page-loader">Відкриваємо кабінет…</div>;

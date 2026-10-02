@@ -10,8 +10,9 @@ import type {
 
 export function fetchCustomerProfile(
   request: CustomerRequest,
+  signal?: AbortSignal,
 ): Promise<CustomerProfile> {
-  return request("/customer/me");
+  return request("/customer/me", { signal });
 }
 
 export function createCustomerCompany(
@@ -31,6 +32,9 @@ export function createCustomerCompany(
 export function fetchCustomerOrders(
   request: CustomerRequest,
   page = 1,
+  signal?: AbortSignal,
 ): Promise<Paginated<OrderSummary>> {
-  return request(`/customer/orders${buildQuery({ page, page_size: 20 })}`);
+  return request(`/customer/orders${buildQuery({ page, page_size: 20 })}`, {
+    signal,
+  });
 }

@@ -9,6 +9,7 @@ export type CustomerRequest = <T>(
 
 export interface CustomerAuthContextValue {
   status: SessionStatus;
+  sessionVersion: number;
   request: CustomerRequest;
   login: (email: string, password: string) => Promise<void>;
   register: (payload: {

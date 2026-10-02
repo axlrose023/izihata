@@ -10,14 +10,21 @@ export const customerKeys = {
   orders: () => [...customerKeys.all, "orders"] as const,
 };
 
-export const customerProfileQuery = (request: CustomerRequest) =>
+export const customerProfileQuery = (
+  request: CustomerRequest,
+  sessionVersion: number,
+) =>
   queryOptions({
-    queryKey: customerKeys.profile(),
-    queryFn: () => fetchCustomerProfile(request),
+    queryKey: [...customerKeys.profile(), sessionVersion],
+    queryFn: ({ signal }) => fetchCustomerProfile(request, signal),
   });
 
-export const customerOrdersQuery = (request: CustomerRequest, page = 1) =>
+export const customerOrdersQuery = (
+  request: CustomerRequest,
+  sessionVersion: number,
+  page = 1,
+) =>
   queryOptions({
-    queryKey: [...customerKeys.orders(), page],
-    queryFn: () => fetchCustomerOrders(request, page),
+    queryKey: [...customerKeys.orders(), sessionVersion, page],
+    queryFn: ({ signal }) => fetchCustomerOrders(request, page, signal),
   });

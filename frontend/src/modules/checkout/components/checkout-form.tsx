@@ -104,6 +104,7 @@ export function CheckoutForm() {
   const navigate = useNavigate();
   const {
     status: customerStatus,
+    sessionVersion,
     restore,
     request: customerRequest,
   } = useCustomerAuth();
@@ -182,13 +183,14 @@ export function CheckoutForm() {
   const quotedItems = useDebouncedValue(serializedItems, 350);
   const quoteIsStale = serializedItems !== quotedItems;
   const quote = useQuery({
-    queryKey: ["quote", customerStatus, quotedItems, promoCode],
+    queryKey: ["quote", sessionVersion, customerStatus, quotedItems, promoCode],
     enabled: items.length > 0,
-    queryFn: () => {
+    queryFn: ({ signal }) => {
       const send =
         customerStatus === "authenticated" ? customerRequest : apiClient;
       return send<Quote>("/checkout/quote", {
         method: "POST",
+        signal,
         body: JSON.stringify({
           items: JSON.parse(quotedItems) as typeof items,
           promo_code: promoCode,
