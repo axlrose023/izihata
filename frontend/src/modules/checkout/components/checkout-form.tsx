@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery } from "@tanstack/react-query";
 import { Check, LoaderCircle, ShoppingBag } from "lucide-react";
-import { useDeferredValue, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -148,8 +148,8 @@ export function CheckoutForm() {
   const paymentMethod = useWatch({ control, name: "payment_method" });
   const city = useWatch({ control, name: "city" });
   const point = useWatch({ control, name: "point" });
-  const deferredCity = useDeferredValue(city.trim());
-  const deferredPoint = useDeferredValue(point.trim());
+  const deferredCity = useDebouncedValue(city.trim(), 300);
+  const deferredPoint = useDebouncedValue(point.trim(), 300);
   const isNovaPoshta = deliveryMethod !== "pickup";
   const cities = useQuery({
     queryKey: ["delivery", "cities", deferredCity],

@@ -9,6 +9,8 @@ CUSTOMER_REFRESH_RATE_LIMIT = RateLimitPolicy("customer-auth-refresh", 20, 60)
 QUOTE_RATE_LIMIT = RateLimitPolicy("checkout-quote", 30, 60)
 ORDER_RATE_LIMIT = RateLimitPolicy("order-create", 10, 60)
 LEAD_RATE_LIMIT = RateLimitPolicy("lead-create", 10, 60)
+CATALOG_LIST_RATE_LIMIT = RateLimitPolicy("catalog-list", 240, 60)
+DELIVERY_LOOKUP_RATE_LIMIT = RateLimitPolicy("delivery-lookup", 60, 60)
 ACTIVITY_RATE_LIMIT = RateLimitPolicy("activity-track", 60, 60)
 
 

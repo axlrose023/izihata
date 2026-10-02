@@ -5,7 +5,11 @@ from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
 from fastapi import APIRouter, Depends, Path, Query, Response
 
-from app.api.common.rate_limit import LEAD_RATE_LIMIT, RateLimit
+from app.api.common.rate_limit import (
+    CATALOG_LIST_RATE_LIMIT,
+    LEAD_RATE_LIMIT,
+    RateLimit,
+)
 from app.api.modules.catalog.schema import (
     BrandResponse,
     CatalogSectionResponse,
@@ -44,7 +48,11 @@ async def get_sections(
     return await service.get_sections()
 
 
-@router.get("/products", response_model=ProductListResponse)
+@router.get(
+    "/products",
+    response_model=ProductListResponse,
+    dependencies=[Depends(RateLimit(CATALOG_LIST_RATE_LIMIT))],
+)
 async def get_products(
     service: FromDishka[CatalogQueryService],
     params: Annotated[ProductListParams, Query()],
