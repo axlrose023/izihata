@@ -59,6 +59,9 @@ export function CatalogFilters({
   const [searchParams, setSearchParams] = useSearchParams();
   const [isOpen, setIsOpen] = useState(false);
   const [moreFiltersOpen, setMoreFiltersOpen] = useState(query.spec.length > 0);
+  const [expandedSpecs, setExpandedSpecs] = useState<Record<string, boolean>>(
+    {},
+  );
   useBodyScrollLock(isOpen);
   const activeBrands = new Set(query.brand);
   const activeSpecs = new Set(query.spec);
