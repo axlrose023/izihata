@@ -68,8 +68,10 @@
       "id": "R08",
       "priority": "P2",
       "title": "При возврате к закэшированному товару исчезает фото",
-      "status": "pending",
-      "checks": []
+      "status": "implemented",
+      "checks": [
+        "Gallery regressions passed for cached navigation, shrinking media and failed derivatives/originals; product content keyed by identity resets quantity, tab and review state; typecheck/lint passed."
+      ]
     },
     {
       "id": "R09",

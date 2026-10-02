@@ -23,13 +23,21 @@ export function ProductMediaGallery({ product }: { product: ProductDetail }) {
         items.findIndex((candidate) => candidate.url === item.url) === index,
     );
   }, [product.image_url, product.image_variants, product.media, product.name]);
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  const selected = media[selectedIndex] ?? null;
+  const [selectedUrl, setSelectedUrl] = useState<string | null>(null);
+  const [failedVariantUrl, setFailedVariantUrl] = useState<string | null>(null);
+  const [failedOriginalUrl, setFailedOriginalUrl] = useState<string | null>(
+    null,
+  );
+  const selected =
+    media.find((item) => item.url === selectedUrl) ?? media[0] ?? null;
 
   if (!selected) {
     return (
       <div className="product-detail__visual product-media-gallery__fallback">
-        <ProductVisual iconSize={170} product={product} />
+        <ProductVisual
+          iconSize={170}
+          product={{ ...product, image_url: null }}
+        />
       </div>
     );
   }
@@ -37,30 +45,52 @@ export function ProductMediaGallery({ product }: { product: ProductDetail }) {
   return (
     <div className="product-media-gallery">
       <div className="product-detail__visual">
-        <img
-          alt={selected.alt}
-          decoding="async"
-          fetchPriority="high"
-          {...responsiveImage(
-            selected.url,
-            "(max-width: 820px) 100vw, 50vw",
-            [480, 960, 1600],
-            undefined,
-            selected.image_variants,
-          )}
-        />
+        {failedOriginalUrl === selected.url ? (
+          <ProductVisual
+            iconSize={170}
+            product={{ ...product, image_url: null }}
+          />
+        ) : (
+          <img
+            alt={selected.alt}
+            decoding="async"
+            fetchPriority="high"
+            onError={() => {
+              if (
+                Object.values(selected.image_variants ?? {}).some(
+                  (url) => url !== selected.url,
+                ) &&
+                failedVariantUrl !== selected.url
+              )
+                setFailedVariantUrl(selected.url);
+              else setFailedOriginalUrl(selected.url);
+            }}
+            {...(failedVariantUrl === selected.url
+              ? { src: selected.url }
+              : responsiveImage(
+                  selected.url,
+                  "(max-width: 820px) 100vw, 50vw",
+                  [480, 960, 1600],
+                  undefined,
+                  selected.image_variants,
+                ))}
+          />
+        )}
       </div>
       {media.length > 1 ? (
         <div
           aria-label="Зображення товару"
           className="product-media-gallery__thumbnails"
         >
-          {media.map((item, index) => (
+          {media.map((item) => (
             <button
               aria-label={`Показати: ${item.alt}`}
-              aria-pressed={index === selectedIndex}
+              aria-pressed={item.url === selected.url}
               key={item.id}
-              onClick={() => setSelectedIndex(index)}
+              onClick={() => {
+                setSelectedUrl(item.url);
+                setFailedOriginalUrl(null);
+              }}
               type="button"
             >
               <img

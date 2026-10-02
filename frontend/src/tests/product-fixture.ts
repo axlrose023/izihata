@@ -1,4 +1,4 @@
-import type { Product } from "@/shared/types/api";
+import type { Product, ProductDetail } from "@/shared/types/api";
 
 export function productFixture(overrides: Partial<Product> = {}): Product {
   return {
@@ -27,6 +27,23 @@ export function productFixture(overrides: Partial<Product> = {}): Product {
     category: { id: "cat", slug: "tools", name: "Tools" },
     subcategory: null,
     specs: {},
+    ...overrides,
+  };
+}
+
+export function productDetailFixture(
+  overrides: Partial<ProductDetail> = {},
+): ProductDetail {
+  return {
+    ...productFixture(),
+    description: null,
+    media: [],
+    documents: [],
+    reviews: [],
+    related: [],
+    alternatives: [],
+    bought_together: [],
+    specifications: [],
     ...overrides,
   };
 }

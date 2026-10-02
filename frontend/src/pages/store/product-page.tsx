@@ -12,6 +12,7 @@ import { productQuery } from "@/modules/catalog/api/catalog-queries";
 import { ProductActions } from "@/modules/catalog/components/product-actions";
 import { ProductCard } from "@/modules/catalog/components/product-card";
 import { ProductMediaGallery } from "@/modules/catalog/components/product-media-gallery";
+import type { ProductDetail } from "@/shared/types/api";
 import { ApiError } from "@/shared/api/errors";
 import { discountPercent, formatMoney } from "@/shared/lib/format";
 import { useDocumentTitle } from "@/shared/lib/use-document-title";
@@ -27,9 +28,6 @@ import { useRef, useState } from "react";
 
 export function ProductPage() {
   const { slug = "" } = useParams<{ slug: string }>();
-  const actionsRef = useRef<HTMLDivElement>(null);
-  const specificationsRef = useRef<HTMLDivElement>(null);
-  const [activeTab, setActiveTab] = useState("specs");
   const productResult = useQuery(productQuery(slug));
   const product = productResult.data;
   useDocumentTitle(product?.name ?? "Товар");
@@ -61,6 +59,13 @@ export function ProductPage() {
     );
   }
 
+  return <ProductContent key={product.id} product={product} />;
+}
+
+function ProductContent({ product }: { product: ProductDetail }) {
+  const actionsRef = useRef<HTMLDivElement>(null);
+  const specificationsRef = useRef<HTMLDivElement>(null);
+  const [activeTab, setActiveTab] = useState("specs");
   const primarySpecifications = product.specifications.filter(
     (specification) => specification.source === "primary",
   );

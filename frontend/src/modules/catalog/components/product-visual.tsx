@@ -13,6 +13,7 @@ export function ProductVisual({
   iconSize: number;
   imageSizes?: string;
 }) {
+  const [failedVariantUrl, setFailedVariantUrl] = useState<string | null>(null);
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
 
   if (product.image_url && failedUrl !== product.image_url) {
@@ -22,14 +23,25 @@ export function ProductVisual({
         className="product-visual__image"
         decoding="async"
         loading="lazy"
-        onError={() => setFailedUrl(product.image_url)}
-        {...responsiveImage(
-          product.image_url,
-          imageSizes,
-          undefined,
-          undefined,
-          product.image_variants,
-        )}
+        onError={() => {
+          if (
+            Object.values(product.image_variants ?? {}).some(
+              (url) => url !== product.image_url,
+            ) &&
+            failedVariantUrl !== product.image_url
+          )
+            setFailedVariantUrl(product.image_url);
+          else setFailedUrl(product.image_url);
+        }}
+        {...(failedVariantUrl === product.image_url
+          ? { src: product.image_url }
+          : responsiveImage(
+              product.image_url,
+              imageSizes,
+              undefined,
+              undefined,
+              product.image_variants,
+            ))}
       />
     );
   }
