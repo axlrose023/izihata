@@ -199,8 +199,10 @@
       "id": "O01",
       "priority": "P2",
       "title": "Отложить формы обращений и их зависимости",
-      "status": "pending",
-      "checks": []
+      "status": "implemented",
+      "checks": [
+        "3 lead-form regressions passed; closed forms are unmounted and dynamically imported; main JavaScript reduced 453.97 to 345.46 KB, gzip 140.49 to 108.13 KB; build and lint passed."
+      ]
     },
     {
       "id": "O02",

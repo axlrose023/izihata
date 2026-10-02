@@ -2,7 +2,7 @@ import { useState } from "react";
 
 import type { LeadType } from "@/shared/types/api";
 
-import { LeadDialog } from "./lead-dialog";
+import { LazyLeadDialog } from "./lazy-lead-dialog";
 
 export function LeadAction({
   type,
@@ -21,7 +21,7 @@ export function LeadAction({
       <button className={className} onClick={() => setOpen(true)} type="button">
         {label}
       </button>
-      <LeadDialog
+      <LazyLeadDialog
         onClose={() => setOpen(false)}
         open={open}
         productId={productId}

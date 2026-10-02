@@ -1,7 +1,7 @@
 import { Headset } from "lucide-react";
 import { useState } from "react";
 
-import { LeadDialog } from "@/modules/leads/components/lead-dialog";
+import { LazyLeadDialog } from "@/modules/leads/components/lazy-lead-dialog";
 
 export function SupportButton() {
   const [open, setOpen] = useState(false);
@@ -17,7 +17,11 @@ export function SupportButton() {
         <Headset size={21} />
         <span>Підтримка</span>
       </button>
-      <LeadDialog onClose={() => setOpen(false)} open={open} type="callback" />
+      <LazyLeadDialog
+        onClose={() => setOpen(false)}
+        open={open}
+        type="callback"
+      />
     </>
   );
 }
