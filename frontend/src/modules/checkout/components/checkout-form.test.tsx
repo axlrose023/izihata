@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -192,4 +193,44 @@ it("submits the full delivery point description including its number", async () 
       }),
     ),
   );
+});
+
+it("retains the applied promo through temporary failures and retries explicitly", async () => {
+  renderForm();
+  await waitFor(() =>
+    expect(apiClient).toHaveBeenCalledWith(
+      "/checkout/quote",
+      expect.anything(),
+    ),
+  );
+  vi.mocked(apiClient).mockImplementation(async () => {
+    throw new ApiError(503, "Unavailable", undefined, "service_unavailable");
+  });
+  vi.useFakeTimers();
+  try {
+    fireEvent.change(screen.getByRole("textbox", { name: "Промокод" }), {
+      target: { value: "SAVE" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Застосувати" }));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(50);
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(6500);
+    });
+    expect(
+      screen.getByRole("button", { name: "Прибрати промокод SAVE" }),
+    ).toBeInTheDocument();
+    const before = vi.mocked(apiClient).mock.calls.length;
+    fireEvent.click(screen.getByRole("button", { name: "Застосувати" }));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(50);
+    });
+    expect(vi.mocked(apiClient).mock.calls.length).toBeGreaterThan(before);
+    expect(vi.mocked(apiClient).mock.calls.at(-1)?.[1]?.body).toContain(
+      '"promo_code":"SAVE"',
+    );
+  } finally {
+    vi.useRealTimers();
+  }
 });

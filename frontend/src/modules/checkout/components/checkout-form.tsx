@@ -204,13 +204,6 @@ export function CheckoutForm() {
     },
   });
 
-  useEffect(() => {
-    if (!promoCode || !quote.error) return;
-
-    const timeoutId = window.setTimeout(() => setPromoCode(null), 6_000);
-    return () => window.clearTimeout(timeoutId);
-  }, [promoCode, quote.error]);
-
   if (!lines.length) {
     return (
       <EmptyState
@@ -576,14 +569,27 @@ export function CheckoutForm() {
             value={promoInput}
           />
           <button
-            onClick={() =>
-              setPromoCode(promoInput.trim().toUpperCase() || null)
-            }
+            onClick={() => {
+              const nextCode = promoInput.trim().toUpperCase() || null;
+              if (nextCode === promoCode) void quote.refetch();
+              else setPromoCode(nextCode);
+            }}
             type="button"
           >
             Застосувати
           </button>
         </div>
+        {promoCode ? (
+          <button
+            type="button"
+            onClick={() => {
+              setPromoCode(null);
+              setPromoInput("");
+            }}
+          >
+            Прибрати промокод {promoCode}
+          </button>
+        ) : null}
         {quote.error ? (
           <p className="form-error" role="alert">
             {getUserErrorMessage(quote.error, "Помилка розрахунку")}
@@ -624,7 +630,12 @@ export function CheckoutForm() {
         <button
           className="button button--primary button--wide checkout-submit"
           disabled={
-            isSubmitting || quote.isLoading || !quote.data || quoteIsStale
+            isSubmitting ||
+            quote.isFetching ||
+            quote.isError ||
+            !quote.data ||
+            quoteIsStale ||
+            tooManyItems
           }
           form="checkout-form"
           type="submit"
