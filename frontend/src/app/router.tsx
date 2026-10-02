@@ -4,6 +4,7 @@ import { AdminShell } from "@/modules/admin/components/admin-shell";
 import { AuthBoundary } from "@/modules/auth/components/auth-boundary";
 import { NotFoundPage } from "@/pages/not-found-page";
 import { usePageMeta } from "@/shared/lib/use-page-meta";
+import { PageLoadingState } from "@/shared/ui/page-loading-state";
 import { StoreShell } from "@/widgets/store-shell";
 
 function RouteErrorPage() {
@@ -30,6 +31,7 @@ function RouteErrorPage() {
 export const router = createBrowserRouter([
   {
     element: <StoreShell />,
+    HydrateFallback: PageLoadingState,
     errorElement: <RouteErrorPage />,
     children: [
       {
@@ -147,6 +149,7 @@ export const router = createBrowserRouter([
   },
   {
     element: <AuthBoundary />,
+    HydrateFallback: PageLoadingState,
     errorElement: <RouteErrorPage />,
     children: [
       {
