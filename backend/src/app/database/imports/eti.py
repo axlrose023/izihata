@@ -45,7 +45,7 @@ HAGER_PHOTOS_SHEET: Final = "photo"
 ENEXT_PRICE_HEADER: Final = "Ціна"
 MAX_IMAGE_BYTES: Final = 20 * 1024 * 1024
 MAX_ATTRIBUTE_KEY_LENGTH: Final = 120
-MAX_ATTRIBUTE_VALUE_LENGTH: Final = 500
+MAX_ATTRIBUTE_VALUE_LENGTH: Final = 1000
 LEGACY_ETI_MEDIA_HOSTS: Final = frozenset({"eti.ua", "www.eti.ua"})
 ETI_PIM_MEDIA_HOST: Final = "storage-api-pim.etigroup.eu"
 
@@ -73,6 +73,7 @@ class EtiPhoto:
     source_url: str
     position: int
     supplier_slug: str = "eti"
+    kind: str = "фото"
 
     @property
     def object_key(self) -> str:
@@ -224,6 +225,17 @@ def read_enext_workbook(path: Path) -> EtiWorkbook:
     )
 
 
+def read_acko_workbook(path: Path) -> EtiWorkbook:
+    """Read ACKO's workbook, keeping every primary spec and image in order."""
+    return _read_supplier_workbook(
+        path,
+        price_header=ENEXT_PRICE_HEADER,
+        photos_sheet_name=HAGER_PHOTOS_SHEET,
+        has_source_column=False,
+        supplier_slug="acko",
+    )
+
+
 def _read_supplier_workbook(
     path: Path,
     *,
@@ -339,13 +351,16 @@ def _read_supplier_workbook(
             )
         seen_specifications.add(identity)
         position_key = (sku, source)
+        numeric_value = _decimal(_cell(row, characteristic_columns["Число"]))
+        if numeric_value is None:
+            numeric_value = _decimal(_cell(row, characteristic_columns["Значення"]))
         specifications[sku].append(
             EtiSpecification(
                 source=source,
                 key=key,
                 value=value,
                 position=positions[position_key],
-                numeric_value=_decimal(_cell(row, characteristic_columns["Число"])),
+                numeric_value=numeric_value,
             )
         )
         positions[position_key] += 1
@@ -358,6 +373,10 @@ def _read_supplier_workbook(
         {"Код постачальника", "URL"},
         photo_worksheet.title,
     )
+    photo_type_index = next(
+        (index for index, value in enumerate(photo_header) if _text(value) == "Тип"),
+        None,
+    )
     photos: dict[str, list[EtiPhoto]] = defaultdict(list)
     for row in photo_rows:
         sku = _supplier_code(_cell(row, photo_columns["Код постачальника"]))
@@ -367,12 +386,20 @@ def _read_supplier_workbook(
         parsed_url = urlparse(source_url)
         if parsed_url.scheme != "https" or not parsed_url.netloc:
             raise ValueError(f"Photo URL is invalid for supplier code {sku}")
+        kind = (
+            _text(_cell(row, photo_type_index))
+            if photo_type_index is not None
+            else "фото"
+        )
+        if not kind:
+            raise ValueError(f"Photo type is missing for supplier code {sku}")
         photos[sku].append(
             EtiPhoto(
                 sku=sku,
                 source_url=source_url,
                 position=len(photos[sku]),
                 supplier_slug=supplier_slug,
+                kind=kind,
             )
         )
 
@@ -823,7 +850,7 @@ async def import_eti_workbook(
                 media = [
                     ProductMedia(
                         url=media_urls[(photo.sku, photo.position)],
-                        alt=f"{row.name} — фото {photo.position + 1}",
+                        alt=f"{row.name} — {photo.kind} {photo.position + 1}",
                         position=photo.position,
                     )
                     for photo in workbook.photos.get(row.sku, [])

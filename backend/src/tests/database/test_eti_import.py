@@ -13,6 +13,7 @@ from app.database.imports import (
     BunnyS3Config,
     import_eti_workbook,
     planned_media_urls,
+    read_acko_workbook,
     read_enext_workbook,
     read_eti_workbook,
 )
@@ -84,6 +85,41 @@ def write_enext_workbook(path: Path) -> Path:
     photos.append(["Код постачальника", "URL"])
     photos.append(["ENEXT-TEST-1", "https://enext.ua/one.webp"])
     photos.append(["ENEXT-TEST-1", "https://enext.ua/two.webp"])
+    workbook.save(path)
+    return path
+
+
+def write_acko_workbook(path: Path) -> Path:
+    workbook = Workbook()
+    products = workbook.active
+    products.title = "products"
+    products.append(["Код постачальника", "Назва товару", "Ціна", "Од."])
+    products.append(["ACKO-TEST-1", "Автоматичний вимикач ACKO", 123.45, "шт"])
+
+    characteristics = workbook.create_sheet("characteristics")
+    characteristics.append(
+        [
+            "Код постачальника",
+            "Характеристика",
+            "Значення",
+            "Одиниця",
+            "Число",
+            "Число до",
+            "Формат",
+        ]
+    )
+    long_value = "x" * 767
+    characteristics.append(
+        ["ACKO-TEST-1", "Особливості", long_value, None, None, None, "текст"]
+    )
+    characteristics.append(
+        ["ACKO-TEST-1", "Об'єм", "0,00014", "м³", 0.00014, None, "число"]
+    )
+
+    photos = workbook.create_sheet("photo")
+    photos.append(["Код постачальника", "Тип", "URL"])
+    photos.append(["ACKO-TEST-1", "фото", "https://acko.ua/one.jpeg"])
+    photos.append(["ACKO-TEST-1", "схема", "https://acko.ua/two.png"])
     workbook.save(path)
     return path
 
@@ -202,6 +238,7 @@ class TestEtiWorkbookImport:
                     .options(
                         selectinload(Product.attributes),
                         selectinload(Product.media),
+                        selectinload(Product.category),
                     )
                 )
             ).scalar_one()
@@ -229,4 +266,73 @@ class TestEtiWorkbookImport:
             )
             if not brand_existed:
                 await uow.session.execute(delete(Brand).where(Brand.name == "E.Next"))
+            await uow.commit()
+
+    async def test_imports_acko_long_primary_specs_and_typed_media(self, tmp_path, uow):
+        brand_existed = (
+            await uow.session.execute(select(Brand.id).where(Brand.name == "ACKO"))
+        ).scalar_one_or_none() is not None
+        workbook = read_acko_workbook(write_acko_workbook(tmp_path / "acko.xlsx"))
+        config = BunnyS3Config(
+            endpoint="https://de-s3.storage.bunnycdn.com",
+            storage_zone="izihata-product-media",
+            password="test-password",
+            public_base_url="https://izihata-product-media.b-cdn.net",
+        )
+
+        try:
+            outcome = await import_eti_workbook(
+                uow.session,
+                workbook,
+                media_urls=planned_media_urls(workbook, config),
+                dry_run=False,
+                brand_name="ACKO",
+                manufacturer_name="Аско-Укрем",
+            )
+
+            product = (
+                await uow.session.execute(
+                    select(Product)
+                    .where(Product.sku == "ACKO-TEST-1")
+                    .options(
+                        selectinload(Product.attributes),
+                        selectinload(Product.media),
+                        selectinload(Product.category),
+                    )
+                )
+            ).scalar_one()
+            assert (outcome.created, outcome.updated) == (1, 0)
+            assert outcome.primary_specifications == 4
+            assert outcome.media_attached == 2
+            assert product.sku == "ACKO-TEST-1"
+            assert product.name == "Автоматичний вимикач ACKO"
+            assert product.brand == "ACKO"
+            assert product.price == Decimal("123.45")
+            assert product.category.slug == "lowvoltage"
+            assert [(item.key, item.value) for item in product.attributes] == [
+                ("Код виробника", "ACKO-TEST-1"),
+                ("Виробник", "Аско-Укрем"),
+                ("Особливості", "x" * 767),
+                ("Об'єм", "0,00014"),
+            ]
+            assert all(
+                item.source == ProductAttributeSource.PRIMARY
+                for item in product.attributes
+            )
+            assert product.attributes[-1].numeric_value == Decimal("0.00014")
+            assert [media.url for media in product.media] == [
+                "https://izihata-product-media.b-cdn.net/products/acko/ACKO-TEST-1/1.jpeg",
+                "https://izihata-product-media.b-cdn.net/products/acko/ACKO-TEST-1/2.png",
+            ]
+            assert [media.alt for media in product.media] == [
+                "Автоматичний вимикач ACKO — фото 1",
+                "Автоматичний вимикач ACKO — схема 2",
+            ]
+            assert product.image_url == product.media[0].url
+        finally:
+            await uow.session.execute(
+                delete(Product).where(Product.sku == "ACKO-TEST-1")
+            )
+            if not brand_existed:
+                await uow.session.execute(delete(Brand).where(Brand.name == "ACKO"))
             await uow.commit()
