@@ -217,46 +217,57 @@ export function CatalogFilters({
                   const hasActive = options.some(({ value }) =>
                     activeSpecs.has(`${key}:${value}`),
                   );
+                  const isExpanded = expandedSpecs[key] ?? hasActive;
                   return (
                     <details
                       className="filter-spec"
                       key={key}
-                      defaultOpen={hasActive}
+                      onToggle={(event) => {
+                        const next = event.currentTarget.open;
+                        setExpandedSpecs((current) =>
+                          current[key] === next
+                            ? current
+                            : { ...current, [key]: next },
+                        );
+                      }}
+                      open={isExpanded}
                     >
                       <summary>
                         {key} <small>({options.length})</small>
                       </summary>
-                      <fieldset>
-                        <legend className="visually-hidden">{key}</legend>
-                        {isSeries ? (
-                          <p className="filter-series-note">
-                            Вибір серії покаже всі сумісні елементи цього
-                            дизайну.
-                          </p>
-                        ) : null}
-                        <div className="filter-options">
-                          {options.map((option) => {
-                            const value = `${key}:${option.value}`;
-                            return (
-                              <label key={value}>
-                                <input
-                                  checked={activeSpecs.has(value)}
-                                  onChange={(event) =>
-                                    toggleMulti(
-                                      "spec",
-                                      value,
-                                      event.target.checked,
-                                    )
-                                  }
-                                  type="checkbox"
-                                />
-                                <span>{option.value}</span>
-                                <small>{option.count}</small>
-                              </label>
-                            );
-                          })}
-                        </div>
-                      </fieldset>
+                      {isExpanded ? (
+                        <fieldset>
+                          <legend className="visually-hidden">{key}</legend>
+                          {isSeries ? (
+                            <p className="filter-series-note">
+                              Вибір серії покаже всі сумісні елементи цього
+                              дизайну.
+                            </p>
+                          ) : null}
+                          <div className="filter-options">
+                            {options.map((option) => {
+                              const value = `${key}:${option.value}`;
+                              return (
+                                <label key={value}>
+                                  <input
+                                    checked={activeSpecs.has(value)}
+                                    onChange={(event) =>
+                                      toggleMulti(
+                                        "spec",
+                                        value,
+                                        event.target.checked,
+                                      )
+                                    }
+                                    type="checkbox"
+                                  />
+                                  <span>{option.value}</span>
+                                  <small>{option.count}</small>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        </fieldset>
+                      ) : null}
                     </details>
                   );
                 })}
