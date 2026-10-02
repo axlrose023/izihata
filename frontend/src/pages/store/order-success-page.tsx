@@ -1,5 +1,5 @@
 import { Check, Truck, UserRound } from "lucide-react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useSearchParams } from "react-router-dom";
 
 import { formatMoney } from "@/shared/lib/format";
 import { useDocumentTitle } from "@/shared/lib/use-document-title";
@@ -7,6 +7,8 @@ import { useDocumentTitle } from "@/shared/lib/use-document-title";
 export function OrderSuccessPage() {
   useDocumentTitle("Замовлення прийняте");
   const [params] = useSearchParams();
+  const accountOrder = useLocation().state?.accountOrder === true;
+  const deliveryMethod = params.get("delivery");
   const rawNumber = params.get("number") ?? "";
   const rawTotal = params.get("total") ?? "";
   const rawPayment = params.get("payment") ?? "";
@@ -42,10 +44,18 @@ export function OrderSuccessPage() {
                 Менеджер перевірить реквізити перед підготовкою рахунку.
               </p>
             ) : null}
+            {!accountOrder ? (
+              <p className="inline-note">
+                Збережіть номер замовлення. Його стан і деталі повідомить
+                менеджер; гостьове замовлення не додається до історії кабінету.
+              </p>
+            ) : null}
             <div className="success-page__actions">
-              <Link className="button button--dark" to="/account">
-                Відстежити замовлення
-              </Link>
+              {accountOrder ? (
+                <Link className="button button--dark" to="/account">
+                  Переглянути замовлення в кабінеті
+                </Link>
+              ) : null}
               <Link className="button button--outline" to="/#catalog">
                 Повернутися в каталог
               </Link>
@@ -108,7 +118,15 @@ export function OrderSuccessPage() {
           <p>
             <Truck size={17} />
             <span>
-              <b>Нова пошта</b>
+              <b>
+                {deliveryMethod === "pickup"
+                  ? "Самовивіз"
+                  : deliveryMethod === "nova_poshta_locker"
+                    ? "Поштомат Нової пошти"
+                    : deliveryMethod === "nova_poshta_branch"
+                      ? "Відділення Нової пошти"
+                      : "Спосіб доставки"}
+              </b>
               Деталі доставки підтвердить менеджер.
             </span>
           </p>

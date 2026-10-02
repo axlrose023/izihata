@@ -113,8 +113,10 @@
       "id": "R13",
       "priority": "P2",
       "title": "Обещание отслеживания гостевого заказа ведёт в недоступную историю",
-      "status": "pending",
-      "checks": []
+      "status": "implemented",
+      "checks": [
+        "7 checkout/success-page regressions passed; guests get order-number instructions, history link only for orders created in an authenticated account; selected delivery method preserved."
+      ]
     },
     {
       "id": "R14",

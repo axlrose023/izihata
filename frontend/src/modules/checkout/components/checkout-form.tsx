@@ -271,7 +271,8 @@ export function CheckoutForm() {
       clearOrderRetry();
       clearCart();
       navigate(
-        `/order/success?number=${encodeURIComponent(order.number)}&total=${encodeURIComponent(order.total)}&payment=${order.payment_method}`,
+        `/order/success?number=${encodeURIComponent(order.number)}&total=${encodeURIComponent(order.total)}&payment=${order.payment_method}&delivery=${order.delivery.method}`,
+        { state: { accountOrder: customerStatus === "authenticated" } },
       );
     } catch (error) {
       if (error instanceof ApiError && error.code === "quote_changed")
