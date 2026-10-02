@@ -309,7 +309,8 @@
       "status": "implemented",
       "checks": [
         "2 homepage rail regressions passed; default selection now shows real catalog products without inventing popularity/badges, requests wait for visibility, errors show retry; typecheck/lint passed.",
-        "Browser suite updated to the actual catalog selection heading; fixture-based end-to-end flow covers the new default rail."
+        "Browser suite updated to the actual catalog selection heading; fixture-based end-to-end flow covers the new default rail.",
+        "End-to-end rail scenarios now scroll to the deferred block before asserting cards, pagination and alignment; unrelated navigation, checkout, administration and accessibility scenarios already passed."
       ]
     },
     {

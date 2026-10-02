@@ -473,8 +473,9 @@ test("filters apply without a submit button", async ({ page }) => {
   await expect(page.locator(".product-card")).not.toHaveCount(0);
 });
 
-test("the home page rails popular products", async ({ page }) => {
+test("the home page rails actual catalog products", async ({ page }) => {
   await page.goto("/");
+  await page.locator(".popular-products").scrollIntoViewIfNeeded();
   const rail = page.locator(".popular-products .carousel__rail");
   await expect(rail).toBeVisible();
   const shown = await rail.locator(".carousel__item").count();
@@ -497,6 +498,7 @@ test("the desktop product rail displays four cards and advances", async ({
 
   await page.goto("/");
   const section = page.locator(".popular-products");
+  await section.scrollIntoViewIfNeeded();
   const rail = section.locator(".carousel__rail");
   await expect(rail).toBeVisible();
   await expect
@@ -526,6 +528,7 @@ test("the desktop product rail displays four cards and advances", async ({
 
 test("product rail cards keep their footers aligned", async ({ page }) => {
   await page.goto("/");
+  await page.locator(".popular-products").scrollIntoViewIfNeeded();
   const cards = page.locator(".popular-products .product-card");
   await expect.poll(() => cards.count()).toBeGreaterThan(1);
 
