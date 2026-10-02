@@ -158,7 +158,8 @@
       "checks": [
         "15 backend HTML/API contract tests passed; meaningful public HTML with canonical/Open Graph/JSON-LD, exact 404/422/503 statuses, escaped supplier data and script-safe JSON; nginx syntax validated. 6 local browser routes passed; robots metadata resets on valid navigation.",
         "Contract regression caught a fallback overriding API 405; fixed by letting the original router handle wrong methods. Known API wrong-method and unknown API 404 checks now pass (15 targeted tests).",
-        "20 HTML/API tests passed, including GET on POST-only orders preserving 405/Allow POST. Public route excludes the API namespace before matching; removed special-case response rewriting. Standalone frontend health probes static index.html."
+        "20 HTML/API tests passed, including GET on POST-only orders preserving 405/Allow POST. Public route excludes the API namespace before matching; removed special-case response rewriting. Standalone frontend health probes static index.html.",
+        "Repeated scalar category parameters now validate the same first value as browser URLSearchParams and the seeded product query. Fifteen public-page regressions passed; valid category plus a later unknown duplicate remains HTTP 200."
       ]
     },
     {

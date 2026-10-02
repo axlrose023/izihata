@@ -209,7 +209,7 @@ class PublicPageService:
                     if category == "sale"
                     else ["new"],
                 )
-            slug = category or params.get("category")
+            slug = category or (params.getlist("category") or [None])[0]
             active_category = next(
                 (item for item in categories if item.slug == slug), None
             )

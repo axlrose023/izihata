@@ -90,6 +90,18 @@ async def test_bad_catalog_parameters_return_422_html(client, html_template):
 
 
 @pytest.mark.asyncio
+async def test_category_validation_uses_the_first_scalar_like_the_browser(
+    client, html_template
+):
+    category = (await client.get("/api/v1/catalog/categories")).json()[0]
+    response = await client.get(
+        f"/catalog?category={category['slug']}&category=no-such-category"
+    )
+    assert response.status_code == 200
+    assert category["name"] in response.text
+
+
+@pytest.mark.asyncio
 async def test_template_outage_returns_retryable_html(client, monkeypatch):
     from app.api.common.exceptions import ServiceUnavailableError
 
