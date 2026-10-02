@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useLocation } from "react-router-dom";
 
 const APP_NAME = "IZI HATA";
 const trackingParameters = new Set(["fbclid", "gclid", "msclkid"]);
@@ -47,10 +48,13 @@ export function usePageMeta({
   description: string;
   structuredData?: Record<string, unknown>;
 }): void {
+  const { pathname, search } = useLocation();
   useEffect(() => {
     document.title = `${title} | ${APP_NAME}`;
     getOrCreateMeta("description").content = description;
-    getOrCreateCanonical().href = canonicalizeUrl(window.location.href);
+    getOrCreateCanonical().href = canonicalizeUrl(
+      new URL(`${pathname}${search}`, window.location.origin).href,
+    );
 
     const script = document.head.querySelector<HTMLScriptElement>(
       'script[data-page-structured-data="true"]',
@@ -74,5 +78,5 @@ export function usePageMeta({
       if (current === target && current.textContent === content)
         current.remove();
     };
-  }, [description, structuredData, title]);
+  }, [description, pathname, search, structuredData, title]);
 }
