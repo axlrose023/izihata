@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ImageUp, LoaderCircle, Plus, Trash2 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
 
 import {
@@ -76,13 +76,63 @@ export function ProductFormDialog({
   onClose: () => void;
 }) {
   const { request } = useAuth();
-  const queryClient = useQueryClient();
-  const categories = useQuery({ ...categoriesQuery(), enabled: open });
   const detail = useQuery({
     queryKey: ["admin", "product", product?.id],
     enabled: open && Boolean(product),
     queryFn: () => fetchAdminProduct(request, product?.id ?? ""),
   });
+
+  if (!open) return null;
+  if (product && (!detail.isSuccess || detail.data?.id !== product.id)) {
+    return (
+      <Modal onClose={onClose} open title="Редагувати товар" size="wide">
+        {detail.isError ? (
+          <div className="form-error" role="alert">
+            <span>Не вдалося завантажити всі дані товару.</span>
+            <button onClick={() => void detail.refetch()} type="button">
+              Спробувати ще раз
+            </button>
+          </div>
+        ) : (
+          <p className="inline-note" role="status">
+            Завантажуємо повні дані товару…
+          </p>
+        )}
+        <div className="product-form__actions">
+          <button
+            className="button button--outline"
+            onClick={onClose}
+            type="button"
+          >
+            Скасувати
+          </button>
+        </div>
+      </Modal>
+    );
+  }
+
+  return (
+    <ProductFormFields
+      initialValues={productValues(detail.data ?? product)}
+      key={product?.id ?? "new"}
+      onClose={onClose}
+      product={product}
+    />
+  );
+}
+
+function ProductFormFields({
+  initialValues,
+  product,
+  onClose,
+}: {
+  initialValues: ProductFormValues;
+  product: AdminProduct | null;
+  onClose: () => void;
+}) {
+  const { request } = useAuth();
+  const queryClient = useQueryClient();
+  const categories = useQuery(categoriesQuery());
   const {
     control,
     register,
@@ -90,17 +140,16 @@ export function ProductFormDialog({
     reset,
     setError,
     setValue,
-    formState: { errors, isDirty, isSubmitting },
+    formState: { errors, isSubmitting },
   } = useForm<ProductFormValues>({
     resolver: zodResolver(productFormSchema),
-    defaultValues: productFormDefaults,
+    defaultValues: initialValues,
   });
   const { fields, append, remove } = useFieldArray({
     control,
     name: "specs",
   });
   const categoryId = useWatch({ control, name: "category_id" });
-  const editDetailsReady = !product || (detail.isSuccess && detail.data != null);
   const selectedCategory = categories.data?.find(
     (category) => category.id === categoryId,
   );
@@ -130,21 +179,6 @@ export function ProductFormDialog({
       setUploading(false);
     }
   };
-
-  useEffect(() => {
-    if (!open) return;
-    if (!product) {
-      reset(productValues(null));
-      return;
-    }
-    // The full product arrives after the dialog opens. Seeding it must not wipe
-    // edits already made in the meantime — an uploaded photo, most visibly.
-    if (isDirty) return;
-    reset(productValues(detail.data ?? product));
-    // `isDirty` intentionally stays out of the deps: it must gate the seeding,
-    // not retrigger it.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [detail.data, open, product, reset]);
 
   const close = () => {
     if (isSubmitting) return;
@@ -226,7 +260,7 @@ export function ProductFormDialog({
   return (
     <Modal
       onClose={close}
-      open={open}
+      open
       size="wide"
       title={product ? "Редагувати товар" : "Додати товар"}
     >
@@ -565,19 +599,6 @@ export function ProductFormDialog({
             раз.
           </p>
         ) : null}
-        {product && detail.isError ? (
-          <div className="form-error" role="alert">
-            <span>Не вдалося завантажити всі дані товару. Збереження вимкнено.</span>
-            <button onClick={() => void detail.refetch()} type="button">
-              Спробувати ще раз
-            </button>
-          </div>
-        ) : null}
-        {product && detail.isPending ? (
-          <p className="inline-note" role="status">
-            Завантажуємо повні дані товару…
-          </p>
-        ) : null}
         {errors.root?.message ? (
           <p className="form-error" role="alert">
             {errors.root.message}
@@ -595,10 +616,7 @@ export function ProductFormDialog({
           <button
             className="button button--primary"
             disabled={
-              isSubmitting ||
-              categories.isError ||
-              categories.isPending ||
-              !editDetailsReady
+              isSubmitting || categories.isError || categories.isPending
             }
             type="submit"
           >
