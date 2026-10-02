@@ -164,6 +164,18 @@ uv run cli import-enext /path/to/enext.xlsx
 uv run cli import-enext /path/to/enext.xlsx --apply --upload-media
 ```
 
+ACKO's workbook also imports every characteristic as a primary specification.
+Its `photo` sheet includes photos, drawings and diagrams; all media rows are
+uploaded to Bunny Storage in source order:
+
+```bash
+# Dry run: reports product and category changes without writing.
+uv run cli import-acko /path/to/Аско.xlsx
+
+# Import products and upload their media using the Bunny environment settings.
+uv run cli import-acko /path/to/Аско.xlsx --apply --upload-media
+```
+
 ## Tests and quality gates
 
 ```bash

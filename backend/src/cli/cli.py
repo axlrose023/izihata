@@ -22,6 +22,7 @@ from app.database.imports import (
     import_eti_workbook,
     import_products,
     planned_media_urls,
+    read_acko_workbook,
     read_enext_workbook,
     read_eti_workbook,
     read_hager_workbook,
@@ -438,6 +439,37 @@ def import_enext_command(
         brand_name="E.Next",
         manufacturer_name="e.next",
         read_workbook=read_enext_workbook,
+        apply=apply,
+        upload_media=upload_media,
+        concurrency=concurrency,
+    )
+
+
+@app.command("import-acko")
+def import_acko_command(
+    path: Annotated[Path, typer.Argument(help="ACKO XLSX workbook")],
+    apply: Annotated[
+        bool,
+        typer.Option("--apply", help="Write products to the database"),
+    ] = False,
+    upload_media: Annotated[
+        bool,
+        typer.Option(
+            "--upload-media",
+            help="Copy the source photo sheet to Bunny Storage before importing",
+        ),
+    ] = False,
+    concurrency: Annotated[
+        int,
+        typer.Option(min=1, max=32, help="Concurrent image transfers"),
+    ] = 8,
+) -> None:
+    """Import ACKO products, primary characteristics and all product media."""
+    _import_supplier_workbook_command(
+        path,
+        brand_name="ACKO",
+        manufacturer_name="Аско-Укрем",
+        read_workbook=read_acko_workbook,
         apply=apply,
         upload_media=upload_media,
         concurrency=concurrency,
