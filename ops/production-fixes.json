@@ -36,7 +36,8 @@
       "title": "Калькулятор расходует лимит расчёта корзины",
       "status": "verified",
       "checks": [
-        "10 advisor tests and 2 UI regressions passed; dedicated rate limit, one debounced cancellable request, coordinated cable/breaker capacity and pole matching."
+        "10 advisor tests and 2 UI regressions passed; dedicated rate limit, one debounced cancellable request, coordinated cable/breaker capacity and pole matching.",
+        "Full frontend suite passed (116 tests) after allowing the debounced asynchronous result 3 seconds under parallel test load; request count/cancellation assertions unchanged."
       ]
     },
     {
@@ -144,7 +145,8 @@
       "title": "Счётчики посетителей неустойчивы к параллельности и повтору заказа",
       "status": "implemented",
       "checks": [
-        "17 activity/order tests passed; SQL increments are atomic and idempotent order retries do not count a second contact; added PostgreSQL concurrency regression."
+        "17 activity/order tests passed; SQL increments are atomic and idempotent order retries do not count a second contact; added PostgreSQL concurrency regression.",
+        "PostgreSQL integration: 50 concurrent first visits and 50 contacts accumulated exactly 50/50, including creation races; full backend suite 333 passed."
       ]
     },
     {

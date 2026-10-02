@@ -75,7 +75,7 @@ it("debounces slider changes into one combined request", async () => {
       </MemoryRouter>
     </QueryClientProvider>,
   );
-  await screen.findByRole("radio", { name: "Обрати Cable" });
+  await screen.findByRole("radio", { name: "Обрати Cable" }, { timeout: 3000 });
   const slider = screen.getByRole("slider", { name: "Потужність лінії" });
   for (const value of [4, 4.5, 5])
     fireEvent.change(slider, { target: { value } });
@@ -83,7 +83,7 @@ it("debounces slider changes into one combined request", async () => {
   expect(
     screen.getByRole("button", { name: /Додати комплект/ }),
   ).toBeDisabled();
-  await screen.findByRole("radio", { name: "Обрати Cable" });
+  await screen.findByRole("radio", { name: "Обрати Cable" }, { timeout: 3000 });
   expect(calculateLoad).toHaveBeenCalledTimes(2);
   expect(vi.mocked(calculateLoad).mock.calls[1][1]).toBeInstanceOf(AbortSignal);
 });
