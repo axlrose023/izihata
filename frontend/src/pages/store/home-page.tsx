@@ -26,13 +26,12 @@ export function HomePage() {
         <div className="container hero__grid">
           <div className="hero__content">
             <span className="hero__kicker">
-              {categories.length} категорій · {brands.length} брендів · склад у
-              Києві
+              {categories.length} категорій · {brands.length} брендів у каталозі
             </span>
             <h1>Все для щита, кабелю й освітлення</h1>
             <p>
-              Фільтруйте за номіналом, перерізом, IP і брендом. Наявність і
-              термін відправлення видно ще в каталозі.
+              Знаходьте товари за характеристиками й брендом. Актуальну
+              наявність і строк відправлення узгоджує менеджер.
             </p>
             <div className="hero__actions">
               <Link className="button button--primary" to="/#catalog">
@@ -44,12 +43,12 @@ export function HomePage() {
             </div>
             <dl className="hero__metrics">
               <div>
-                <dt>[час]</dt>
-                <dd>відправка того ж дня</dd>
+                <dt>Відправлення</dt>
+                <dd>строк узгоджуємо під час замовлення</dd>
               </div>
               <div>
                 <dt>{brands.length}</dt>
-                <dd>брендів на складі</dd>
+                <dd>брендів у каталозі</dd>
               </div>
               <div>
                 <dt>B2B</dt>

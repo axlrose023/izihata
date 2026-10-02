@@ -1,4 +1,4 @@
-import { Check, FileText, Truck, UserRound } from "lucide-react";
+import { Check, Truck, UserRound } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 
 import { formatMoney } from "@/shared/lib/format";
@@ -67,12 +67,12 @@ export function OrderSuccessPage() {
             <li>
               <span>2</span>
               <strong>Комплектація й відправлення</strong>
-              <p>Надішлемо ТТН, щойно передамо товар перевізнику.</p>
+              <p>Менеджер повідомить про стан відправлення.</p>
             </li>
             <li>
               <span>3</span>
               <strong>Отримання</strong>
-              <p>Документи на товар будуть доступні в кабінеті.</p>
+              <p>Менеджер узгодить доступні для замовлення документи.</p>
             </li>
           </ol>
         </section>
@@ -120,9 +120,6 @@ export function OrderSuccessPage() {
             </span>
           </p>
         </section>
-        <p className="success-documents">
-          <FileText size={18} /> Рахунок-фактура та видаткова — у кабінеті
-        </p>
       </aside>
     </div>
   );

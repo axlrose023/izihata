@@ -3,7 +3,6 @@ import {
   CreditCard,
   ExternalLink,
   FileCheck2,
-  RotateCcw,
   ShieldCheck,
   Truck,
 } from "lucide-react";
@@ -286,16 +285,10 @@ export function ProductPage() {
             id: "warranty",
             label: "Гарантія та повернення",
             content: (
-              <ul className="product-terms">
-                <li>
-                  <RotateCcw aria-hidden="true" /> Офіційна гарантія та
-                  повернення протягом 14 днів
-                </li>
-                <li>
-                  <ShieldCheck aria-hidden="true" /> Товар перевіряють перед
-                  відправленням
-                </li>
-              </ul>
+              <p className="product-terms-note">
+                Умови гарантії та повернення уточніть у менеджера під час
+                оформлення.
+              </p>
             ),
           },
         ]}
