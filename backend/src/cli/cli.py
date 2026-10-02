@@ -1,5 +1,6 @@
 import os
 import subprocess
+from collections.abc import Callable
 from configparser import ConfigParser
 from dataclasses import asdict
 from decimal import Decimal
@@ -17,10 +18,12 @@ from app.api.modules.users.models import User
 from app.database.engine import SessionFactory
 from app.database.imports import (
     BunnyS3Config,
+    EtiWorkbook,
     import_eti_workbook,
     import_products,
     planned_media_urls,
     read_eti_workbook,
+    read_hager_workbook,
     read_rows,
     upload_eti_media,
 )
@@ -208,65 +211,24 @@ def import_products_command(
     anyio.run(_run)
 
 
-@app.command("import-eti")
-def import_eti_command(
-    path: Annotated[Path, typer.Argument(help="ETI XLSX workbook")],
-    apply: Annotated[
-        bool,
-        typer.Option("--apply", help="Write products to the database"),
-    ] = False,
-    upload_media: Annotated[
-        bool,
-        typer.Option(
-            "--upload-media",
-            help="Copy the source photo sheet to Bunny Storage before importing",
-        ),
-    ] = False,
-    endpoint: Annotated[
-        str | None,
-        typer.Option(
-            envvar="BUNNY_S3_ENDPOINT",
-            help="Bunny S3 endpoint; defaults to BUNNY_S3_ENDPOINT",
-        ),
-    ] = None,
-    storage_zone: Annotated[
-        str | None,
-        typer.Option(
-            envvar="BUNNY_STORAGE_ZONE",
-            help="Bunny Storage zone; defaults to BUNNY_STORAGE_ZONE",
-        ),
-    ] = None,
-    storage_password: Annotated[
-        str | None,
-        typer.Option(
-            envvar="BUNNY_STORAGE_PASSWORD",
-            help="Bunny write password; defaults to BUNNY_STORAGE_PASSWORD",
-        ),
-    ] = None,
-    public_base_url: Annotated[
-        str | None,
-        typer.Option(
-            envvar="BUNNY_MEDIA_PUBLIC_BASE_URL",
-            help="Public Bunny Pull Zone URL; defaults to BUNNY_MEDIA_PUBLIC_BASE_URL",
-        ),
-    ] = None,
-    concurrency: Annotated[
-        int,
-        typer.Option(min=1, max=32, help="Concurrent image transfers"),
-    ] = 8,
+def _import_supplier_workbook_command(
+    path: Path,
+    *,
+    brand_name: str,
+    read_workbook: Callable[[Path], EtiWorkbook],
+    apply: bool = False,
+    upload_media: bool = False,
+    endpoint: str | None = None,
+    storage_zone: str | None = None,
+    storage_password: str | None = None,
+    public_base_url: str | None = None,
+    concurrency: int = 8,
 ) -> None:
-    """Import ETI products, primary/ETIM characteristics and product images.
-
-    The command previews data by default.  ``--apply`` imports product data;
-    adding ``--upload-media`` first copies every source image into Bunny S3.
-    Set the four Bunny variables in the environment instead of placing secrets
-    in a command history.
-    """
     if not path.exists():
         typer.echo(typer.style(f"File not found: {path}", fg=typer.colors.RED))
         raise typer.Exit(code=1)
     try:
-        workbook = read_eti_workbook(path)
+        workbook = read_workbook(path)
     except (OSError, ValueError) as error:
         typer.echo(typer.style(f"Cannot read workbook: {error}", fg=typer.colors.RED))
         raise typer.Exit(code=1) from error
@@ -320,7 +282,7 @@ def import_eti_command(
         if upload_media:
             if config is None:
                 raise RuntimeError("Bunny configuration unexpectedly missing")
-            typer.echo("Copying ETI photos to Bunny Storage…")
+            typer.echo(f"Copying {brand_name} photos to Bunny Storage…")
             upload_outcome = await upload_eti_media(
                 workbook,
                 config,
@@ -332,6 +294,14 @@ def import_eti_command(
             typer.echo(f"images failed   : {len(upload_outcome.failed)}")
             for failure in upload_outcome.failed[:10]:
                 typer.echo(f"  {failure[:160]}")
+            if upload_outcome.failed:
+                typer.echo(
+                    typer.style(
+                        "Import stopped because some photos could not be uploaded.",
+                        fg=typer.colors.RED,
+                    )
+                )
+                raise typer.Exit(code=1)
 
         async with SessionFactory() as session:
             outcome = await import_eti_workbook(
@@ -339,6 +309,7 @@ def import_eti_command(
                 workbook,
                 media_urls=media_urls,
                 dry_run=not apply,
+                brand_name=brand_name,
             )
             mode = "APPLIED" if apply else "DRY RUN (nothing written)"
             typer.echo(typer.style(f"\n{mode}", fg=typer.colors.CYAN, bold=True))
@@ -354,6 +325,89 @@ def import_eti_command(
                 typer.echo(f"  {item[:120]}")
 
     anyio.run(_run)
+
+
+@app.command("import-eti")
+def import_eti_command(
+    path: Annotated[Path, typer.Argument(help="ETI XLSX workbook")],
+    apply: Annotated[
+        bool,
+        typer.Option("--apply", help="Write products to the database"),
+    ] = False,
+    upload_media: Annotated[
+        bool,
+        typer.Option(
+            "--upload-media",
+            help="Copy the source photo sheet to Bunny Storage before importing",
+        ),
+    ] = False,
+    endpoint: Annotated[
+        str | None,
+        typer.Option(envvar="BUNNY_S3_ENDPOINT", help="Bunny S3 endpoint"),
+    ] = None,
+    storage_zone: Annotated[
+        str | None,
+        typer.Option(envvar="BUNNY_STORAGE_ZONE", help="Bunny Storage zone"),
+    ] = None,
+    storage_password: Annotated[
+        str | None,
+        typer.Option(envvar="BUNNY_STORAGE_PASSWORD", help="Bunny write password"),
+    ] = None,
+    public_base_url: Annotated[
+        str | None,
+        typer.Option(
+            envvar="BUNNY_MEDIA_PUBLIC_BASE_URL",
+            help="Public Bunny Pull Zone URL",
+        ),
+    ] = None,
+    concurrency: Annotated[
+        int,
+        typer.Option(min=1, max=32, help="Concurrent image transfers"),
+    ] = 8,
+) -> None:
+    """Import ETI products, characteristics and product images."""
+    _import_supplier_workbook_command(
+        path,
+        brand_name="ETI",
+        read_workbook=read_eti_workbook,
+        apply=apply,
+        upload_media=upload_media,
+        endpoint=endpoint,
+        storage_zone=storage_zone,
+        storage_password=storage_password,
+        public_base_url=public_base_url,
+        concurrency=concurrency,
+    )
+
+
+@app.command("import-hager")
+def import_hager_command(
+    path: Annotated[Path, typer.Argument(help="Hager XLSX workbook")],
+    apply: Annotated[
+        bool,
+        typer.Option("--apply", help="Write products to the database"),
+    ] = False,
+    upload_media: Annotated[
+        bool,
+        typer.Option(
+            "--upload-media",
+            help="Copy the source photo sheet to Bunny Storage before importing",
+        ),
+    ] = False,
+    concurrency: Annotated[
+        int,
+        typer.Option(min=1, max=32, help="Concurrent image transfers"),
+    ] = 8,
+) -> None:
+    """Import Hager products, primary characteristics and product images."""
+    _import_supplier_workbook_command(
+        path,
+        brand_name="Hager",
+        read_workbook=read_hager_workbook,
+        apply=apply,
+        upload_media=upload_media,
+        concurrency=concurrency,
+    )
 
 
 @app.command("bootstrap")

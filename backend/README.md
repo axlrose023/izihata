@@ -141,6 +141,18 @@ Rules the importer follows:
   receives a real one is published automatically. Products staff hid by hand are
   never resurrected: only price-less stubs are released.
 
+Hager's workbook uses the shared catalogue workbook importer. It treats every
+row on `characteristics` as a primary specification and can upload all photos
+from the `photo` sheet to Bunny Storage:
+
+```bash
+# Dry run: reports product and category changes without writing.
+uv run cli import-hager /path/to/Hager.xlsx
+
+# Import products and upload their photos using the Bunny environment settings.
+uv run cli import-hager /path/to/Hager.xlsx --apply --upload-media
+```
+
 ## Tests and quality gates
 
 ```bash
