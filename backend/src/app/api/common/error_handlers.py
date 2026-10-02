@@ -33,25 +33,17 @@ async def http_error_handler(
 ) -> JSONResponse:
     if not isinstance(exc, StarletteHTTPException):
         raise exc
-    status_code = exc.status_code
-    public_fallback = (
-        getattr(request.scope.get("route"), "name", None) == "public_catalog_page"
-    )
-    if status_code == 405 and public_fallback and request.url.path.startswith("/api/"):
-        status_code = 404
-    detail = (
-        "Not Found"
-        if status_code != exc.status_code
-        else (exc.detail if isinstance(exc.detail, str) else "Request failed")
-    )
     code = {
         404: "not_found",
         405: "method_not_allowed",
-    }.get(status_code, "request_failed")
+    }.get(exc.status_code, "request_failed")
     return JSONResponse(
-        status_code=status_code,
-        content={"code": code, "detail": detail},
-        headers=exc.headers if status_code == exc.status_code else None,
+        status_code=exc.status_code,
+        content={
+            "code": code,
+            "detail": exc.detail if isinstance(exc.detail, str) else "Request failed",
+        },
+        headers=exc.headers,
     )
 
 

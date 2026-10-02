@@ -132,6 +132,14 @@ async def test_unknown_api_post_remains_404(client):
     assert response.json()["code"] == "not_found"
 
 
+@pytest.mark.asyncio
+async def test_get_on_post_only_api_preserves_method_contract(client):
+    response = await client.get("/api/v1/orders")
+    assert response.status_code == 405
+    assert response.json()["code"] == "method_not_allowed"
+    assert "POST" in response.headers["allow"]
+
+
 def test_title_backslashes_are_literal():
     html = render_page(
         TEMPLATE, PublicPage(title=r"Cable \1 \g<1>"), "https://izihata.com.ua/"
