@@ -154,8 +154,10 @@
       "id": "R20",
       "priority": "P2",
       "title": "Номер выбранного отделения или поштомата теряется при оформлении",
-      "status": "pending",
-      "checks": []
+      "status": "implemented",
+      "checks": [
+        "4 checkout regressions passed; selected point submits the full provider description including branch/locker number, not its short address."
+      ]
     },
     {
       "id": "R21",

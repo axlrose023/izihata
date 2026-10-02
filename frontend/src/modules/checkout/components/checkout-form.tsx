@@ -426,7 +426,7 @@ export function CheckoutForm() {
                           setSelectedPointRef(null);
                         }}
                         onSelect={(option) => {
-                          field.onChange(option.label);
+                          field.onChange(option.name);
                           setSelectedPointRef(option.ref);
                         }}
                         options={points.data ?? []}

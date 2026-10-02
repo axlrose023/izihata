@@ -59,7 +59,11 @@ beforeEach(() => {
 });
 afterEach(cleanup);
 
-function renderForm(cityFails = true, pointFails = false) {
+function renderForm(
+  cityFails = true,
+  pointFails = false,
+  pointOptions: unknown[] = [],
+) {
   vi.mocked(apiClient).mockImplementation(async (path) => {
     if (path === "/checkout/quote") return quote;
     if (path.startsWith("/delivery/cities")) {
@@ -68,7 +72,7 @@ function renderForm(cityFails = true, pointFails = false) {
     }
     if (path.startsWith("/delivery/points")) {
       if (pointFails) throw unavailable;
-      return [];
+      return pointOptions;
     }
     throw unavailable; // Never create an order, even inside this regression.
   });
@@ -152,6 +156,39 @@ it("allows a manual point when only the point directory fails", async () => {
       "/orders",
       expect.objectContaining({
         body: expect.stringContaining('"point":"Відділення № 8"'),
+      }),
+    ),
+  );
+});
+
+it("submits the full delivery point description including its number", async () => {
+  renderForm(false, false, [
+    {
+      ref: "point-8",
+      label: "вул. Хрещатик, 1",
+      name: "Відділення № 8: вул. Хрещатик, 1",
+      number: "8",
+    },
+  ]);
+  const [city, point] = screen.getAllByRole("combobox");
+  fireEvent.focus(city);
+  fireEvent.change(city, { target: { value: "Київ" } });
+  fireEvent.mouseDown(await screen.findByRole("option", { name: "Київ" }));
+  fireEvent.focus(point);
+  fireEvent.change(point, { target: { value: "8" } });
+  fireEvent.mouseDown(
+    await screen.findByRole("option", { name: "вул. Хрещатик, 1" }),
+  );
+  fireEvent.click(
+    screen.getByRole("button", { name: "Підтвердити замовлення" }),
+  );
+  await waitFor(() =>
+    expect(apiClient).toHaveBeenCalledWith(
+      "/orders",
+      expect.objectContaining({
+        body: expect.stringContaining(
+          '"point":"Відділення № 8: вул. Хрещатик, 1"',
+        ),
       }),
     ),
   );
