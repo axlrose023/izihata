@@ -166,7 +166,10 @@ uv run cli import-enext /path/to/enext.xlsx --apply --upload-media
 
 ACKO's workbook also imports every characteristic as a primary specification.
 Its `photo` sheet includes photos, drawings and diagrams; all media rows are
-uploaded to Bunny Storage in source order:
+uploaded to Bunny Storage in source order. If a supplier code is already used
+by another brand, the ACKO product receives a unique `ACKO-<code>` catalog SKU;
+the primary `Код виробника` attribute keeps the exact source code. Dry runs
+report each such mapping:
 
 ```bash
 # Dry run: reports product and category changes without writing.
