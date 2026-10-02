@@ -41,7 +41,7 @@ async def create_test_order(idempotency_key: str) -> OrderResponse:
             }
         )
         service = OrderCreationService(uow, PricingService(uow))
-        return await service.create_order(request, idempotency_key)
+        return (await service.create_order(request, idempotency_key)).order
 
 
 @pytest.mark.asyncio(loop_scope="session")
@@ -198,3 +198,40 @@ async def test_logout_wins_when_racing_with_refresh():
         revoked_session = await session.get(AuthSession, auth_session_id)
         assert revoked_session is not None
         assert revoked_session.revoked_at is not None
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_parallel_visits_and_contacts_are_not_lost():
+    from app.api.modules.activity.models import SiteVisitor
+    from app.api.modules.activity.schema import TrackVisitRequest
+    from app.api.modules.activity.service import VisitorTrackingService
+
+    key = uuid.uuid4()
+
+    async def visit():
+        async with SessionFactory() as session, UnitOfWork(session) as uow:
+            service = VisitorTrackingService(uow)
+            await service.track(
+                key,
+                TrackVisitRequest(path="/catalog"),
+                user_agent=None,
+                customer_id=None,
+            )
+            await service.record_contact(key, name=None, phone=None, kind="order")
+
+    try:
+        await asyncio.gather(*(visit() for _ in range(50)))
+        async with SessionFactory() as session:
+            visitor = (
+                await session.execute(
+                    select(SiteVisitor).where(SiteVisitor.visitor_key == key)
+                )
+            ).scalar_one()
+            assert visitor.page_views == 50
+            assert visitor.orders_count == 50
+    finally:
+        async with SessionFactory() as session:
+            await session.execute(
+                delete(SiteVisitor).where(SiteVisitor.visitor_key == key)
+            )
+            await session.commit()

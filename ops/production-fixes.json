@@ -140,8 +140,10 @@
       "id": "R16",
       "priority": "P3",
       "title": "Счётчики посетителей неустойчивы к параллельности и повтору заказа",
-      "status": "pending",
-      "checks": []
+      "status": "implemented",
+      "checks": [
+        "17 activity/order tests passed; SQL increments are atomic and idempotent order retries do not count a second contact; added PostgreSQL concurrency regression."
+      ]
     },
     {
       "id": "R17",

@@ -81,3 +81,28 @@ class TestVisitorActivity:
         response = await client.get(self.admin_endpoint)
 
         assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_repeated_order_counts_contact_once(
+    client, product, order_payload, idempotency_key, uow
+):
+    from uuid import UUID
+
+    visit = await client.post("/api/v1/activity/visits", json={"path": "/checkout"})
+    key = visit.cookies[VISITOR_COOKIE]
+    client.cookies.set(VISITOR_COOKIE, key)
+    try:
+        payload = order_payload(product.id)
+        first = await client.post(
+            "/api/v1/orders", json=payload, headers={"Idempotency-Key": idempotency_key}
+        )
+        second = await client.post(
+            "/api/v1/orders", json=payload, headers={"Idempotency-Key": idempotency_key}
+        )
+        assert first.status_code == second.status_code == 201
+        assert first.json()["id"] == second.json()["id"]
+        visitor = await uow.visitors.get_by_key(UUID(key))
+        assert visitor.orders_count == 1
+    finally:
+        client.cookies.clear()

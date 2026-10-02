@@ -38,18 +38,20 @@ class VisitorTrackingService:
                 await self._uow.visitors.create(visitor)
                 await self._uow.commit()
             except IntegrityError:
-                # A parallel first request already claimed this key.
+                # Count the page view that raced with creation of this key.
                 await self._uow.rollback()
+                if await self._uow.visitors.get_by_key(key) is None:
+                    raise
+            else:
                 return key
-            return key
 
-        visitor.last_seen_at = now
-        visitor.page_views += 1
-        visitor.last_path = request.path
-        if user_agent:
-            visitor.user_agent = user_agent
-        if customer_id is not None:
-            visitor.customer_id = customer_id
+        await self._uow.visitors.increment_visit(
+            key,
+            now=now,
+            path=request.path,
+            user_agent=user_agent,
+            customer_id=customer_id,
+        )
         await self._uow.commit()
         return key
 
@@ -68,15 +70,7 @@ class VisitorTrackingService:
         """
         if visitor_key is None:
             return
-        visitor = await self._uow.visitors.get_by_key(visitor_key)
-        if visitor is None:
-            return
-        if name:
-            visitor.name = name
-        if phone:
-            visitor.phone = phone
-        if kind == "order":
-            visitor.orders_count += 1
-        elif kind == "lead":
-            visitor.leads_count += 1
+        await self._uow.visitors.increment_contact(
+            visitor_key, name=name, phone=phone, kind=kind
+        )
         await self._uow.commit()

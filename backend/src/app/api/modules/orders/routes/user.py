@@ -47,22 +47,23 @@ async def create_order(
             "Email is required for guest checkout",
             code="order_email_required",
         )
-    order = await service.create_order(
+    outcome = await service.create_order(
         request,
         idempotency_key,
         customer_id=customer.id if customer is not None else None,
         contact_email=contact_email,
     )
-    try:
-        await tracking.record_contact(
-            visitor_key_from(http_request),
-            name=request.customer_name,
-            phone=request.phone,
-            kind="order",
-        )
-    except Exception:
-        logger.warning(
-            "The persisted order could not be added to visitor tracking",
-            exc_info=True,
-        )
-    return order
+    if outcome.created:
+        try:
+            await tracking.record_contact(
+                visitor_key_from(http_request),
+                name=request.customer_name,
+                phone=request.phone,
+                kind="order",
+            )
+        except Exception:
+            logger.warning(
+                "The persisted order could not be added to visitor tracking",
+                exc_info=True,
+            )
+    return outcome.order

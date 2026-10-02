@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from uuid import UUID
 
 from sqlalchemy.exc import IntegrityError
@@ -11,6 +12,12 @@ from app.api.modules.orders.utils import new_order_number, request_digest
 from app.database.uow import UnitOfWork
 
 
+@dataclass(frozen=True, slots=True)
+class OrderCreationOutcome:
+    order: OrderResponse
+    created: bool
+
+
 class OrderCreationService:
     def __init__(self, uow: UnitOfWork, pricing: PricingService):
         self._uow = uow
@@ -22,14 +29,16 @@ class OrderCreationService:
         idempotency_key: str,
         customer_id: UUID | None = None,
         contact_email: str | None = None,
-    ) -> OrderResponse:
+    ) -> OrderCreationOutcome:
         email = contact_email or request.email
         if email is None:
             raise ValueError("Order contact email is required")
         digest = request_digest(request.model_copy(update={"email": email}))
         existing = await self._uow.orders.get_by_idempotency_key(idempotency_key)
         if existing:
-            return self._resolve_existing(existing, digest)
+            return OrderCreationOutcome(
+                self._resolve_existing(existing, digest), created=False
+            )
 
         quote = await self._pricing.quote(request, customer_id=customer_id)
         if request.expected_total is not None and request.expected_total != quote.total:
@@ -86,9 +95,11 @@ class OrderCreationService:
             await self._uow.rollback()
             concurrent = await self._uow.orders.get_by_idempotency_key(idempotency_key)
             if concurrent:
-                return self._resolve_existing(concurrent, digest)
+                return OrderCreationOutcome(
+                    self._resolve_existing(concurrent, digest), created=False
+                )
             raise ConflictError("Order could not be created") from exc
-        return OrderResponse.from_order(order)
+        return OrderCreationOutcome(OrderResponse.from_order(order), created=True)
 
     def _resolve_existing(self, order: Order, digest: str) -> OrderResponse:
         if order.request_hash != digest:

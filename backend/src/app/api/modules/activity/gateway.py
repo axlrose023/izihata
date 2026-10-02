@@ -1,7 +1,8 @@
 from collections.abc import Sequence
+from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import Select, func, or_, select
+from sqlalchemy import Select, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.modules.activity.models import SiteVisitor
@@ -20,6 +21,49 @@ class VisitorGateway:
         self._session.add(visitor)
         await self._session.flush()
         return visitor
+
+    async def increment_visit(
+        self,
+        visitor_key: UUID,
+        *,
+        now: datetime,
+        path: str,
+        user_agent: str | None,
+        customer_id: UUID | None,
+    ) -> None:
+        values = {
+            "page_views": SiteVisitor.page_views + 1,
+            "last_seen_at": now,
+            "last_path": path,
+        }
+        if user_agent:
+            values["user_agent"] = user_agent
+        if customer_id is not None:
+            values["customer_id"] = customer_id
+        await self._session.execute(
+            update(SiteVisitor)
+            .where(SiteVisitor.visitor_key == visitor_key)
+            .values(**values)
+        )
+
+    async def increment_contact(
+        self, visitor_key: UUID, *, name: str | None, phone: str | None, kind: str
+    ) -> None:
+        values = {}
+        if name:
+            values["name"] = name
+        if phone:
+            values["phone"] = phone
+        if kind == "order":
+            values["orders_count"] = SiteVisitor.orders_count + 1
+        elif kind == "lead":
+            values["leads_count"] = SiteVisitor.leads_count + 1
+        if values:
+            await self._session.execute(
+                update(SiteVisitor)
+                .where(SiteVisitor.visitor_key == visitor_key)
+                .values(**values)
+            )
 
     @staticmethod
     def _filtered(stmt: Select, params: VisitorListParams) -> Select:
