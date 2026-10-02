@@ -226,7 +226,7 @@ class ProductAttribute(Base, UUIDIDMixin):
             "key",
             name="product_attribute_product_source_key_ukey",
         ),
-        Index("product_attributes_key_value_idx", "key", "value"),
+        Index("product_attributes_facet_idx", "key", "value", "product_id"),
     )
 
     product_id: Mapped[UUID] = mapped_column(
