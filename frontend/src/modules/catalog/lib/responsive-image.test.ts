@@ -21,3 +21,17 @@ it("uses responsive sizes only on the configured product CDN", () => {
     responsiveImage("https://example.com/image.jpg", "80px", [80, 160], true),
   ).toEqual({ src: "https://example.com/image.jpg" });
 });
+
+it("uses generated sizes without enabling the paid CDN optimizer", () => {
+  expect(
+    responsiveImage("original.jpg", "80px", [80, 160], false, {
+      "80": "small.webp",
+      "160": "medium.webp",
+      "320": "large.webp",
+    }),
+  ).toEqual({
+    src: "medium.webp",
+    srcSet: "small.webp 80w, medium.webp 160w",
+    sizes: "80px",
+  });
+});

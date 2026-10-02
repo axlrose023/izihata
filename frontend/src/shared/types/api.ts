@@ -62,6 +62,7 @@ export interface ProductAvailability {
 }
 
 export interface ProductMedia {
+  image_variants?: Record<string, string>;
   id: string;
   url: string;
   alt: string;
@@ -83,6 +84,7 @@ export interface ProductSpecification {
 }
 
 export interface Product {
+  image_variants?: Record<string, string>;
   id: string;
   sku: string;
   slug: string;

@@ -167,15 +167,28 @@ class ProductAvailabilityResponse(StrictSchema):
     dispatch_cutoff_hour: int | None
 
 
+def image_variants_for(source: str | None, metadata: dict | None) -> dict[str, str]:
+    if not metadata or metadata.get("source") != source:
+        return {}
+    return metadata.get("sizes", {})
+
+
 class ProductMediaResponse(StrictSchema):
     id: UUID
     url: str
     alt: str
     position: int
+    image_variants: dict[str, str] = Field(default_factory=dict)
 
     @classmethod
     def from_media(cls, media: ProductMedia) -> "ProductMediaResponse":
-        return cls.model_validate(media)
+        return cls(
+            id=media.id,
+            url=media.url,
+            alt=media.alt,
+            position=media.position,
+            image_variants=image_variants_for(media.url, media.image_variants),
+        )
 
     model_config = ConfigDict(extra="forbid", from_attributes=True)
 
@@ -221,6 +234,7 @@ class ProductResponse(StrictSchema):
     production_country: str | None
     short_description: str | None
     image_url: str | None
+    image_variants: dict[str, str] = Field(default_factory=dict)
     price: Decimal
     old_price: Decimal | None
     badge: ProductBadge | None
@@ -246,6 +260,9 @@ class ProductResponse(StrictSchema):
             production_country=product.production_country,
             short_description=product.short_description,
             image_url=product.image_url,
+            image_variants=image_variants_for(
+                product.image_url, product.image_variants
+            ),
             price=product.price,
             old_price=product.old_price,
             badge=product.badge,

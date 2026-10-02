@@ -14,6 +14,7 @@ export function ProductMediaGallery({ product }: { product: ProductDetail }) {
             url: product.image_url,
             alt: product.name,
             position: -1,
+            image_variants: product.image_variants,
           },
         ]
       : [];
@@ -21,7 +22,7 @@ export function ProductMediaGallery({ product }: { product: ProductDetail }) {
       (item, index, items) =>
         items.findIndex((candidate) => candidate.url === item.url) === index,
     );
-  }, [product.image_url, product.media, product.name]);
+  }, [product.image_url, product.image_variants, product.media, product.name]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const selected = media[selectedIndex] ?? null;
 
@@ -44,6 +45,8 @@ export function ProductMediaGallery({ product }: { product: ProductDetail }) {
             selected.url,
             "(max-width: 820px) 100vw, 50vw",
             [480, 960, 1600],
+            undefined,
+            selected.image_variants,
           )}
         />
       </div>
@@ -64,7 +67,13 @@ export function ProductMediaGallery({ product }: { product: ProductDetail }) {
                 alt=""
                 decoding="async"
                 loading="lazy"
-                {...responsiveImage(item.url, "80px", [80, 160])}
+                {...responsiveImage(
+                  item.url,
+                  "80px",
+                  [80, 160],
+                  undefined,
+                  item.image_variants,
+                )}
               />
             </button>
           ))}

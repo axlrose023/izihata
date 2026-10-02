@@ -2,6 +2,7 @@ from decimal import Decimal
 from uuid import UUID
 
 from sqlalchemy import (
+    JSON,
     Boolean,
     CheckConstraint,
     Enum,
@@ -158,7 +159,8 @@ class Product(Base, UUIDIDMixin, DateTimeMixin):
     production_country: Mapped[str | None] = mapped_column(String(120))
     short_description: Mapped[str | None] = mapped_column(String(500))
     description: Mapped[str | None] = mapped_column(Text)
-    image_url: Mapped[str | None] = mapped_column(String(500))
+    image_url: Mapped[str | None] = mapped_column(String(500), index=True)
+    image_variants: Mapped[dict | None] = mapped_column(JSON)
     price: Mapped[Decimal] = mapped_column(Numeric(12, 2))
     old_price: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))
     badge: Mapped[ProductBadge | None] = mapped_column(
@@ -306,7 +308,8 @@ class ProductMedia(Base, UUIDIDMixin, DateTimeMixin):
         ForeignKey("products.id", ondelete="CASCADE"),
         index=True,
     )
-    url: Mapped[str] = mapped_column(String(500))
+    url: Mapped[str] = mapped_column(String(500), index=True)
+    image_variants: Mapped[dict | None] = mapped_column(JSON)
     alt: Mapped[str] = mapped_column(String(240))
     position: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 

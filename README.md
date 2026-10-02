@@ -157,3 +157,12 @@ Optimizer is active on the product Pull Zone and a `?width=320` request actually
 returns a smaller image. The default is `false`: the current CDN returns the
 original unchanged when this option is inactive. Images from other hosts and
 local uploads keep their original URLs.
+
+Generated product images use WebP copies in the existing Bunny Storage bucket.
+Run `cli image-variants --concurrency 2` in the application container after a
+supplier import. The command resumes from stored metadata and preserves original
+URLs, gallery order, transparency and aspect ratio. `--limit 1` processes a sample.
+It uses the same `BUNNY_*` storage credentials as supplier imports and does not
+require Bunny Image Optimizer. Failed conversions keep the original image and
+are reported for retry. Metadata is ignored automatically if an original URL is
+changed. Conversion uses [Pillow](https://pillow.readthedocs.io/en/stable/reference/Image.html).

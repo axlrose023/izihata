@@ -626,3 +626,37 @@ def retry_dead_outbox(
             typer.echo(f"Retried outbox events: {retried}")
 
     anyio.run(_retry)
+
+
+@app.command("image-variants")
+def image_variants(
+    concurrency: Annotated[int, typer.Option(min=1, max=4)] = 2,
+    limit: Annotated[int | None, typer.Option(min=1)] = None,
+) -> None:
+    """Generate small WebP copies in the existing bucket; safe to resume."""
+    from app.services.image_variants import generate_image_variants
+
+    try:
+        storage = BunnyS3Config(
+            endpoint=os.environ["BUNNY_S3_ENDPOINT"],
+            storage_zone=os.environ["BUNNY_STORAGE_ZONE"],
+            password=os.environ["BUNNY_STORAGE_PASSWORD"],
+            public_base_url=os.environ["BUNNY_MEDIA_PUBLIC_BASE_URL"],
+        )
+    except (KeyError, ValueError) as error:
+        raise typer.BadParameter(
+            "Complete Bunny Storage configuration is required"
+        ) from error
+
+    async def run() -> None:
+        result = await generate_image_variants(
+            SessionFactory,
+            storage,
+            concurrency=concurrency,
+            limit=limit,
+            progress=typer.echo,
+        )
+        if result["failed"]:
+            raise typer.Exit(code=1)
+
+    anyio.run(run)

@@ -23,7 +23,13 @@ export function ProductVisual({
         decoding="async"
         loading="lazy"
         onError={() => setFailedUrl(product.image_url)}
-        {...responsiveImage(product.image_url, imageSizes)}
+        {...responsiveImage(
+          product.image_url,
+          imageSizes,
+          undefined,
+          undefined,
+          product.image_variants,
+        )}
       />
     );
   }
