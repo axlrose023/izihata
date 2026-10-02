@@ -632,6 +632,8 @@ def retry_dead_outbox(
 def image_variants(
     concurrency: Annotated[int, typer.Option(min=1, max=8)] = 2,
     limit: Annotated[int | None, typer.Option(min=1)] = None,
+    upload_concurrency: Annotated[int, typer.Option(min=1, max=32)] = 16,
+    product_slug: Annotated[str | None, typer.Option()] = None,
 ) -> None:
     """Generate small WebP copies in the existing bucket; safe to resume."""
     from app.services.image_variants import generate_image_variants
@@ -654,6 +656,8 @@ def image_variants(
             storage,
             concurrency=concurrency,
             limit=limit,
+            upload_concurrency=upload_concurrency,
+            product_slug=product_slug,
             progress=typer.echo,
         )
         if result["failed"]:

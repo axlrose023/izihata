@@ -59,42 +59,83 @@ async def generate_image_variants(
     *,
     concurrency: int = 2,
     limit: int | None = None,
+    upload_concurrency: int = 16,
+    product_slug: str | None = None,
     progress: Callable[[str], None] = print,
 ) -> dict[str, int]:
     if not 1 <= concurrency <= 8:
         raise ValueError("Image processing concurrency must be between 1 and 8")
     if limit is not None and limit < 1:
         raise ValueError("Limit must be positive")
+    if not 1 <= upload_concurrency <= 32:
+        raise ValueError("Upload concurrency must be between 1 and 32")
     known: dict[str, dict | None] = {}
+    synchronized: dict[str, bool] = {}
+
+    def valid_metadata(source: str, metadata: dict | None) -> bool:
+        return bool(
+            metadata
+            and metadata.get("source") == source
+            and metadata.get("generator") == GENERATOR
+            and metadata.get("sizes")
+        )
+
+    def register(source: str, metadata: dict | None) -> None:
+        valid = valid_metadata(source, metadata)
+        if source not in known:
+            known[source] = metadata
+            synchronized[source] = valid
+        else:
+            synchronized[source] = (
+                synchronized[source] and valid and metadata == known[source]
+            )
+            if valid and not valid_metadata(source, known[source]):
+                known[source] = metadata
+
     async with sessions() as session:
+        product_id = None
+        if product_slug is not None:
+            product_id = await session.scalar(
+                select(Product.id).where(Product.slug == product_slug)
+            )
+            if product_id is None:
+                raise ValueError("Product not found")
         for url, metadata in (
             await session.execute(
                 select(Product.image_url, Product.image_variants)
-                .where(Product.image_url.is_not(None))
+                .where(
+                    Product.image_url.is_not(None),
+                    *([Product.id == product_id] if product_id is not None else []),
+                )
                 .order_by(Product.position, Product.id)
             )
         ).all():
-            known[url] = metadata
+            register(url, metadata)
         for url, metadata in (
             await session.execute(
-                select(ProductMedia.url, ProductMedia.image_variants).order_by(
-                    ProductMedia.product_id, ProductMedia.position
+                select(ProductMedia.url, ProductMedia.image_variants)
+                .where(
+                    *(
+                        [ProductMedia.product_id == product_id]
+                        if product_id is not None
+                        else []
+                    )
                 )
+                .order_by(ProductMedia.product_id, ProductMedia.position)
             )
         ).all():
-            if url not in known or (not known[url] and metadata):
-                known[url] = metadata
+            register(url, metadata)
     counters = Counter(total=len(known), generated=0, reused=0, failed=0, skipped=0)
     pending = iter(list(known.items())[:limit] if limit else known.items())
     base_url = storage.public_base_url.rstrip("/")
     started = time.monotonic()
     encoding_slots = asyncio.Semaphore(2)
-    upload_slots = asyncio.Semaphore(8)
+    upload_slots = asyncio.Semaphore(upload_concurrency)
     timeout = httpx.Timeout(30, connect=5)
     async with httpx.AsyncClient(
         timeout=timeout,
         follow_redirects=False,
-        limits=httpx.Limits(max_connections=concurrency + 8),
+        limits=httpx.Limits(max_connections=concurrency + upload_concurrency),
     ) as client:
 
         async def worker() -> None:
@@ -103,12 +144,10 @@ async def generate_image_variants(
                     counters["skipped"] += 1
                     continue
                 try:
-                    valid = (
-                        metadata
-                        and metadata.get("source") == source
-                        and metadata.get("generator") == GENERATOR
-                        and metadata.get("sizes")
-                    )
+                    valid = valid_metadata(source, metadata)
+                    if valid and synchronized[source]:
+                        counters["reused"] += 1
+                        continue
                     if not valid:
                         content, content_type = await with_retries(
                             lambda source=source: download_image(client, source)

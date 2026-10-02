@@ -62,6 +62,7 @@ async def test_batch_limits_uploads_and_resumes_complete_metadata(monkeypatch):
     )
     sources = [(f"https://cdn.example/{index}.png", None) for index in range(10)]
     saved = []
+    media_sources = []
     active = peak = downloads = 0
 
     class Rows:
@@ -83,7 +84,7 @@ async def test_batch_limits_uploads_and_resumes_complete_metadata(monkeypatch):
                 return Rows(
                     sources
                     if statement.column_descriptions[0]["entity"] is Product
-                    else []
+                    else media_sources
                 )
             saved.append(statement.compile().params["image_variants"])
 
@@ -105,7 +106,11 @@ async def test_batch_limits_uploads_and_resumes_complete_metadata(monkeypatch):
     monkeypatch.setattr(module, "download_image", download)
     monkeypatch.setattr(module, "put_object", upload)
     result = await module.generate_image_variants(
-        Session, storage, concurrency=8, progress=lambda value: None
+        Session,
+        storage,
+        concurrency=8,
+        upload_concurrency=8,
+        progress=lambda value: None,
     )
     assert result["generated"] == 10
     assert 1 < peak <= 8
@@ -114,8 +119,28 @@ async def test_batch_limits_uploads_and_resumes_complete_metadata(monkeypatch):
     assert all(metadata["sizes"]["1200"] == metadata["source"] for metadata in saved)
     sources = [(metadata["source"], metadata) for metadata in saved[::2]]
     downloads = 0
+    saved.clear()
     result = await module.generate_image_variants(
-        Session, storage, concurrency=8, progress=lambda value: None
+        Session,
+        storage,
+        concurrency=8,
+        upload_concurrency=8,
+        progress=lambda value: None,
     )
     assert result["reused"] == 10
     assert downloads == 0
+    assert saved == []
+
+    # A valid primary copy must also repair a missing gallery reference.
+    media_sources = [(sources[0][0], None)]
+    saved.clear()
+    result = await module.generate_image_variants(
+        Session,
+        storage,
+        concurrency=8,
+        upload_concurrency=8,
+        progress=lambda value: None,
+    )
+    assert result["reused"] == 10
+    assert downloads == 0
+    assert len(saved) == 2
