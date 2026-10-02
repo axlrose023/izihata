@@ -203,6 +203,26 @@ class CategoryGateway:
         )
         return (await self._session.execute(stmt)).scalar_one_or_none()
 
+    async def category_and_subcategory_product_counts(
+        self,
+    ) -> tuple[dict[UUID, int], dict[UUID, int]]:
+        stmt = (
+            select(Product.category_id, Product.subcategory_id, func.count(Product.id))
+            .where(Product.is_active.is_(True))
+            .group_by(Product.category_id, Product.subcategory_id)
+        )
+        category_counts: dict[UUID, int] = {}
+        subcategory_counts: dict[UUID, int] = {}
+        for category_id, subcategory_id, count in (
+            await self._session.execute(stmt)
+        ).all():
+            category_counts[category_id] = category_counts.get(category_id, 0) + int(
+                count
+            )
+            if subcategory_id is not None:
+                subcategory_counts[subcategory_id] = int(count)
+        return category_counts, subcategory_counts
+
     async def product_counts(self) -> dict[UUID, int]:
         stmt = (
             select(Product.category_id, func.count(Product.id))
@@ -239,6 +259,9 @@ class ProductGateway:
         *,
         include_brands: bool = True,
         include_specs: bool = True,
+        include_price: bool = True,
+        include_availability: bool = True,
+        include_sale_unit: bool = True,
     ) -> list[ColumnElement[bool]]:
         conditions: list[ColumnElement[bool]] = [Product.is_active.is_(True)]
         if params.product_ids:
@@ -270,19 +293,19 @@ class ProductGateway:
             )
         if include_brands and params.brand:
             conditions.append(Product.brand.in_(params.brand))
-        if params.in_stock:
+        if include_availability and params.in_stock:
             conditions.append(
                 Product.stock_status.in_(
                     [StockStatus.IN_STOCK_TODAY, StockStatus.IN_STOCK]
                 )
             )
-        if params.availability:
+        if include_availability and params.availability:
             conditions.append(Product.stock_status.in_(params.availability))
-        if params.sale_unit:
+        if include_sale_unit and params.sale_unit:
             conditions.append(Product.sale_unit.in_(params.sale_unit))
-        if params.min_price is not None:
+        if include_price and params.min_price is not None:
             conditions.append(Product.price >= params.min_price)
-        if params.max_price is not None:
+        if include_price and params.max_price is not None:
             conditions.append(Product.price <= params.max_price)
         if include_specs:
             for key, values in params.spec_filters.items():
@@ -429,7 +452,7 @@ class ProductGateway:
             select(
                 ProductAttribute.key,
                 ProductAttribute.value,
-                func.count(ProductAttribute.product_id),
+                func.count(func.distinct(ProductAttribute.product_id)),
             )
             .join(Product, Product.id == ProductAttribute.product_id)
             .where(*self._conditions(params, include_specs=False))
@@ -446,7 +469,7 @@ class ProductGateway:
         params: ProductListParams,
     ) -> tuple[Decimal | None, Decimal | None]:
         stmt = select(func.min(Product.price), func.max(Product.price)).where(
-            *self._conditions(params)
+            *self._conditions(params, include_price=False)
         )
         row = (await self._session.execute(stmt)).one()
         return row[0], row[1]
@@ -457,7 +480,7 @@ class ProductGateway:
     ) -> Sequence[tuple[StockStatus, int]]:
         stmt = (
             select(Product.stock_status, func.count(Product.id))
-            .where(*self._conditions(params))
+            .where(*self._conditions(params, include_availability=False))
             .group_by(Product.stock_status)
             .order_by(Product.stock_status)
         )
@@ -472,7 +495,7 @@ class ProductGateway:
     ) -> Sequence[tuple[str, int]]:
         stmt = (
             select(Product.sale_unit, func.count(Product.id))
-            .where(*self._conditions(params))
+            .where(*self._conditions(params, include_sale_unit=False))
             .group_by(Product.sale_unit)
             .order_by(Product.sale_unit)
         )

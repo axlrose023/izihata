@@ -52,8 +52,10 @@ class CatalogQueryService:
 
     async def get_categories(self) -> list[CategoryResponse]:
         categories = await self._uow.categories.list_active()
-        category_counts = await self._uow.categories.product_counts()
-        subcategory_counts = await self._uow.categories.subcategory_product_counts()
+        (
+            category_counts,
+            subcategory_counts,
+        ) = await self._uow.categories.category_and_subcategory_product_counts()
         return [
             CategoryResponse(
                 id=category.id,
@@ -77,8 +79,10 @@ class CatalogQueryService:
 
     async def get_sections(self) -> list[CatalogSectionResponse]:
         sections = await self._uow.categories.list_active_sections()
-        category_counts = await self._uow.categories.product_counts()
-        subcategory_counts = await self._uow.categories.subcategory_product_counts()
+        (
+            category_counts,
+            subcategory_counts,
+        ) = await self._uow.categories.category_and_subcategory_product_counts()
         return [
             CatalogSectionResponse.from_section(
                 section,
