@@ -1,9 +1,13 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
-import { createProductReview } from "@/modules/catalog/api/catalog-api";
+import {
+  createProductReview,
+  fetchProductReviews,
+} from "@/modules/catalog/api/catalog-api";
 import { getUserErrorMessage } from "@/shared/api/errors";
 import type { ProductReview } from "@/shared/types/api";
 
@@ -20,14 +24,43 @@ type FormValues = z.input<typeof schema>;
 type Values = z.output<typeof schema>;
 
 export function ProductReviews({
-  reviews,
   productSlug,
+  reviewCount,
+  active,
+  initialReviews,
 }: {
-  reviews: ProductReview[];
   productSlug: string;
+  reviewCount: number;
+  active: boolean;
+  initialReviews: ProductReview[];
 }) {
   const [submitted, setSubmitted] = useState(false);
   const [requestError, setRequestError] = useState<string | null>(null);
+  const initialReviewCount = Math.max(reviewCount, initialReviews.length);
+  const reviewsResult = useInfiniteQuery({
+    queryKey: ["catalog", "product-reviews", productSlug],
+    initialPageParam: 1,
+    queryFn: ({ pageParam, signal }) =>
+      fetchProductReviews(productSlug, pageParam, signal),
+    getNextPageParam: (lastPage) =>
+      lastPage.has_next ? lastPage.page + 1 : undefined,
+    initialData: {
+      pages: [
+        {
+          items: initialReviews,
+          total: initialReviewCount,
+          page: 1,
+          page_size: PAGE_SIZE,
+          total_pages: Math.ceil(initialReviewCount / PAGE_SIZE),
+          has_next: initialReviewCount > initialReviews.length,
+          has_prev: false,
+        },
+      ],
+      pageParams: [1],
+    },
+    enabled: active,
+    staleTime: 30_000,
+  });
   const {
     register,
     handleSubmit,
@@ -50,13 +83,14 @@ export function ProductReviews({
       );
     }
   });
+  const reviews = reviewsResult.data.pages.flatMap((page) => page.items);
 
   return (
     <section className="product-reviews">
       <div className="section-heading">
         <div>
           <span className="eyebrow">Досвід покупців</span>
-          <h2>Відгуки</h2>
+          <h2>Відгуки · {reviewCount}</h2>
         </div>
       </div>
       {reviews.length ? (
@@ -76,6 +110,25 @@ export function ProductReviews({
           Ще немає відгуків. Поділіться першим досвідом.
         </p>
       )}
+      {reviewsResult.isFetchNextPageError ? (
+        <p className="form-error" role="alert">
+          Не вдалося завантажити наступні відгуки.
+        </p>
+      ) : null}
+      {reviewsResult.hasNextPage ? (
+        <button
+          className="button button--secondary"
+          disabled={reviewsResult.isFetchingNextPage}
+          onClick={() => void reviewsResult.fetchNextPage()}
+          type="button"
+        >
+          {reviewsResult.isFetchingNextPage
+            ? "Завантажуємо…"
+            : reviewsResult.isFetchNextPageError
+              ? "Повторити завантаження"
+              : "Показати ще відгуки"}
+        </button>
+      ) : null}
       <form className="product-review-form form-stack" onSubmit={submit}>
         <h3>Залишити відгук</h3>
         <div className="product-review-form__contacts">
@@ -126,3 +179,5 @@ export function ProductReviews({
     </section>
   );
 }
+
+const PAGE_SIZE = 10;

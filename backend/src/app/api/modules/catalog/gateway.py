@@ -570,10 +570,39 @@ class ProductGateway:
                 selectinload(Product.attributes),
                 selectinload(Product.media),
                 selectinload(Product.documents),
-                selectinload(Product.reviews),
             )
         )
         return (await self._session.execute(stmt)).scalar_one_or_none()
+
+    async def get_active_id_and_review_count_by_slug(
+        self,
+        slug: str,
+    ) -> tuple[UUID, int] | None:
+        stmt = select(Product.id, Product.reviews_count).where(
+            Product.slug == slug,
+            Product.is_active.is_(True),
+        )
+        row = (await self._session.execute(stmt)).one_or_none()
+        return (row[0], row[1]) if row is not None else None
+
+    async def list_published_reviews(
+        self,
+        product_id: UUID,
+        *,
+        offset: int,
+        limit: int,
+    ) -> Sequence[ProductReview]:
+        stmt = (
+            select(ProductReview)
+            .where(
+                ProductReview.product_id == product_id,
+                ProductReview.is_published.is_(True),
+            )
+            .order_by(ProductReview.created_at.desc(), ProductReview.id.desc())
+            .offset(offset)
+            .limit(limit)
+        )
+        return (await self._session.execute(stmt)).scalars().all()
 
     async def list_related(
         self,

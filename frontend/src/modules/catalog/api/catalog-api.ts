@@ -6,6 +6,7 @@ import type {
   Category,
   ProductDetail,
   ProductList,
+  ProductReviewPage,
   ProductReview,
   ReviewStatus,
   StockSubscriptionStatus,
@@ -39,6 +40,17 @@ export function fetchProduct(
 
 export function fetchFeaturedReviews(): Promise<ProductReview[]> {
   return apiClient("/catalog/reviews/featured");
+}
+
+export function fetchProductReviews(
+  slug: string,
+  page: number,
+  signal?: AbortSignal,
+): Promise<ProductReviewPage> {
+  return apiClient(
+    `/catalog/products/${encodeURIComponent(slug)}/reviews${buildQuery({ page, page_size: 10 })}`,
+    { signal },
+  );
 }
 
 export function createProductReview(

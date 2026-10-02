@@ -290,6 +290,16 @@ class ProductReviewResponse(StrictSchema):
     model_config = ConfigDict(extra="forbid", from_attributes=True)
 
 
+class ProductReviewPageResponse(StrictSchema):
+    items: list[ProductReviewResponse]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+    has_next: bool
+    has_prev: bool
+
+
 class ProductDetailResponse(ProductResponse):
     description: str | None
     media: list[ProductMediaResponse]
@@ -305,6 +315,7 @@ class ProductDetailResponse(ProductResponse):
         cls,
         product: Product,
         *,
+        reviews: Sequence[ProductReview] | None = None,
         related: list[Product] | None = None,
         alternatives: list[Product] | None = None,
         bought_together: list[Product] | None = None,
@@ -320,7 +331,7 @@ class ProductDetailResponse(ProductResponse):
             ],
             reviews=[
                 ProductReviewResponse.from_review(review)
-                for review in product.reviews
+                for review in (product.reviews if reviews is None else reviews)
                 if review.is_published
             ],
             related=[ProductResponse.from_product(item) for item in related or []],

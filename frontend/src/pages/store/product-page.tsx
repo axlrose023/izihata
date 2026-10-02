@@ -252,11 +252,13 @@ export function ProductPage() {
           },
           {
             id: "reviews",
-            label: `Відгуки · ${product.reviews.length}`,
+            label: `Відгуки · ${product.reviews_count}`,
             content: (
               <ProductReviews
+                active={activeTab === "reviews"}
+                initialReviews={product.reviews}
                 productSlug={product.slug}
-                reviews={product.reviews}
+                reviewCount={product.reviews_count}
               />
             ),
           },

@@ -21,6 +21,8 @@ from app.api.modules.catalog.schema import (
     ProductListParams,
     ProductListResponse,
     ProductResponse,
+    ProductReviewListParams,
+    ProductReviewPageResponse,
     ProductReviewResponse,
     StockSubscriptionResponse,
 )
@@ -113,6 +115,21 @@ async def get_product(
     service: FromDishka[CatalogQueryService],
 ) -> ProductDetailResponse:
     return await service.get_product(product_slug)
+
+
+@router.get(
+    "/products/{product_slug}/reviews",
+    response_model=ProductReviewPageResponse,
+)
+async def get_product_reviews(
+    product_slug: Annotated[
+        str,
+        Path(min_length=1, max_length=180, pattern=r"^[^/\s?#]+$"),
+    ],
+    service: FromDishka[CatalogQueryService],
+    params: Annotated[ProductReviewListParams, Query()],
+) -> ProductReviewPageResponse:
+    return await service.get_product_reviews(product_slug, params)
 
 
 @router.post(

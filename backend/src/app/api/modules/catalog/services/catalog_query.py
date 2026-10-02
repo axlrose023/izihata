@@ -16,6 +16,8 @@ from app.api.modules.catalog.schema import (
     ProductListParams,
     ProductListResponse,
     ProductResponse,
+    ProductReviewListParams,
+    ProductReviewPageResponse,
     ProductReviewResponse,
     SubcategoryResponse,
 )
@@ -144,12 +146,45 @@ class CatalogQueryService:
         product = await self._uow.products.get_by_slug(product_slug)
         if product is None:
             raise NotFoundError("Product not found")
+        reviews = await self._uow.products.list_published_reviews(
+            product.id,
+            offset=0,
+            limit=10,
+        )
         related, alternatives, bought_together = await self._get_relations(product.id)
         return ProductDetailResponse.from_product(
             product,
+            reviews=list(reviews),
             related=list(related),
             alternatives=list(alternatives),
             bought_together=list(bought_together),
+        )
+
+    async def get_product_reviews(
+        self,
+        product_slug: str,
+        params: ProductReviewListParams,
+    ) -> ProductReviewPageResponse:
+        product = await self._uow.products.get_active_id_and_review_count_by_slug(
+            product_slug
+        )
+        if product is None:
+            raise NotFoundError("Product not found")
+        product_id, total = product
+        reviews = await self._uow.products.list_published_reviews(
+            product_id,
+            offset=params.offset,
+            limit=params.page_size,
+        )
+        total_pages = (total + params.page_size - 1) // params.page_size
+        return ProductReviewPageResponse(
+            items=[ProductReviewResponse.from_review(review) for review in reviews],
+            total=total,
+            page=params.page,
+            page_size=params.page_size,
+            total_pages=total_pages,
+            has_next=params.page < total_pages,
+            has_prev=params.page > 1,
         )
 
     async def get_recommendations(
