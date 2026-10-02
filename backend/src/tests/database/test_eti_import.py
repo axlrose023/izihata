@@ -115,6 +115,17 @@ def write_acko_workbook(path: Path) -> Path:
     characteristics.append(
         ["ACKO-TEST-1", "Об'єм", "0,00014", "м³", 0.00014, None, "число"]
     )
+    characteristics.append(
+        [
+            "ACKO-TEST-1",
+            "Набір матриць",
+            "162535507095120150185240300400",
+            None,
+            None,
+            None,
+            "текст",
+        ]
+    )
 
     photos = workbook.create_sheet("photo")
     photos.append(["Код постачальника", "Тип", "URL"])
@@ -322,7 +333,7 @@ class TestEtiWorkbookImport:
                 )
             ).scalar_one()
             assert (outcome.created, outcome.updated) == (1, 0)
-            assert outcome.primary_specifications == 4
+            assert outcome.primary_specifications == 5
             assert outcome.media_attached == 2
             assert product.sku == "ACKO-TEST-1"
             assert product.name == "Автоматичний вимикач ACKO"
@@ -334,12 +345,15 @@ class TestEtiWorkbookImport:
                 ("Виробник", "Аско-Укрем"),
                 ("Особливості", "x" * 767),
                 ("Об'єм", "0,00014"),
+                ("Набір матриць", "162535507095120150185240300400"),
             ]
             assert all(
                 item.source == ProductAttributeSource.PRIMARY
                 for item in product.attributes
             )
-            assert product.attributes[-1].numeric_value == Decimal("0.00014")
+            assert product.attributes[-2].numeric_value == Decimal("0.00014")
+            assert product.attributes[-2].key == "Об'єм"
+            assert product.attributes[-1].numeric_value is None
             assert [media.url for media in product.media] == [
                 "https://izihata-product-media.b-cdn.net/products/acko/ACKO-TEST-1/1.jpeg",
                 "https://izihata-product-media.b-cdn.net/products/acko/ACKO-TEST-1/2.png",

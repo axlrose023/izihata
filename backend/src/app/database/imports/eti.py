@@ -308,6 +308,14 @@ def _read_supplier_workbook(
         required_characteristic_columns,
         CHARACTERISTICS_SHEET,
     )
+    format_index = next(
+        (
+            index
+            for index, value in enumerate(characteristic_header)
+            if _text(value) == "Формат"
+        ),
+        None,
+    )
     specifications: dict[str, list[EtiSpecification]] = defaultdict(list)
     seen_specifications: set[tuple[str, ProductAttributeSource, str]] = set()
     positions: dict[tuple[str, ProductAttributeSource], int] = defaultdict(int)
@@ -353,7 +361,10 @@ def _read_supplier_workbook(
         seen_specifications.add(identity)
         position_key = (sku, source)
         numeric_value = _decimal(_cell(row, characteristic_columns["Число"]))
-        if numeric_value is None:
+        if numeric_value is None and (
+            format_index is None
+            or _text(_cell(row, format_index)).casefold() == "число"
+        ):
             numeric_value = _decimal(_cell(row, characteristic_columns["Значення"]))
         specifications[sku].append(
             EtiSpecification(
