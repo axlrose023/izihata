@@ -752,3 +752,44 @@ test("catalog cards load before filters and spec values load on demand", async (
   await expect(group.getByRole("checkbox").first()).toBeVisible();
   expect(specRequests.size).toBe(2);
 });
+
+test("order retry after a lost response and reload keeps the same identity", async ({
+  page,
+}) => {
+  const keys: string[] = [];
+  const orderIds: string[] = [];
+  await page.route(/\/api\/v1\/orders$/, async (route) => {
+    keys.push(route.request().headers()["idempotency-key"]);
+    const response = await route.fetch();
+    expect(response.status()).toBe(201);
+    orderIds.push((await response.json()).id);
+    if (keys.length === 1) await route.abort("failed");
+    else await route.fulfill({ response });
+  });
+  await page.goto("/catalog");
+  await page.getByRole("button", { name: "Додати в кошик" }).first().click();
+  await continueToCheckout(page);
+  const fill = async () => {
+    await page.getByLabel("Ім’я та прізвище").fill("Retry Покупець");
+    await page.getByLabel("Email").fill("retry@example.com");
+    await page.getByLabel("Телефон").fill("+380501112244");
+    await page.getByText("Самовивіз", { exact: false }).click();
+    await expect(page.locator(".order-totals")).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Підтвердити замовлення" }),
+    ).toBeEnabled();
+    await page.getByRole("button", { name: "Підтвердити замовлення" }).click();
+  };
+  await fill();
+  await expect(
+    page.getByText(
+      "Немає зв’язку із сервером. Перевірте інтернет і повторіть.",
+    ),
+  ).toBeVisible();
+  await page.reload();
+  await fill();
+  await expect(page).toHaveURL(/\/order\/success/);
+  expect(keys).toHaveLength(2);
+  expect(keys[1]).toBe(keys[0]);
+  expect(orderIds[1]).toBe(orderIds[0]);
+});

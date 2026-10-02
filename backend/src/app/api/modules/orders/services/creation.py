@@ -32,6 +32,10 @@ class OrderCreationService:
             return self._resolve_existing(existing, digest)
 
         quote = await self._pricing.quote(request, customer_id=customer_id)
+        if request.expected_total is not None and request.expected_total != quote.total:
+            raise ConflictError(
+                "Order total has changed; review the new quote", code="quote_changed"
+            )
         payment_status = (
             PaymentStatus.NOT_REQUIRED
             if request.payment_method == PaymentMethod.CASH_ON_DELIVERY
@@ -88,5 +92,8 @@ class OrderCreationService:
 
     def _resolve_existing(self, order: Order, digest: str) -> OrderResponse:
         if order.request_hash != digest:
-            raise ConflictError("Idempotency key was already used for another request")
+            raise ConflictError(
+                "Idempotency key was already used for another request",
+                code="idempotency_conflict",
+            )
         return OrderResponse.from_order(order)

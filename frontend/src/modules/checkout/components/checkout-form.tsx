@@ -11,7 +11,11 @@ import { ProductVisual } from "@/modules/catalog/components/product-visual";
 import { DeliveryAutocomplete } from "@/modules/checkout/components/delivery-autocomplete";
 import { useCustomerAuth } from "@/modules/customers/customer-auth-context";
 import { apiClient } from "@/shared/api/client";
-import { getUserErrorMessage } from "@/shared/api/errors";
+import {
+  clearOrderRetry,
+  orderRetryKey,
+} from "@/modules/checkout/lib/order-retry";
+import { ApiError, getUserErrorMessage } from "@/shared/api/errors";
 import { useDebouncedValue } from "@/shared/lib/use-debounced-value";
 import { formatMoney } from "@/shared/lib/format";
 import type {
@@ -115,10 +119,6 @@ export function CheckoutForm() {
   const [selectedCityRef, setSelectedCityRef] = useState<string | null>(null);
   const [selectedPointRef, setSelectedPointRef] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [idempotency, setIdempotency] = useState<{
-    fingerprint: string;
-    key: string;
-  } | null>(null);
 
   useEffect(() => {
     if (customerStatus === "idle") void restore();
@@ -234,7 +234,7 @@ export function CheckoutForm() {
       setError("point", { message: "Оберіть відділення зі списку" });
       return;
     }
-    if (!quote.data || quoteIsStale) {
+    if (!quote.data || quoteIsStale || quote.isFetching || quote.isError) {
       setSubmitError("Дочекайтеся розрахунку замовлення");
       return;
     }
@@ -255,26 +255,31 @@ export function CheckoutForm() {
           ? { name: values.company_name, edrpou: values.edrpou }
           : null,
     };
-    const fingerprint = JSON.stringify(payload);
-    const requestIdentity =
-      idempotency?.fingerprint === fingerprint
-        ? idempotency
-        : { fingerprint, key: crypto.randomUUID() };
-    if (requestIdentity !== idempotency) setIdempotency(requestIdentity);
     setSubmitError(null);
     try {
+      const retryKey = await orderRetryKey(
+        JSON.stringify({
+          ...payload,
+          authenticated: customerStatus === "authenticated",
+        }),
+      );
       const send =
         customerStatus === "authenticated" ? customerRequest : apiClient;
       const order = await send<Order>("/orders", {
         method: "POST",
-        headers: { "Idempotency-Key": requestIdentity.key },
-        body: fingerprint,
+        headers: { "Idempotency-Key": retryKey },
+        body: JSON.stringify({ ...payload, expected_total: quote.data.total }),
       });
+      clearOrderRetry();
       clearCart();
       navigate(
         `/order/success?number=${encodeURIComponent(order.number)}&total=${encodeURIComponent(order.total)}&payment=${order.payment_method}`,
       );
     } catch (error) {
+      if (error instanceof ApiError && error.code === "quote_changed")
+        await quote.refetch();
+      if (error instanceof ApiError && error.code === "idempotency_conflict")
+        clearOrderRetry();
       setSubmitError(
         getUserErrorMessage(error, "Не вдалося створити замовлення"),
       );

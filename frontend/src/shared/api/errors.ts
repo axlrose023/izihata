@@ -58,6 +58,10 @@ export async function toApiError(response: Response): Promise<ApiError> {
 }
 
 const localizedMessages: Record<string, string> = {
+  quote_changed:
+    "Сума замовлення змінилася. Перегляньте нову суму й підтвердіть ще раз.",
+  idempotency_conflict:
+    "Дані замовлення змінилися. Перевірте форму й повторіть підтвердження.",
   conflict: "Дані вже були змінені. Оновіть сторінку та спробуйте ще раз.",
   delivery_provider_unavailable:
     "Автопідказки Нової пошти тимчасово недоступні. Введіть дані вручну.",

@@ -8,7 +8,10 @@ from app.api.modules.orders.schema import CreateOrderRequest
 
 def request_digest(request: CreateOrderRequest) -> str:
     payload = json.dumps(
-        request.model_dump(mode="json"),
+        # Quote acknowledgment is not part of the business request. A retry
+        # after a lost response must find the existing order even if prices
+        # changed while the customer reloaded checkout.
+        request.model_dump(mode="json", exclude={"expected_total"}),
         ensure_ascii=False,
         separators=(",", ":"),
         sort_keys=True,

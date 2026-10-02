@@ -179,3 +179,31 @@ class TestCreateOrder:
         assert response.json()["customer_name"] == "Олена Тест"
         assert response.json()["phone"] == "+380671234567"
         assert response.json()["delivery"]["city"] == "Київ"
+
+
+@pytest.mark.asyncio
+async def test_changed_quote_requires_acknowledgment_and_keeps_retry_identity(
+    client, product, order_payload, idempotency_key, uow
+):
+    from sqlalchemy import func, select
+
+    from app.api.modules.orders.models import Order
+
+    original_count = await uow.session.scalar(select(func.count(Order.id)))
+    payload = order_payload(product.id, expected_total="0.01")
+    headers = {"Idempotency-Key": idempotency_key}
+    changed = await client.post("/api/v1/orders", json=payload, headers=headers)
+    assert changed.status_code == 409
+    assert changed.json()["code"] == "quote_changed"
+    assert await uow.session.scalar(select(func.count(Order.id))) == original_count
+
+    payload["expected_total"] = "192.00"
+    accepted = await client.post("/api/v1/orders", json=payload, headers=headers)
+    assert accepted.status_code == 201, accepted.text
+    # A retry after a lost response finds the persisted order before repricing.
+    payload["expected_total"] = "193.00"
+    retry = await client.post("/api/v1/orders", json=payload, headers=headers)
+    assert retry.status_code == 201, retry.text
+    assert retry.json()["id"] == accepted.json()["id"]
+    assert retry.json()["total"] == "192.00"
+    assert await uow.session.scalar(select(func.count(Order.id))) == original_count + 1

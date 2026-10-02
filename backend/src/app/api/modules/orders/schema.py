@@ -49,6 +49,9 @@ class CompanyRequest(StrictSchema):
 
 
 class CreateOrderRequest(QuoteRequest):
+    expected_total: Decimal | None = Field(
+        default=None, ge=0, max_digits=12, decimal_places=2
+    )
     customer_name: str = Field(min_length=2, max_length=120)
     email: str | None = Field(default=None, min_length=3, max_length=254)
     phone: str
