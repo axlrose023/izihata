@@ -64,7 +64,8 @@
       "title": "Цена в боковой корзине может устареть",
       "status": "implemented",
       "checks": [
-        "14 cart/checkout regressions passed; opening the cart refreshes current product metadata without changing quantities or removing unavailable lines, checkout renders server quote unit prices; TypeScript/lint passed."
+        "14 cart/checkout regressions passed; opening the cart refreshes current product metadata without changing quantities or removing unavailable lines, checkout renders server quote unit prices; TypeScript/lint passed.",
+        "End-to-end cart assertion now checks the estimated sum label; final payable total remains authoritative in checkout."
       ]
     },
     {

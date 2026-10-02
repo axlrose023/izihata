@@ -384,7 +384,7 @@ test("the cart matches the delivery and totals artboard", async ({ page }) => {
 
   const drawer = page.locator(".drawer__panel");
   await expect(drawer.locator(".drawer__delivery-progress")).toBeVisible();
-  await expect(drawer.getByText("До сплати")).toBeVisible();
+  await expect(drawer.getByText("Орієнтовна сума")).toBeVisible();
   await expect(
     drawer.getByRole("button", { name: "Продовжити покупки" }),
   ).toBeVisible();
