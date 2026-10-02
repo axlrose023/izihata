@@ -218,9 +218,20 @@ export function CatalogPage({
 
       <Form action={basePath} className="catalog-mobile-search" method="get">
         <Search size={18} />
+        {[...searchParams.entries()]
+          .filter(([name]) => name !== "search" && name !== "page")
+          .map(([name, value], index) => (
+            <input
+              type="hidden"
+              name={name}
+              value={value}
+              key={`${name}-${index}`}
+            />
+          ))}
         <input
           aria-label="Пошук у каталозі"
           defaultValue={query.search}
+          key={query.search}
           minLength={2}
           name="search"
           placeholder="Знайти товар"

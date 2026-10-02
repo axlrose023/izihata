@@ -95,8 +95,10 @@
       "id": "R11",
       "priority": "P2",
       "title": "Мобильный поиск сбрасывает фильтры",
-      "status": "pending",
-      "checks": []
+      "status": "implemented",
+      "checks": [
+        "Mobile catalog search regression passed: repeated brands, specifications and sort retained while pagination resets; TypeScript and lint passed."
+      ]
     },
     {
       "id": "R12",
