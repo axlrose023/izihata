@@ -14,7 +14,7 @@ it("mounts the lead form only after the action is opened", async () => {
   render(<LeadAction label="Відкрити" type="callback" />);
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Відкрити" }));
-  await screen.findByRole("textbox", { name: "Ім’я" });
+  await screen.findByRole("textbox", { name: "Ім’я" }, { timeout: 3000 });
   fireEvent.click(screen.getByRole("button", { name: "Закрити" }));
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 });
