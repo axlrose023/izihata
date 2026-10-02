@@ -38,6 +38,7 @@ class Order(Base, UUIDIDMixin, DateTimeMixin):
         index=True,
     )
     customer_name: Mapped[str] = mapped_column(String(120))
+    email: Mapped[str | None] = mapped_column(String(254))
     phone: Mapped[str] = mapped_column(String(24), index=True)
     company_name: Mapped[str | None] = mapped_column(String(180))
     edrpou: Mapped[str | None] = mapped_column(String(10))

@@ -21,8 +21,12 @@ class OrderCreationService:
         request: CreateOrderRequest,
         idempotency_key: str,
         customer_id: UUID | None = None,
+        contact_email: str | None = None,
     ) -> OrderResponse:
-        digest = request_digest(request)
+        email = contact_email or request.email
+        if email is None:
+            raise ValueError("Order contact email is required")
+        digest = request_digest(request.model_copy(update={"email": email}))
         existing = await self._uow.orders.get_by_idempotency_key(idempotency_key)
         if existing:
             return self._resolve_existing(existing, digest)
@@ -41,6 +45,7 @@ class OrderCreationService:
             request_hash=digest,
             customer_id=customer_id,
             customer_name=request.customer_name,
+            email=email,
             phone=request.phone,
             company_name=company_name,
             edrpou=edrpou,

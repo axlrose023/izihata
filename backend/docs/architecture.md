@@ -103,7 +103,7 @@ Frontend cart IDs + quantities
      -> Decimal line totals, discount, total
   -> show authoritative quote
 
-Confirmed contact/delivery/payment data + same cart
+Confirmed contact (including guest email), delivery/payment data + same cart
   -> POST /orders with Idempotency-Key
      -> reject conflicting key reuse
      -> run the same PricingService again

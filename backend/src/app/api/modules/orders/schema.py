@@ -6,6 +6,7 @@ from pydantic import Field, field_validator, model_validator
 
 from app.api.common.schema import PaginationParams, StrictSchema
 from app.api.common.utils import (
+    normalize_email,
     normalize_optional_text,
     normalize_phone,
     normalize_text,
@@ -49,6 +50,7 @@ class CompanyRequest(StrictSchema):
 
 class CreateOrderRequest(QuoteRequest):
     customer_name: str = Field(min_length=2, max_length=120)
+    email: str | None = Field(default=None, min_length=3, max_length=254)
     phone: str
     delivery: DeliveryRequest
     payment_method: PaymentMethod
@@ -58,6 +60,11 @@ class CreateOrderRequest(QuoteRequest):
     @classmethod
     def normalize_customer_name(cls, value: object) -> str:
         return normalize_text(value)
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def normalize_customer_email(cls, value: object | None) -> str | None:
+        return normalize_email(value) if value is not None else None
 
     @field_validator("phone", mode="before")
     @classmethod
@@ -84,6 +91,7 @@ class OrderResponse(StrictSchema):
     id: UUID
     number: str
     customer_name: str
+    email: str | None
     phone: str
     company: CompanyRequest | None
     delivery: DeliveryRequest
@@ -106,6 +114,7 @@ class OrderResponse(StrictSchema):
             id=order.id,
             number=order.number,
             customer_name=order.customer_name,
+            email=order.email,
             phone=order.phone,
             company=company,
             delivery=DeliveryRequest(
@@ -143,6 +152,7 @@ class OrderSummaryResponse(StrictSchema):
     id: UUID
     number: str
     customer_name: str
+    email: str | None
     phone: str
     delivery: DeliveryRequest
     payment_method: PaymentMethod
@@ -157,6 +167,7 @@ class OrderSummaryResponse(StrictSchema):
             id=order.id,
             number=order.number,
             customer_name=order.customer_name,
+            email=order.email,
             phone=order.phone,
             delivery=DeliveryRequest(
                 method=order.delivery_method,

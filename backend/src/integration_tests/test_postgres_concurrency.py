@@ -34,6 +34,7 @@ async def create_test_order(idempotency_key: str) -> OrderResponse:
             {
                 "items": [{"product_id": str(product_id), "quantity": 1}],
                 "customer_name": "Postgres Test",
+                "email": "postgres@example.com",
                 "phone": "+380671234567",
                 "delivery": {"method": "pickup"},
                 "payment_method": "cash_on_delivery",

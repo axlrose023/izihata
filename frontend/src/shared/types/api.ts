@@ -226,6 +226,7 @@ export interface Order {
   id: string;
   number: string;
   customer_name: string;
+  email: string | null;
   phone: string;
   company: { name: string; edrpou: string } | null;
   delivery: Delivery;
@@ -251,6 +252,7 @@ export interface OrderSummary {
   id: string;
   number: string;
   customer_name: string;
+  email: string | null;
   phone: string;
   delivery: Delivery;
   payment_method: PaymentMethod;

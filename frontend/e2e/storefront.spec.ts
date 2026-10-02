@@ -230,6 +230,7 @@ test("cart receives an authoritative quote and creates an order", async ({
     "Оформлення замовлення",
   );
   await page.getByLabel("Ім’я та прізвище").fill("QA Покупець");
+  await page.getByLabel("Email").fill("qa@example.com");
   await page.getByLabel("Телефон").fill("+380501112233");
   await page.getByText("Самовивіз", { exact: false }).click();
   await expect(page.locator(".order-totals")).toBeVisible();

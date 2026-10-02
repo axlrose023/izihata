@@ -4,6 +4,7 @@ from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
 from fastapi import APIRouter, Depends, Header, Request
 
+from app.api.common.exceptions import UnprocessableError
 from app.api.common.rate_limit import ORDER_RATE_LIMIT, RateLimit
 from app.api.common.visitor import visitor_key_from
 from app.api.modules.activity.service import VisitorTrackingService
@@ -37,10 +38,17 @@ async def create_order(
     ],
     customer: Customer | None = Depends(OptionalAuthenticateCustomer()),
 ) -> OrderResponse:
+    contact_email = customer.email if customer is not None else request.email
+    if contact_email is None:
+        raise UnprocessableError(
+            "Email is required for guest checkout",
+            code="order_email_required",
+        )
     order = await service.create_order(
         request,
         idempotency_key,
         customer_id=customer.id if customer is not None else None,
+        contact_email=contact_email,
     )
     await tracking.record_contact(
         visitor_key_from(http_request),

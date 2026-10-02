@@ -98,6 +98,7 @@ export function OrdersView() {
               <td>
                 <span>{order.customer_name}</span>
                 <small>{order.phone}</small>
+                {order.email ? <small>{order.email}</small> : null}
               </td>
               <td>
                 <span>

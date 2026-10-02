@@ -9,6 +9,7 @@ import { z } from "zod";
 import { useCartStore } from "@/modules/cart/store";
 import { ProductVisual } from "@/modules/catalog/components/product-visual";
 import { DeliveryAutocomplete } from "@/modules/checkout/components/delivery-autocomplete";
+import { useCustomerAuth } from "@/modules/customers/customer-auth-context";
 import { apiClient } from "@/shared/api/client";
 import { getUserErrorMessage } from "@/shared/api/errors";
 import { useDebouncedValue } from "@/shared/lib/use-debounced-value";
@@ -35,63 +36,73 @@ const deliveryOptions = [
   { value: "pickup", label: "Самовивіз", detail: "За погодженням" },
 ] as const;
 
-const checkoutSchema = z
-  .object({
-    customer_name: z.string().trim().min(2, "Вкажіть ім’я").max(120),
-    phone: z
-      .string()
-      .trim()
-      .regex(/^\+?[0-9 ()-]{10,20}$/, "Вкажіть коректний номер"),
-    delivery_method: z.enum([
-      "nova_poshta_branch",
-      "nova_poshta_locker",
-      "pickup",
-    ]),
-    city: z.string().trim().max(120),
-    point: z.string().trim().max(200),
-    payment_method: z.enum(["cash_on_delivery", "card", "invoice"]),
-    company_name: z.string().trim().max(180),
-    edrpou: z.string().trim(),
-  })
-  .superRefine((values, context) => {
-    if (values.delivery_method !== "pickup") {
-      if (values.city.length < 2) {
+const checkoutSchema = (requireEmail: boolean) =>
+  z
+    .object({
+      customer_name: z.string().trim().min(2, "Вкажіть ім’я").max(120),
+      email: z.string().trim().max(254),
+      phone: z
+        .string()
+        .trim()
+        .regex(/^\+?[0-9 ()-]{10,20}$/, "Вкажіть коректний номер"),
+      delivery_method: z.enum([
+        "nova_poshta_branch",
+        "nova_poshta_locker",
+        "pickup",
+      ]),
+      city: z.string().trim().max(120),
+      point: z.string().trim().max(200),
+      payment_method: z.enum(["cash_on_delivery", "card", "invoice"]),
+      company_name: z.string().trim().max(180),
+      edrpou: z.string().trim(),
+    })
+    .superRefine((values, context) => {
+      if (requireEmail && !z.email().safeParse(values.email).success) {
         context.addIssue({
           code: "custom",
-          path: ["city"],
-          message: "Вкажіть місто",
+          path: ["email"],
+          message: values.email ? "Вкажіть коректний email" : "Вкажіть email",
         });
       }
-      if (!values.point) {
-        context.addIssue({
-          code: "custom",
-          path: ["point"],
-          message: "Вкажіть відділення",
-        });
+      if (values.delivery_method !== "pickup") {
+        if (values.city.length < 2) {
+          context.addIssue({
+            code: "custom",
+            path: ["city"],
+            message: "Вкажіть місто",
+          });
+        }
+        if (!values.point) {
+          context.addIssue({
+            code: "custom",
+            path: ["point"],
+            message: "Вкажіть відділення",
+          });
+        }
       }
-    }
-    if (values.payment_method === "invoice") {
-      if (values.company_name.length < 2) {
-        context.addIssue({
-          code: "custom",
-          path: ["company_name"],
-          message: "Вкажіть компанію",
-        });
+      if (values.payment_method === "invoice") {
+        if (values.company_name.length < 2) {
+          context.addIssue({
+            code: "custom",
+            path: ["company_name"],
+            message: "Вкажіть компанію",
+          });
+        }
+        if (!/^\d{8,10}$/.test(values.edrpou)) {
+          context.addIssue({
+            code: "custom",
+            path: ["edrpou"],
+            message: "ЄДРПОУ: 8–10 цифр",
+          });
+        }
       }
-      if (!/^\d{8,10}$/.test(values.edrpou)) {
-        context.addIssue({
-          code: "custom",
-          path: ["edrpou"],
-          message: "ЄДРПОУ: 8–10 цифр",
-        });
-      }
-    }
-  });
+    });
 
-type CheckoutValues = z.infer<typeof checkoutSchema>;
+type CheckoutValues = z.infer<ReturnType<typeof checkoutSchema>>;
 
 export function CheckoutForm() {
   const navigate = useNavigate();
+  const { status: customerStatus, restore } = useCustomerAuth();
   const lines = useCartStore((state) => state.lines);
   const clearCart = useCartStore((state) => state.clear);
   const [promoInput, setPromoInput] = useState("");
@@ -103,6 +114,11 @@ export function CheckoutForm() {
     fingerprint: string;
     key: string;
   } | null>(null);
+
+  useEffect(() => {
+    if (customerStatus === "idle") void restore();
+  }, [customerStatus, restore]);
+
   const {
     register,
     control,
@@ -111,9 +127,10 @@ export function CheckoutForm() {
     setValue,
     formState: { errors, isSubmitting },
   } = useForm<CheckoutValues>({
-    resolver: zodResolver(checkoutSchema),
+    resolver: zodResolver(checkoutSchema(customerStatus !== "authenticated")),
     defaultValues: {
       customer_name: "",
+      email: "",
       phone: "+380",
       delivery_method: "nova_poshta_branch",
       city: "",
@@ -216,6 +233,7 @@ export function CheckoutForm() {
       items,
       promo_code: promoCode,
       customer_name: values.customer_name,
+      email: customerStatus === "authenticated" ? undefined : values.email,
       phone: values.phone,
       delivery: {
         method: values.delivery_method,
@@ -276,6 +294,19 @@ export function CheckoutForm() {
                 />
                 {errors.phone ? <small>{errors.phone.message}</small> : null}
               </label>
+              {customerStatus !== "authenticated" ? (
+                <label className="field checkout-email-field">
+                  <span>Email</span>
+                  <input
+                    autoComplete="email"
+                    inputMode="email"
+                    required
+                    type="email"
+                    {...register("email")}
+                  />
+                  {errors.email ? <small>{errors.email.message}</small> : null}
+                </label>
+              ) : null}
             </div>
           </div>
         </section>
@@ -302,8 +333,14 @@ export function CheckoutForm() {
                     checked={deliveryMethod === option.value}
                   />
                   <span>
-                    {option.label}
-                    <br />
+                    <strong className="checkout-delivery-choice__title">
+                      {option.value === "pickup" ? null : (
+                        <em aria-hidden="true" className="nova-poshta-mark">
+                          НП
+                        </em>
+                      )}
+                      {option.label}
+                    </strong>
                     <small>{option.detail}</small>
                   </span>
                 </label>
