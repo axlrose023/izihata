@@ -61,6 +61,8 @@ services:
       - proxy
     labels:
       traefik.enable: "true"
+      traefik.http.middlewares.izihata-compress.compress: "true"
+      traefik.http.middlewares.izihata-compress.compress.includedContentTypes: text/html,text/plain,text/css,text/javascript,application/javascript,application/json,application/xml,image/svg+xml
       traefik.http.middlewares.izihata-security.headers.stsSeconds: "31536000"
       traefik.http.middlewares.izihata-security.headers.stsIncludeSubdomains: "true"
       traefik.http.middlewares.izihata-security.headers.contentTypeNosniff: "true"
@@ -80,7 +82,7 @@ services:
       traefik.http.routers.izihata-api.entrypoints: websecure
       traefik.http.routers.izihata-api.tls.certresolver: letsencrypt
       traefik.http.routers.izihata-api.priority: "100"
-      traefik.http.routers.izihata-api.middlewares: izihata-security@docker
+      traefik.http.routers.izihata-api.middlewares: izihata-security@docker,izihata-compress@docker
       traefik.http.services.izihata-api.loadbalancer.server.port: "8000"
       traefik.http.services.izihata-api.loadbalancer.healthcheck.path: /ready
       traefik.http.services.izihata-api.loadbalancer.healthcheck.hostname: izihata.com.ua
@@ -116,7 +118,7 @@ services:
       traefik.http.routers.izihata.rule: Host(`izihata.com.ua`)
       traefik.http.routers.izihata.entrypoints: websecure
       traefik.http.routers.izihata.tls.certresolver: letsencrypt
-      traefik.http.routers.izihata.middlewares: izihata-security@docker
+      traefik.http.routers.izihata.middlewares: izihata-security@docker,izihata-compress@docker
       traefik.http.services.izihata.loadbalancer.server.port: "3000"
       traefik.http.routers.izihata-www.rule: Host(`www.izihata.com.ua`)
       traefik.http.routers.izihata-www.entrypoints: websecure
