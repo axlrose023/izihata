@@ -10,14 +10,20 @@ report="$(mktemp "$state_dir/.health.XXXXXX")"
 trap 'rm -f -- "$report"' EXIT
 failed=0
 for service in app frontend db cache tasks scheduler; do
-  container="$("${compose[@]}" ps --all -q "$service")"
-  if [[ -z "$container" ]]; then
-    status=missing
-  else
+  statuses=()
+  while IFS= read -r container; do
+    [[ -n "$container" ]] || continue
+    oneoff="$(docker inspect --format '{{index .Config.Labels "com.docker.compose.oneoff"}}' "$container" 2>/dev/null)" || continue
+    [[ "$oneoff" != True && "$oneoff" != true ]] || continue
     status="$(docker inspect --format '{{.State.Status}}/{{if .State.Health}}{{.State.Health.Status}}{{else}}no-healthcheck{{end}}' "$container")"
+    statuses+=("$status")
+    [[ "$status" == running/healthy ]] || failed=1
+  done < <("${compose[@]}" ps --all -q "$service")
+  if [[ "${#statuses[@]}" == 0 ]]; then
+    statuses=(missing)
+    failed=1
   fi
-  printf '%s: %s\n' "$service" "$status" >> "$report"
-  [[ "$status" == running/healthy ]] || failed=1
+  printf '%s: %s\n' "$service" "${statuses[*]}" >> "$report"
 done
 if curl --fail --silent --show-error --max-time 15 'https://izihata.com.ua/api/v1/catalog/products?include_facets=false&page_size=1' > /dev/null 2>&1; then
   printf 'public catalog: ok\n' >> "$report"

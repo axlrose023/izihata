@@ -269,6 +269,15 @@
       "title": "Настроить реальные товарные подборки главной",
       "status": "pending",
       "checks": []
+    },
+    {
+      "id": "R25",
+      "priority": "P2",
+      "title": "Проверка прод-сервисов включает одноразовые CLI-контейнеры",
+      "status": "implemented",
+      "checks": [
+        "Found during production verification with isolated media worker; shell syntax checked, one-off containers excluded while every regular instance is checked."
+      ]
     }
   ],
   "deployments": [
