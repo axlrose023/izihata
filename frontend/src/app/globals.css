@@ -2249,8 +2249,7 @@ h2 {
 .catalog-filters-backdrop,
 .filters__close,
 .filters__done,
-.filters__footer,
-.filters__more {
+.filters__footer {
   display: none;
 }
 .filters__title {
@@ -2276,6 +2275,17 @@ h2 {
   background: var(--accent);
   font-size: 0.69rem;
   font-weight: 600;
+}
+.filters__more {
+  width: 100%;
+  display: block;
+  margin: 16px 0 10px;
+  padding: 0;
+  color: var(--blue);
+  border: 0;
+  background: transparent;
+  font-weight: 800;
+  text-align: left;
 }
 .filters__body {
   padding: 0 16px 18px;
@@ -6059,17 +6069,6 @@ h2 {
   }
   .filters__secondary[data-open] {
     display: block;
-  }
-  .filters__more {
-    width: 100%;
-    display: block;
-    margin: 16px 0 10px;
-    padding: 0;
-    color: var(--blue);
-    border: 0;
-    background: transparent;
-    font-weight: 800;
-    text-align: left;
   }
   .filters__footer {
     flex-shrink: 0;
