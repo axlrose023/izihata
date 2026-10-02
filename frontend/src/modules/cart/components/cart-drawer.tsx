@@ -9,10 +9,12 @@ import {
 } from "@/shared/lib/format";
 import { useBodyScrollLock } from "@/shared/lib/use-body-scroll-lock";
 import { useCloseOnEscape } from "@/shared/lib/use-close-on-escape";
-import { cartCount, useCartStore } from "../store";
+import { cartCount, MAX_CART_LINES, useCartStore } from "../store";
+import { useCartPrices } from "../use-cart-prices";
 
 export function CartDrawer() {
   const { lines, isOpen, close, remove, setQuantity, error } = useCartStore();
+  const prices = useCartPrices();
   useBodyScrollLock(isOpen);
   useCloseOnEscape(isOpen, close);
   const total = lines.reduce(
@@ -51,6 +53,22 @@ export function CartDrawer() {
             <X size={20} />
           </button>
         </header>
+        {prices.isFetching && lines.length ? (
+          <p role="status">Оновлюємо ціни та наявність…</p>
+        ) : null}
+        {prices.isError ? (
+          <p role="alert">
+            Не вдалося оновити ціни.{" "}
+            <button type="button" onClick={() => void prices.refetch()}>
+              Повторити
+            </button>
+          </p>
+        ) : null}
+        {prices.unavailable.length ? (
+          <p role="alert">
+            Деякі товари недоступні. Видаліть їх, щоб оформити замовлення.
+          </p>
+        ) : null}
         {error ? (
           <p className="form-error" role="alert">
             {error}
@@ -85,6 +103,9 @@ export function CartDrawer() {
                           {product.name}
                         </Link>
                         <small>{product.sku}</small>
+                        {prices.unavailable.includes(product.id) ? (
+                          <small>Товар недоступний</small>
+                        ) : null}
                       </div>
                       <button
                         aria-label="Видалити товар"
@@ -138,16 +159,29 @@ export function CartDrawer() {
                   Доставка <b>за тарифом перевізника</b>
                 </span>
                 <strong>
-                  До сплати <b>{formatMoney(total)}</b>
+                  Орієнтовна сума <b>{formatMoney(total)}</b>
                 </strong>
               </div>
-              <Link
-                className="button button--primary button--wide"
-                to="/checkout"
-                onClick={close}
-              >
-                Оформити замовлення
-              </Link>
+              <p className="inline-note">
+                Знижки та остаточну суму розрахуємо під час оформлення.
+              </p>
+              {prices.unavailable.length || lines.length > MAX_CART_LINES ? (
+                <button
+                  className="button button--primary button--wide"
+                  disabled
+                  type="button"
+                >
+                  Оформити замовлення
+                </button>
+              ) : (
+                <Link
+                  className="button button--primary button--wide"
+                  to="/checkout"
+                  onClick={close}
+                >
+                  Оформити замовлення
+                </Link>
+              )}
               <button
                 className="button button--outline button--wide"
                 onClick={close}

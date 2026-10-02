@@ -108,3 +108,21 @@ describe("cart store", () => {
     expect(useCartStore.getState().lines).toHaveLength(99);
   });
 });
+
+it("refreshes current prices without changing quantities or reviving removed products", () => {
+  const store = useCartStore.getState();
+  store.clear();
+  store.add(product, 3);
+  const second = { ...product, id: "second" };
+  store.add(second, 2);
+  store.remove(second.id);
+  store.refreshProducts(
+    [{ ...product, price: "120.00" }, second],
+    [product.id, second.id],
+  );
+  expect(useCartStore.getState().lines).toEqual([
+    { product: { ...product, price: "120.00" }, quantity: 3 },
+  ]);
+  store.refreshProducts([], [product.id]);
+  expect(useCartStore.getState().lines).toHaveLength(1);
+});

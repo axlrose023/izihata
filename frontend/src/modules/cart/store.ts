@@ -17,6 +17,7 @@ interface CartState {
   error: string | null;
   add: (product: Product, quantity?: number) => boolean;
   addMany: (lines: CartLine[]) => boolean;
+  refreshProducts: (products: Product[], requestedIds: string[]) => void;
   remove: (productId: string) => void;
   setQuantity: (productId: string, quantity: number) => void;
   clear: () => void;
@@ -64,6 +65,21 @@ export const useCartStore = create<CartState>()(
         });
         return accepted;
       },
+      refreshProducts: (products, requestedIds) =>
+        set((state) => {
+          const current = new Map(
+            products.map((product) => [product.id, product]),
+          );
+          const requested = new Set(requestedIds);
+          return {
+            lines: state.lines.map((line) => {
+              const product = requested.has(line.product.id)
+                ? current.get(line.product.id)
+                : undefined;
+              return product ? { ...line, product } : line;
+            }),
+          };
+        }),
       remove: (productId) =>
         set((state) => ({
           lines: state.lines.filter((line) => line.product.id !== productId),

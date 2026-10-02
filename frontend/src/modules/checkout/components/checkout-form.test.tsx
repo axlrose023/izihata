@@ -240,3 +240,18 @@ it("retains the applied promo through temporary failures and retries explicitly"
     vi.useRealTimers();
   }
 });
+
+it("shows server unit prices instead of stale persisted prices", async () => {
+  useCartStore.setState({
+    lines: [{ product: { ...product, price: "999.00" }, quantity: 1 }],
+  });
+  const { container } = renderForm();
+  await waitFor(() =>
+    expect(
+      container.querySelector(".order-summary__line")?.textContent,
+    ).toContain("100"),
+  );
+  expect(
+    container.querySelector(".order-summary__line")?.textContent,
+  ).not.toContain("999");
+});

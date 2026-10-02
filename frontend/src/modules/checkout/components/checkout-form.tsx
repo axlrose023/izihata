@@ -537,27 +537,34 @@ export function CheckoutForm() {
           </p>
         ) : null}
         <div className="order-summary__items">
-          {lines.map((line) => (
-            <div className="order-summary__line" key={line.product.id}>
-              <span className="order-summary__visual">
-                <ProductVisual
-                  imageSizes="80px"
-                  iconSize={20}
-                  product={line.product}
-                />
-              </span>
-              <span className="order-summary__line-name">
-                {line.product.name}
-                <small>
-                  {formatMoney(line.product.price)} × {line.quantity}
-                  {line.product.sale_unit === "meter" ? " м" : " шт"}
-                </small>
-              </span>
-              <strong>
-                {formatMoney(Number(line.product.price) * line.quantity)}
-              </strong>
-            </div>
-          ))}
+          {lines.map((line) => {
+            const priced =
+              !quoteIsStale && !quote.isError
+                ? quote.data?.items.find(
+                    (item) => item.product_id === line.product.id,
+                  )
+                : undefined;
+            return (
+              <div className="order-summary__line" key={line.product.id}>
+                <span className="order-summary__visual">
+                  <ProductVisual
+                    imageSizes="80px"
+                    iconSize={20}
+                    product={line.product}
+                  />
+                </span>
+                <span className="order-summary__line-name">
+                  {line.product.name}
+                  <small>
+                    {priced ? formatMoney(priced.unit_price) : "—"} ×{" "}
+                    {line.quantity}
+                    {line.product.sale_unit === "meter" ? " м" : " шт"}
+                  </small>
+                </span>
+                <strong>{priced ? formatMoney(priced.total) : "—"}</strong>
+              </div>
+            );
+          })}
         </div>
         <div className="promo-form">
           <input
