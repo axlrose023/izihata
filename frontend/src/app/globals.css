@@ -2384,6 +2384,32 @@ h2 {
   background: #fff;
   font-size: 0.76rem;
 }
+.filter-spec {
+  border-bottom: 1px solid var(--line);
+}
+.filter-spec summary {
+  padding: 15px 0;
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 750;
+}
+.filter-spec summary:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+.filter-spec summary small {
+  color: var(--muted);
+  font-weight: 500;
+}
+.filter-spec fieldset {
+  padding-top: 0;
+}
+.facet-search__hint {
+  display: block;
+  margin: -4px 0 8px;
+  color: var(--muted);
+  font-size: 0.68rem;
+}
 .filter-options__empty {
   margin: 4px 0 0;
   color: var(--muted);

@@ -58,7 +58,7 @@ export function CatalogFilters({
 }: CatalogFiltersProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [isOpen, setIsOpen] = useState(false);
-  const [moreFiltersOpen, setMoreFiltersOpen] = useState(false);
+  const [moreFiltersOpen, setMoreFiltersOpen] = useState(query.spec.length > 0);
   useBodyScrollLock(isOpen);
   const activeBrands = new Set(query.brand);
   const activeSpecs = new Set(query.spec);
@@ -191,68 +191,84 @@ export function CatalogFilters({
             }
             options={facets.availability}
           />
-          <div
-            className="filters__secondary"
-            data-open={moreFiltersOpen || undefined}
-          >
-            <FacetOptions
-              activeValues={activeSaleUnits}
-              label="Одиниця продажу"
-              name="sale_unit"
-              onToggle={toggleMulti}
-              optionLabel={(value) =>
-                saleUnitLabels[value as SaleUnit] ?? value
-              }
-              options={facets.sale_units}
-            />
-            {Object.entries(facets.specs)
-              .filter(
-                ([key]) =>
-                  key.toLocaleLowerCase("uk") !== "серія" ||
-                  activeBrands.size > 0,
-              )
-              .map(([key, options]) => {
-                const isSeries = key.toLocaleLowerCase("uk") === "серія";
-                return (
-                  <fieldset key={key}>
-                    <legend>{key}</legend>
-                    {isSeries ? (
-                      <p className="filter-series-note">
-                        Вибір серії покаже всі сумісні елементи цього дизайну.
-                      </p>
-                    ) : null}
-                    <div className="filter-options">
-                      {options.map((option) => {
-                        const value = `${key}:${option.value}`;
-                        return (
-                          <label key={value}>
-                            <input
-                              checked={activeSpecs.has(value)}
-                              onChange={(event) =>
-                                toggleMulti("spec", value, event.target.checked)
-                              }
-                              type="checkbox"
-                            />
-                            <span>{option.value}</span>
-                            <small>{option.count}</small>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  </fieldset>
-                );
-              })}
-            <label className="stock-filter">
-              <input
-                checked={query.in_stock === "true"}
-                onChange={(event) =>
-                  setSingle("in_stock", event.target.checked ? "true" : "")
+          {moreFiltersOpen ? (
+            <div className="filters__secondary" data-open>
+              <FacetOptions
+                activeValues={activeSaleUnits}
+                label="Одиниця продажу"
+                name="sale_unit"
+                onToggle={toggleMulti}
+                optionLabel={(value) =>
+                  saleUnitLabels[value as SaleUnit] ?? value
                 }
-                type="checkbox"
+                options={facets.sale_units}
               />
-              Лише в наявності
-            </label>
-          </div>
+              {Object.entries(facets.specs)
+                .filter(
+                  ([key]) =>
+                    key.toLocaleLowerCase("uk") !== "серія" ||
+                    activeBrands.size > 0,
+                )
+                .map(([key, options]) => {
+                  const isSeries = key.toLocaleLowerCase("uk") === "серія";
+                  const hasActive = options.some(({ value }) =>
+                    activeSpecs.has(`${key}:${value}`),
+                  );
+                  return (
+                    <details
+                      className="filter-spec"
+                      key={key}
+                      defaultOpen={hasActive}
+                    >
+                      <summary>
+                        {key} <small>({options.length})</small>
+                      </summary>
+                      <fieldset>
+                        <legend className="visually-hidden">{key}</legend>
+                        {isSeries ? (
+                          <p className="filter-series-note">
+                            Вибір серії покаже всі сумісні елементи цього
+                            дизайну.
+                          </p>
+                        ) : null}
+                        <div className="filter-options">
+                          {options.map((option) => {
+                            const value = `${key}:${option.value}`;
+                            return (
+                              <label key={value}>
+                                <input
+                                  checked={activeSpecs.has(value)}
+                                  onChange={(event) =>
+                                    toggleMulti(
+                                      "spec",
+                                      value,
+                                      event.target.checked,
+                                    )
+                                  }
+                                  type="checkbox"
+                                />
+                                <span>{option.value}</span>
+                                <small>{option.count}</small>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </fieldset>
+                    </details>
+                  );
+                })}
+              <label className="stock-filter">
+                <input
+                  checked={query.in_stock === "true"}
+                  onChange={(event) =>
+                    setSingle("in_stock", event.target.checked ? "true" : "")
+                  }
+                  type="checkbox"
+                />
+                Лише в наявності
+              </label>
+            </div>
+          ) : null}
           <button
             aria-expanded={moreFiltersOpen}
             className="filters__more"
@@ -399,12 +415,23 @@ function FacetOptions({
   if (!options.length) return null;
   // Брендів десятки, тож довгий список отримує власний пошук (артборд Catalog).
   const searchable = options.length > 8;
-  const shown = searchable
+  const matches = searchable
     ? options.filter((option) =>
         option.value
           .toLocaleLowerCase("uk")
           .includes(search.toLocaleLowerCase("uk")),
       )
+    : options;
+  const shown = searchable
+    ? search
+      ? matches.slice(0, 100)
+      : [
+          ...options.filter((option) => activeValues.has(option.value)),
+          ...options.slice(0, 8),
+        ].filter(
+          (option, index, all) =>
+            all.findIndex((item) => item.value === option.value) === index,
+        )
     : options;
   return (
     <fieldset>
@@ -418,6 +445,13 @@ function FacetOptions({
           type="search"
           value={search}
         />
+      ) : null}
+      {searchable ? (
+        <small className="facet-search__hint">
+          {search
+            ? `Знайдено ${matches.length}; показано ${shown.length}`
+            : `Показано ${shown.length} з ${options.length}. Уточніть пошук.`}
+        </small>
       ) : null}
       <div className="filter-options">
         {shown.map((option) => (
@@ -433,7 +467,7 @@ function FacetOptions({
             <small>{option.count}</small>
           </label>
         ))}
-        {searchable && !shown.length ? (
+        {searchable && search && !shown.length ? (
           <p className="filter-options__empty">Нічого не знайдено</p>
         ) : null}
       </div>
