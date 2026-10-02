@@ -5641,6 +5641,19 @@ h2 {
   border: 0;
   outline: 0;
 }
+.admin-order-items {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 12px 18px;
+  list-style: none;
+}
+.admin-order-items li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 16px;
+  align-items: baseline;
+}
 .admin-table-wrap {
   overflow: auto;
   border: 1px solid var(--line);

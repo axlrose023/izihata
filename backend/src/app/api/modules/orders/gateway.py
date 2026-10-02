@@ -27,6 +27,12 @@ class OrderGateway:
         )
         return (await self._session.execute(stmt)).scalar_one_or_none()
 
+    async def get_by_id(self, order_id: UUID) -> Order | None:
+        stmt = (
+            select(Order).where(Order.id == order_id).options(selectinload(Order.items))
+        )
+        return (await self._session.execute(stmt)).scalar_one_or_none()
+
     async def get_by_id_for_update(self, order_id: UUID) -> Order | None:
         stmt = (
             select(Order)

@@ -37,6 +37,12 @@ class OrderManagementService:
             has_prev=params.page > 1,
         )
 
+    async def get_order(self, order_id: UUID) -> OrderResponse:
+        order = await self._uow.orders.get_by_id(order_id)
+        if order is None:
+            raise NotFoundError("Order not found")
+        return OrderResponse.from_order(order)
+
     async def update_status(
         self,
         order_id: UUID,

@@ -43,8 +43,14 @@ function OrderAction({ order }: { order: OrderSummary }) {
         method: "PATCH",
         body: JSON.stringify({ status }),
       }),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["admin", "orders"] }),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["admin", "orders"] }),
+        queryClient.invalidateQueries({
+          queryKey: ["admin", "order", order.id],
+        }),
+      ]);
+    },
   });
   const options = transitions[order.status];
   return (
@@ -56,6 +62,88 @@ function OrderAction({ order }: { order: OrderSummary }) {
       options={options}
       pending={mutation.isPending}
     />
+  );
+}
+
+function OrderRow({ order }: { order: OrderSummary }) {
+  const { request } = useAuth();
+  const [expanded, setExpanded] = useState(false);
+  const detail = useQuery({
+    queryKey: ["admin", "order", order.id],
+    enabled: expanded,
+    queryFn: () => request<Order>(`/admin/orders/${order.id}`),
+  });
+  return (
+    <>
+      <tr>
+        <td>
+          <button
+            aria-expanded={expanded}
+            onClick={() => setExpanded((value) => !value)}
+            type="button"
+          >
+            <strong>{order.number}</strong>
+          </button>
+          <small>{formatDate(order.created_at)}</small>
+        </td>
+        <td>
+          <span>{order.customer_name}</span>
+          <small>{order.phone}</small>
+          {order.email ? <small>{order.email}</small> : null}
+        </td>
+        <td>
+          <span>
+            {order.delivery.method === "pickup"
+              ? "Самовивіз"
+              : order.delivery.city}
+          </span>
+          <small>{order.delivery.point ?? "За погодженням"}</small>
+        </td>
+        <td>
+          <strong>{formatMoney(order.total)}</strong>
+          <small>
+            <StatusBadge status={order.payment_status} />
+          </small>
+        </td>
+        <td>
+          <StatusBadge status={order.status} />
+        </td>
+        <td>
+          <OrderAction order={order} />
+        </td>
+      </tr>
+      {expanded ? (
+        <tr>
+          <td colSpan={6}>
+            {detail.isPending ? (
+              <span>Завантажуємо склад замовлення…</span>
+            ) : null}
+            {detail.isError ? (
+              <ErrorNotice
+                error={detail.error}
+                fallback="Не вдалося завантажити склад замовлення."
+                onRetry={() => void detail.refetch()}
+              />
+            ) : null}
+            {detail.data ? (
+              <ul className="admin-order-items">
+                {detail.data.items.map((item) => (
+                  <li key={`${item.product_id}:${item.sku}`}>
+                    <span>
+                      {item.product_name} · {item.sku}
+                    </span>
+                    <span>
+                      {item.quantity} × {formatMoney(item.unit_price)}
+                    </span>
+                    <strong>{formatMoney(item.total)}</strong>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </td>
+        </tr>
+      ) : null}
+    </>
   );
 }
 
@@ -96,37 +184,7 @@ export function OrdersView() {
           </thead>
           <tbody>
             {data?.items.map((order) => (
-              <tr key={order.id}>
-                <td>
-                  <strong>{order.number}</strong>
-                  <small>{formatDate(order.created_at)}</small>
-                </td>
-                <td>
-                  <span>{order.customer_name}</span>
-                  <small>{order.phone}</small>
-                  {order.email ? <small>{order.email}</small> : null}
-                </td>
-                <td>
-                  <span>
-                    {order.delivery.method === "pickup"
-                      ? "Самовивіз"
-                      : order.delivery.city}
-                  </span>
-                  <small>{order.delivery.point ?? "За погодженням"}</small>
-                </td>
-                <td>
-                  <strong>{formatMoney(order.total)}</strong>
-                  <small>
-                    <StatusBadge status={order.payment_status} />
-                  </small>
-                </td>
-                <td>
-                  <StatusBadge status={order.status} />
-                </td>
-                <td>
-                  <OrderAction order={order} />
-                </td>
-              </tr>
+              <OrderRow key={order.id} order={order} />
             ))}
           </tbody>
         </table>

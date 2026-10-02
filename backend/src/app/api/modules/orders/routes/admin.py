@@ -27,6 +27,15 @@ async def get_orders(
     return await service.list_orders(params)
 
 
+@router.get("/{order_id}", response_model=OrderResponse)
+async def get_order(
+    order_id: UUID,
+    service: FromDishka[OrderManagementService],
+    current_user: User = Depends(AuthenticateUser()),
+) -> OrderResponse:
+    return await service.get_order(order_id)
+
+
 @router.patch("/{order_id}/status", response_model=OrderResponse)
 async def update_order_status(
     order_id: UUID,
