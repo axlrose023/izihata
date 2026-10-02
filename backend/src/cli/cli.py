@@ -630,7 +630,7 @@ def retry_dead_outbox(
 
 @app.command("image-variants")
 def image_variants(
-    concurrency: Annotated[int, typer.Option(min=1, max=8)] = 2,
+    concurrency: Annotated[int, typer.Option(min=1, max=16)] = 2,
     limit: Annotated[int | None, typer.Option(min=1)] = None,
     upload_concurrency: Annotated[int, typer.Option(min=1, max=32)] = 16,
     product_slug: Annotated[str | None, typer.Option()] = None,

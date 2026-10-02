@@ -63,8 +63,8 @@ async def generate_image_variants(
     product_slug: str | None = None,
     progress: Callable[[str], None] = print,
 ) -> dict[str, int]:
-    if not 1 <= concurrency <= 8:
-        raise ValueError("Image processing concurrency must be between 1 and 8")
+    if not 1 <= concurrency <= 16:
+        raise ValueError("Image processing concurrency must be between 1 and 16")
     if limit is not None and limit < 1:
         raise ValueError("Limit must be positive")
     if not 1 <= upload_concurrency <= 32:

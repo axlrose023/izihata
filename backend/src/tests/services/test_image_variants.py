@@ -64,7 +64,10 @@ def test_original_bytes_are_retained_for_the_full_size_variant():
 
 
 @pytest.mark.asyncio
-async def test_batch_limits_uploads_and_resumes_complete_metadata(monkeypatch):
+@pytest.mark.parametrize("concurrency", [2, 8, 16])
+async def test_batch_limits_uploads_and_resumes_complete_metadata(
+    monkeypatch, concurrency
+):
     import asyncio
 
     from sqlalchemy import Select
@@ -125,7 +128,7 @@ async def test_batch_limits_uploads_and_resumes_complete_metadata(monkeypatch):
     result = await module.generate_image_variants(
         Session,
         storage,
-        concurrency=8,
+        concurrency=concurrency,
         upload_concurrency=8,
         progress=lambda value: None,
     )
@@ -140,7 +143,7 @@ async def test_batch_limits_uploads_and_resumes_complete_metadata(monkeypatch):
     result = await module.generate_image_variants(
         Session,
         storage,
-        concurrency=8,
+        concurrency=concurrency,
         upload_concurrency=8,
         progress=lambda value: None,
     )
@@ -154,7 +157,7 @@ async def test_batch_limits_uploads_and_resumes_complete_metadata(monkeypatch):
     result = await module.generate_image_variants(
         Session,
         storage,
-        concurrency=8,
+        concurrency=concurrency,
         upload_concurrency=8,
         progress=lambda value: None,
     )
