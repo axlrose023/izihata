@@ -44,7 +44,7 @@ class CatalogQueryService:
             for brand in await self._uow.brands.list(only_active=True)
         )
         urls.update(
-            f"/product/{slug}" for slug in await self._uow.products.list_active_slugs()
+            f"/products/{slug}" for slug in await self._uow.products.list_active_slugs()
         )
         for path in sorted(urls):
             url = SubElement(root, f"{{{namespace}}}url")

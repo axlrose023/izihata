@@ -16,6 +16,18 @@ from app.database.uow import UnitOfWork
 
 @pytest.mark.asyncio
 class TestCatalogExtensions:
+    async def test_sitemap_uses_the_registered_product_route(
+        self,
+        client: AsyncClient,
+        product,
+    ):
+        response = await client.get("/api/v1/catalog/sitemap.xml")
+
+        assert response.status_code == 200, response.text
+        assert response.headers["content-type"].startswith("application/xml")
+        assert f"/products/{product.slug}" in response.text
+        assert f"/product/{product.slug}" not in response.text
+
     async def test_lists_seeded_sections_and_filters_products_by_section(
         self,
         client: AsyncClient,
