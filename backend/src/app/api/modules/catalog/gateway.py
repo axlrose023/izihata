@@ -337,7 +337,13 @@ class ProductGateway:
             )
         return conditions
 
-    def _ordered(self, stmt: Select, sort: ProductSort) -> Select:
+    def _ordered(
+        self,
+        stmt: Select,
+        sort: ProductSort,
+        *,
+        exact_sku: str | None = None,
+    ) -> Select:
         if sort == ProductSort.PRICE_ASC:
             return stmt.order_by(Product.price.asc(), Product.id)
         if sort == ProductSort.PRICE_DESC:
@@ -360,6 +366,19 @@ class ProductGateway:
             return stmt.order_by(availability_rank, Product.position, Product.id)
         popular_first = case((Product.is_popular.is_(True), 0), else_=1)
         top_first = case((Product.badge == ProductBadge.TOP, 0), else_=1)
+        if exact_sku:
+            exact_sku_first = case(
+                (func.lower(Product.sku) == exact_sku.lower(), 0),
+                else_=1,
+            )
+            return stmt.order_by(
+                exact_sku_first,
+                popular_first,
+                top_first,
+                Product.reviews_count.desc(),
+                Product.position,
+                Product.id,
+            )
         return stmt.order_by(
             popular_first,
             top_first,
@@ -380,7 +399,9 @@ class ProductGateway:
             .offset(params.offset)
             .limit(params.page_size)
         )
-        result = await self._session.execute(self._ordered(stmt, params.sort))
+        result = await self._session.execute(
+            self._ordered(stmt, params.sort, exact_sku=params.search)
+        )
         return result.scalars().unique().all()
 
     async def count(self, params: ProductListParams) -> int:
