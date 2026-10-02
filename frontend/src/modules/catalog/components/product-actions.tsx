@@ -8,6 +8,10 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
+import {
+  MAX_CART_QUANTITY,
+  normalizeCartQuantity,
+} from "@/modules/cart/quantity";
 import { cartQuantityOf, useCartStore } from "@/modules/cart/store";
 import { useCollectionStore } from "@/modules/collections/store";
 import { LeadAction } from "@/modules/leads/components/lead-action";
@@ -26,7 +30,7 @@ export function ProductActions({ product }: { product: Product }) {
   const [quantity, setQuantity] = useState(1);
   const unavailable = product.stock_status === "out_of_stock";
   const changeQuantity = (value: number) =>
-    setQuantity(Math.max(1, Math.min(99, value)));
+    setQuantity(normalizeCartQuantity(value));
 
   return (
     <div className="product-actions-panel">
@@ -45,7 +49,8 @@ export function ProductActions({ product }: { product: Product }) {
             <input
               aria-label="Кількість товару"
               inputMode="numeric"
-              max={99}
+              max={MAX_CART_QUANTITY}
+              step={1}
               min={1}
               onChange={(event) => {
                 const value = Number(event.currentTarget.value);
@@ -56,7 +61,7 @@ export function ProductActions({ product }: { product: Product }) {
             />
             <button
               aria-label="Збільшити кількість товару"
-              disabled={quantity === 99}
+              disabled={quantity === MAX_CART_QUANTITY}
               onClick={() => changeQuantity(quantity + 1)}
               type="button"
             >

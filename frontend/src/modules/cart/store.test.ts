@@ -52,4 +52,25 @@ describe("cart store", () => {
     useCartStore.getState().remove(product.id);
     expect(useCartStore.getState().lines).toHaveLength(0);
   });
+  it("normalizes fractional, negative and non-finite quantities", () => {
+    useCartStore.getState().add(product, 1.5);
+    expect(useCartStore.getState().lines[0].quantity).toBe(1);
+    useCartStore.getState().setQuantity(product.id, 3.9);
+    expect(useCartStore.getState().lines[0].quantity).toBe(3);
+    useCartStore.getState().setQuantity(product.id, Number.NaN);
+    expect(useCartStore.getState().lines[0].quantity).toBe(1);
+    useCartStore.getState().add(product, -5);
+    expect(useCartStore.getState().lines[0].quantity).toBe(2);
+  });
+  it("repairs persisted fractional quantities without losing the product", async () => {
+    localStorage.setItem(
+      "izihata-cart-v1",
+      JSON.stringify({
+        state: { lines: [{ product, quantity: 2.5 }] },
+        version: 0,
+      }),
+    );
+    await useCartStore.persist.rehydrate();
+    expect(useCartStore.getState().lines).toEqual([{ product, quantity: 2 }]);
+  });
 });

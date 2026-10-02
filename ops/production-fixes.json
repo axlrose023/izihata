@@ -43,8 +43,10 @@
       "id": "R05",
       "priority": "P2",
       "title": "Корзина принимает дробное количество, которое API отклоняет",
-      "status": "pending",
-      "checks": []
+      "status": "implemented",
+      "checks": [
+        "4 cart regressions passed, including persisted fractional quantities; one integer normalizer shared by cart and product controls; typecheck and lint passed."
+      ]
     },
     {
       "id": "R06",

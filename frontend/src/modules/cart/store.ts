@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
+import { normalizeCartQuantity } from "./quantity";
 import type { Product } from "@/shared/types/api";
 
 export interface CartLine {
@@ -34,11 +35,16 @@ export const useCartStore = create<CartState>()(
                 line.product.id === product.id
                   ? {
                       ...line,
-                      quantity: Math.min(999, line.quantity + quantity),
+                      quantity: normalizeCartQuantity(
+                        line.quantity + normalizeCartQuantity(quantity),
+                      ),
                     }
                   : line,
               )
-            : [...state.lines, { product, quantity: Math.min(999, quantity) }];
+            : [
+                ...state.lines,
+                { product, quantity: normalizeCartQuantity(quantity) },
+              ];
           return { lines, isOpen: true };
         }),
       remove: (productId) =>
@@ -49,7 +55,7 @@ export const useCartStore = create<CartState>()(
         set((state) => ({
           lines: state.lines.map((line) =>
             line.product.id === productId
-              ? { ...line, quantity: Math.max(1, Math.min(999, quantity)) }
+              ? { ...line, quantity: normalizeCartQuantity(quantity) }
               : line,
           ),
         })),
@@ -61,6 +67,18 @@ export const useCartStore = create<CartState>()(
       name: "izihata-cart-v1",
       partialize: (state) => ({ lines: state.lines }),
       skipHydration: true,
+      merge: (persisted, current) => {
+        const saved = persisted as Partial<CartState> | undefined;
+        return {
+          ...current,
+          lines: Array.isArray(saved?.lines)
+            ? saved.lines.map((line) => ({
+                ...line,
+                quantity: normalizeCartQuantity(line.quantity),
+              }))
+            : current.lines,
+        };
+      },
     },
   ),
 );
