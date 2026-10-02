@@ -55,7 +55,7 @@ export const productsQuery = (
 ) =>
   queryOptions({
     queryKey: catalogKeys.products(params),
-    queryFn: () => fetchProducts(params),
+    queryFn: ({ signal }) => fetchProducts(params, signal),
     // Filters apply as you click them, so keep the previous page visible
     // instead of dropping the grid into a loader on every change.
     placeholderData: keepPreviousData,
@@ -64,5 +64,5 @@ export const productsQuery = (
 export const productQuery = (slug: string) =>
   queryOptions({
     queryKey: catalogKeys.product(slug),
-    queryFn: () => fetchProduct(slug),
+    queryFn: ({ signal }) => fetchProduct(slug, signal),
   });

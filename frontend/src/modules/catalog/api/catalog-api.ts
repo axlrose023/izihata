@@ -21,16 +21,20 @@ export function fetchSections(): Promise<CatalogSection[]> {
 
 export function fetchProducts(
   params: Record<string, QueryValue | QueryValue[]> = {},
+  signal?: AbortSignal,
 ): Promise<ProductList> {
-  return apiClient(`/catalog/products${buildQuery(params)}`);
+  return apiClient(`/catalog/products${buildQuery(params)}`, { signal });
 }
 
 export function fetchBrands(): Promise<Brand[]> {
   return apiClient("/catalog/brands");
 }
 
-export function fetchProduct(slug: string): Promise<ProductDetail> {
-  return apiClient(`/catalog/products/${encodeURIComponent(slug)}`);
+export function fetchProduct(
+  slug: string,
+  signal?: AbortSignal,
+): Promise<ProductDetail> {
+  return apiClient(`/catalog/products/${encodeURIComponent(slug)}`, { signal });
 }
 
 export function fetchFeaturedReviews(): Promise<ProductReview[]> {
