@@ -78,7 +78,12 @@ class AppProvider(Provider):
 
     @provide(scope=Scope.APP)
     async def get_redis(self, config: Config) -> AsyncIterator[Redis]:
-        redis = Redis.from_url(config.redis_url, decode_responses=True)
+        redis = Redis.from_url(
+            config.redis_url,
+            decode_responses=True,
+            socket_connect_timeout=config.redis.socket_connect_timeout_seconds,
+            socket_timeout=config.redis.socket_timeout_seconds,
+        )
         try:
             yield redis
         finally:

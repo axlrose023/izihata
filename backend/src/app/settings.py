@@ -22,6 +22,8 @@ class PostgresConfig(BaseModel):
 
 
 class RedisConfig(BaseModel):
+    socket_connect_timeout_seconds: float = Field(default=1, gt=0, le=10)
+    socket_timeout_seconds: float = Field(default=1, gt=0, le=10)
     host: str
     port: int = Field(default=6379, ge=1, le=65535)
     db: int = Field(default=0, ge=0)

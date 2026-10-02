@@ -280,8 +280,10 @@
       "id": "O08",
       "priority": "P3",
       "title": "Ограничить сетевое ожидание Redis для HTTP-запросов",
-      "status": "pending",
-      "checks": []
+      "status": "implemented",
+      "checks": [
+        "11 settings/Redis tests passed; HTTP Redis connect/read bounded to one second by default, configurable within 10 seconds; blocking task queue remains unchanged."
+      ]
     },
     {
       "id": "O09",
