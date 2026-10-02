@@ -742,7 +742,11 @@ async def import_eti_workbook(
                 Product.sku.like(f"{prefix_pattern}-%", escape="\\"),
             )
         )
-    existing_sku_brands = dict((await session.execute(existing_sku_brands_query)).all())
+    existing_sku_brands: dict[str, str] = {}
+    for product_sku, existing_brand in (
+        await session.execute(existing_sku_brands_query)
+    ).all():
+        existing_sku_brands[product_sku] = existing_brand
     normalized_brand = brand_name.casefold()
     product_skus: dict[str, str] = {}
     assigned_skus: set[str] = set()
