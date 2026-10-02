@@ -226,6 +226,7 @@ def _import_supplier_workbook_command(
     storage_password: str | None = None,
     public_base_url: str | None = None,
     concurrency: int = 8,
+    sku_prefix_for_conflicts: str | None = None,
 ) -> None:
     if not path.exists():
         typer.echo(typer.style(f"File not found: {path}", fg=typer.colors.RED))
@@ -314,12 +315,16 @@ def _import_supplier_workbook_command(
                 dry_run=not apply,
                 brand_name=brand_name,
                 manufacturer_name=manufacturer_name,
+                sku_prefix_for_conflicts=sku_prefix_for_conflicts,
             )
             mode = "APPLIED" if apply else "DRY RUN (nothing written)"
             typer.echo(typer.style(f"\n{mode}", fg=typer.colors.CYAN, bold=True))
             typer.echo(f"products        : {outcome.total}")
             typer.echo(f"created         : {outcome.created}")
             typer.echo(f"updated         : {outcome.updated}")
+            typer.echo(f"SKU conflicts   : {len(outcome.sku_conflicts)}")
+            for source_sku, product_sku in outcome.sku_conflicts[:10]:
+                typer.echo(f"  {source_sku} → {product_sku}")
             typer.echo(f"duplicate rows  : {workbook.duplicate_product_rows}")
             typer.echo(f"primary specs   : {outcome.primary_specifications}")
             typer.echo(f"ETIM specs      : {outcome.etim_specifications}")
@@ -473,6 +478,7 @@ def import_acko_command(
         apply=apply,
         upload_media=upload_media,
         concurrency=concurrency,
+        sku_prefix_for_conflicts="ACKO",
     )
 
 

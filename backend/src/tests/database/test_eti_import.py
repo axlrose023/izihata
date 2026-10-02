@@ -8,7 +8,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.orm import selectinload
 
 from app.api.modules.catalog.enums import ProductAttributeSource, StockStatus
-from app.api.modules.catalog.models import Brand, Product
+from app.api.modules.catalog.models import Brand, Category, Product
 from app.database.imports import (
     BunnyS3Config,
     import_eti_workbook,
@@ -128,10 +128,30 @@ def write_acko_workbook(path: Path) -> Path:
 class TestEtiWorkbookImport:
     @pytest_asyncio.fixture(autouse=True)
     async def _clean_slate(self, uow):
-        await uow.session.execute(delete(Product).where(Product.sku == "ETI-TEST-1"))
+        await uow.session.execute(
+            delete(Product).where(
+                Product.sku.in_(
+                    {
+                        "ETI-TEST-1",
+                        "ACKO-TEST-1",
+                        "ACKO-ACKO-TEST-1",
+                    }
+                )
+            )
+        )
         await uow.commit()
         yield
-        await uow.session.execute(delete(Product).where(Product.sku == "ETI-TEST-1"))
+        await uow.session.execute(
+            delete(Product).where(
+                Product.sku.in_(
+                    {
+                        "ETI-TEST-1",
+                        "ACKO-TEST-1",
+                        "ACKO-ACKO-TEST-1",
+                    }
+                )
+            )
+        )
         await uow.commit()
 
     async def test_imports_primary_and_etim_specs_with_all_media(self, tmp_path, uow):
@@ -332,6 +352,83 @@ class TestEtiWorkbookImport:
         finally:
             await uow.session.execute(
                 delete(Product).where(Product.sku == "ACKO-TEST-1")
+            )
+            if not brand_existed:
+                await uow.session.execute(delete(Brand).where(Brand.name == "ACKO"))
+            await uow.commit()
+
+    async def test_acko_sku_conflicts_keep_source_code_and_existing_product(
+        self, tmp_path, uow
+    ):
+        brand_existed = (
+            await uow.session.execute(select(Brand.id).where(Brand.name == "ACKO"))
+        ).scalar_one_or_none() is not None
+        category_id = (
+            await uow.session.execute(
+                select(Category.id).where(Category.slug == "lowvoltage")
+            )
+        ).scalar_one()
+        original = Product(
+            category_id=category_id,
+            sku="ACKO-TEST-1",
+            slug="acko-existing-hager-test",
+            name="Existing Hager product",
+            brand="Hager",
+            price=Decimal("10.00"),
+            stock_status=StockStatus.IN_STOCK,
+            stock_quantity=2,
+            position=0,
+            is_active=True,
+        )
+        uow.session.add(original)
+        await uow.commit()
+        workbook = read_acko_workbook(write_acko_workbook(tmp_path / "acko.xlsx"))
+
+        try:
+            outcome = await import_eti_workbook(
+                uow.session,
+                workbook,
+                dry_run=False,
+                brand_name="ACKO",
+                manufacturer_name="Аско-Укрем",
+                sku_prefix_for_conflicts="ACKO",
+            )
+
+            imported = (
+                await uow.session.execute(
+                    select(Product)
+                    .where(Product.sku == "ACKO-ACKO-TEST-1")
+                    .options(selectinload(Product.attributes))
+                )
+            ).scalar_one()
+            preserved = await uow.session.get(Product, original.id)
+            assert (outcome.created, outcome.updated) == (1, 0)
+            assert outcome.sku_conflicts == [("ACKO-TEST-1", "ACKO-ACKO-TEST-1")]
+            assert imported.brand == "ACKO"
+            assert imported.sku == "ACKO-ACKO-TEST-1"
+            assert imported.attributes[0].key == "Код виробника"
+            assert imported.attributes[0].value == "ACKO-TEST-1"
+            assert preserved is not None
+            assert (preserved.brand, preserved.name, preserved.price) == (
+                "Hager",
+                "Existing Hager product",
+                Decimal("10.00"),
+            )
+
+            repeated = await import_eti_workbook(
+                uow.session,
+                workbook,
+                dry_run=False,
+                brand_name="ACKO",
+                manufacturer_name="Аско-Укрем",
+                sku_prefix_for_conflicts="ACKO",
+            )
+            assert (repeated.created, repeated.updated) == (0, 1)
+        finally:
+            await uow.session.execute(
+                delete(Product).where(
+                    Product.sku.in_({"ACKO-TEST-1", "ACKO-ACKO-TEST-1"})
+                )
             )
             if not brand_existed:
                 await uow.session.execute(delete(Brand).where(Brand.name == "ACKO"))

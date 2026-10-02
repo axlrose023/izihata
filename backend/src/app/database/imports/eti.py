@@ -19,7 +19,7 @@ from urllib.parse import quote, urlparse
 
 import httpx
 from openpyxl import load_workbook  # type: ignore[import-untyped]
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -99,6 +99,7 @@ class EtiImportOutcome:
     etim_specifications: int = 0
     media_attached: int = 0
     unmapped: list[str] = field(default_factory=list)
+    sku_conflicts: list[tuple[str, str]] = field(default_factory=list)
 
     @property
     def total(self) -> int:
@@ -701,6 +702,7 @@ async def import_eti_workbook(
     batch_size: int = 200,
     brand_name: str = "ETI",
     manufacturer_name: str | None = None,
+    sku_prefix_for_conflicts: str | None = None,
 ) -> EtiImportOutcome:
     """Create or refresh a supplier range in bounded, repeatable batches."""
     if batch_size < 1:
@@ -718,24 +720,85 @@ async def import_eti_workbook(
     }
     used_slugs = set((await session.execute(select(Product.slug))).scalars().all())
 
-    existing_brands = (
-        await session.execute(
-            select(Product.sku, Product.brand).where(
-                Product.sku.in_([row.sku for row in workbook.products])
+    source_skus = {row.sku for row in workbook.products}
+    if sku_prefix_for_conflicts is not None and (
+        not sku_prefix_for_conflicts
+        or any(
+            character not in "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-"
+            for character in sku_prefix_for_conflicts
+        )
+    ):
+        raise ValueError("SKU conflict prefix contains unsupported characters")
+    existing_sku_brands_query = select(Product.sku, Product.brand)
+    if sku_prefix_for_conflicts is None:
+        existing_sku_brands_query = existing_sku_brands_query.where(
+            Product.sku.in_(source_skus)
+        )
+    else:
+        prefix_pattern = sku_prefix_for_conflicts.replace("_", r"\_")
+        existing_sku_brands_query = existing_sku_brands_query.where(
+            or_(
+                Product.sku.in_(source_skus),
+                Product.sku.like(f"{prefix_pattern}-%", escape="\\"),
             )
         )
-    ).all()
-    foreign_brand_products = [
-        (sku, existing_brand)
-        for sku, existing_brand in existing_brands
-        if (existing_brand or "").casefold() != brand_name.casefold()
-    ]
-    if foreign_brand_products:
-        conflicts = ", ".join(
-            f"{sku} ({existing_brand})"
-            for sku, existing_brand in foreign_brand_products[:10]
+    existing_sku_brands = dict((await session.execute(existing_sku_brands_query)).all())
+    normalized_brand = brand_name.casefold()
+    product_skus: dict[str, str] = {}
+    assigned_skus: set[str] = set()
+    conflicts: list[tuple[str, str]] = []
+    for row in workbook.products:
+        source_sku = row.sku
+        existing_source_brand = existing_sku_brands.get(source_sku)
+        product_sku = source_sku
+        if existing_source_brand is not None and (
+            existing_source_brand.casefold() != normalized_brand
+        ):
+            if sku_prefix_for_conflicts is None:
+                conflicts.append((source_sku, existing_source_brand))
+                continue
+
+            suffix = 1
+            while True:
+                suffix_text = "" if suffix == 1 else f"-{suffix}"
+                alias = f"{sku_prefix_for_conflicts}-{source_sku}{suffix_text}"
+                suffix += 1
+                if len(alias) > 64:
+                    raise ValueError(
+                        f"Cannot create a unique database SKU for supplier code {source_sku}"
+                    )
+                if alias in source_skus or alias in assigned_skus:
+                    continue
+                alias_brand = existing_sku_brands.get(alias)
+                if alias_brand is None or alias_brand.casefold() == normalized_brand:
+                    product_sku = alias
+                    break
+        elif existing_source_brand is None and sku_prefix_for_conflicts is not None:
+            # Reuse the base conflict SKU if the other supplier stopped using it.
+            alias = f"{sku_prefix_for_conflicts}-{source_sku}"
+            if (
+                alias not in source_skus
+                and alias not in assigned_skus
+                and (existing_sku_brands.get(alias) or "").casefold()
+                == normalized_brand
+            ):
+                product_sku = alias
+
+        product_skus[source_sku] = product_sku
+        assigned_skus.add(product_sku)
+
+    if conflicts and sku_prefix_for_conflicts is None:
+        conflict_details = ", ".join(
+            f"{sku} ({brand})" for sku, brand in conflicts[:10]
         )
-        raise ValueError(f"Supplier codes already belong to another brand: {conflicts}")
+        raise ValueError(
+            f"Supplier codes already belong to another brand: {conflict_details}"
+        )
+    outcome.sku_conflicts = [
+        (source_sku, product_sku)
+        for source_sku, product_sku in product_skus.items()
+        if source_sku != product_sku
+    ]
 
     if (
         not dry_run
@@ -767,7 +830,7 @@ async def import_eti_workbook(
             for product in (
                 await session.execute(
                     select(Product)
-                    .where(Product.sku.in_([row.sku for row in batch]))
+                    .where(Product.sku.in_([product_skus[row.sku] for row in batch]))
                     .options(
                         selectinload(Product.attributes),
                         selectinload(Product.media),
@@ -787,23 +850,24 @@ async def import_eti_workbook(
                     existing_product.media = []
             await session.flush()
         for row in batch:
+            product_sku = product_skus[row.sku]
             category_slug, subcategory_name, matched = classify(row.name)
             category = categories.get(category_slug) or categories[FALLBACK_CATEGORY]
             subcategory = subcategories.get((category.id, subcategory_name or ""))
             if not matched:
                 outcome.unmapped.append(f"{row.sku} {row.name}")
-            product = existing.get(row.sku)
+            product = existing.get(product_sku)
             if product is None:
-                slug = product_slug_from_sku(row.sku)
+                slug = product_slug_from_sku(product_sku)
                 suffix = 2
                 while slug in used_slugs:
-                    slug = f"{product_slug_from_sku(row.sku)}-{suffix}"
+                    slug = f"{product_slug_from_sku(product_sku)}-{suffix}"
                     suffix += 1
                 used_slugs.add(slug)
                 product = Product(
                     category_id=category.id,
                     subcategory_id=subcategory.id if subcategory else None,
-                    sku=row.sku,
+                    sku=product_sku,
                     slug=slug,
                     name=row.name,
                     brand=brand_name,
