@@ -253,6 +253,27 @@ class ProductGateway:
     def __init__(self, session: AsyncSession):
         self._session = session
 
+    def _spec_filter_conditions(
+        self,
+        params: ProductListParams,
+        *,
+        include_facet_key: bool = False,
+    ) -> list[ColumnElement[bool]]:
+        conditions: list[ColumnElement[bool]] = []
+        for key, values in params.spec_filters.items():
+            matching_value = Product.attributes.any(
+                and_(
+                    ProductAttribute.key == key,
+                    ProductAttribute.value.in_(values),
+                )
+            )
+            conditions.append(
+                or_(ProductAttribute.key == key, matching_value)
+                if include_facet_key
+                else matching_value
+            )
+        return conditions
+
     def _conditions(
         self,
         params: ProductListParams,
@@ -308,15 +329,7 @@ class ProductGateway:
         if include_price and params.max_price is not None:
             conditions.append(Product.price <= params.max_price)
         if include_specs:
-            for key, values in params.spec_filters.items():
-                conditions.append(
-                    Product.attributes.any(
-                        and_(
-                            ProductAttribute.key == key,
-                            ProductAttribute.value.in_(values),
-                        )
-                    )
-                )
+            conditions.extend(self._spec_filter_conditions(params))
         return conditions
 
     def _admin_conditions(
@@ -476,7 +489,10 @@ class ProductGateway:
                 func.count(func.distinct(ProductAttribute.product_id)),
             )
             .join(Product, Product.id == ProductAttribute.product_id)
-            .where(*self._conditions(params, include_specs=False))
+            .where(
+                *self._conditions(params, include_specs=False),
+                *self._spec_filter_conditions(params, include_facet_key=True),
+            )
             .group_by(ProductAttribute.key, ProductAttribute.value)
             .order_by(ProductAttribute.key, ProductAttribute.value)
         )
