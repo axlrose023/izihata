@@ -22,6 +22,7 @@ from app.database.imports import (
     import_eti_workbook,
     import_products,
     planned_media_urls,
+    read_enext_workbook,
     read_eti_workbook,
     read_hager_workbook,
     read_rows,
@@ -215,6 +216,7 @@ def _import_supplier_workbook_command(
     path: Path,
     *,
     brand_name: str,
+    manufacturer_name: str | None = None,
     read_workbook: Callable[[Path], EtiWorkbook],
     apply: bool = False,
     upload_media: bool = False,
@@ -310,6 +312,7 @@ def _import_supplier_workbook_command(
                 media_urls=media_urls,
                 dry_run=not apply,
                 brand_name=brand_name,
+                manufacturer_name=manufacturer_name,
             )
             mode = "APPLIED" if apply else "DRY RUN (nothing written)"
             typer.echo(typer.style(f"\n{mode}", fg=typer.colors.CYAN, bold=True))
@@ -404,6 +407,37 @@ def import_hager_command(
         path,
         brand_name="Hager",
         read_workbook=read_hager_workbook,
+        apply=apply,
+        upload_media=upload_media,
+        concurrency=concurrency,
+    )
+
+
+@app.command("import-enext")
+def import_enext_command(
+    path: Annotated[Path, typer.Argument(help="Enext XLSX workbook")],
+    apply: Annotated[
+        bool,
+        typer.Option("--apply", help="Write products to the database"),
+    ] = False,
+    upload_media: Annotated[
+        bool,
+        typer.Option(
+            "--upload-media",
+            help="Copy the source photo sheet to Bunny Storage before importing",
+        ),
+    ] = False,
+    concurrency: Annotated[
+        int,
+        typer.Option(min=1, max=32, help="Concurrent image transfers"),
+    ] = 8,
+) -> None:
+    """Import Enext products, primary characteristics and product images."""
+    _import_supplier_workbook_command(
+        path,
+        brand_name="E.Next",
+        manufacturer_name="e.next",
+        read_workbook=read_enext_workbook,
         apply=apply,
         upload_media=upload_media,
         concurrency=concurrency,

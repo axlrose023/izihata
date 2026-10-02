@@ -42,9 +42,10 @@ PRIMARY_SOURCE_LABEL: Final = "основні"
 ETIM_SOURCE_LABEL: Final = "ETIM"
 HAGER_PRICE_HEADER: Final = "Прайс грн. з/ПДВ"
 HAGER_PHOTOS_SHEET: Final = "photo"
+ENEXT_PRICE_HEADER: Final = "Ціна"
 MAX_IMAGE_BYTES: Final = 20 * 1024 * 1024
 MAX_ATTRIBUTE_KEY_LENGTH: Final = 120
-MAX_ATTRIBUTE_VALUE_LENGTH: Final = 300
+MAX_ATTRIBUTE_VALUE_LENGTH: Final = 500
 LEGACY_ETI_MEDIA_HOSTS: Final = frozenset({"eti.ua", "www.eti.ua"})
 ETI_PIM_MEDIA_HOST: Final = "storage-api-pim.etigroup.eu"
 
@@ -209,6 +210,17 @@ def read_hager_workbook(path: Path) -> EtiWorkbook:
         photos_sheet_name=HAGER_PHOTOS_SHEET,
         has_source_column=False,
         supplier_slug="hager",
+    )
+
+
+def read_enext_workbook(path: Path) -> EtiWorkbook:
+    """Read Enext's workbook, where all characteristics are primary."""
+    return _read_supplier_workbook(
+        path,
+        price_header=ENEXT_PRICE_HEADER,
+        photos_sheet_name=HAGER_PHOTOS_SHEET,
+        has_source_column=False,
+        supplier_slug="enext",
     )
 
 
@@ -615,6 +627,7 @@ def _product_attributes(
     specifications: list[EtiSpecification],
     *,
     brand_name: str = "ETI",
+    manufacturer_name: str | None = None,
 ) -> list[ProductAttribute]:
     reserved_keys = {"Код виробника", "Виробник"}
     if any(
@@ -632,7 +645,7 @@ def _product_attributes(
         ),
         ProductAttribute(
             key="Виробник",
-            value=brand_name,
+            value=manufacturer_name if manufacturer_name is not None else brand_name,
             source=ProductAttributeSource.PRIMARY,
             position=1,
         ),
@@ -660,6 +673,7 @@ async def import_eti_workbook(
     dry_run: bool = True,
     batch_size: int = 200,
     brand_name: str = "ETI",
+    manufacturer_name: str | None = None,
 ) -> EtiImportOutcome:
     """Create or refresh a supplier range in bounded, repeatable batches."""
     if batch_size < 1:
@@ -795,6 +809,7 @@ async def import_eti_workbook(
                 row,
                 specifications,
                 brand_name=brand_name,
+                manufacturer_name=manufacturer_name,
             )
             outcome.primary_specifications += sum(
                 specification.source == ProductAttributeSource.PRIMARY

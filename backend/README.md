@@ -153,6 +153,17 @@ uv run cli import-hager /path/to/Hager.xlsx
 uv run cli import-hager /path/to/Hager.xlsx --apply --upload-media
 ```
 
+Enext's workbook uses the same importer. Every row on `characteristics` is a
+primary specification, and photos from `photo` are uploaded to Bunny Storage:
+
+```bash
+# Dry run: reports product and category changes without writing.
+uv run cli import-enext /path/to/enext.xlsx
+
+# Import products and upload their photos using the Bunny environment settings.
+uv run cli import-enext /path/to/enext.xlsx --apply --upload-media
+```
+
 ## Tests and quality gates
 
 ```bash

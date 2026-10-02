@@ -234,7 +234,7 @@ class ProductAttribute(Base, UUIDIDMixin):
         index=True,
     )
     key: Mapped[str] = mapped_column(String(120), index=True)
-    value: Mapped[str] = mapped_column(String(300), index=True)
+    value: Mapped[str] = mapped_column(String(500), index=True)
     source: Mapped[ProductAttributeSource] = mapped_column(
         Enum(ProductAttributeSource, native_enum=False, length=16),
         default=ProductAttributeSource.PRIMARY,
