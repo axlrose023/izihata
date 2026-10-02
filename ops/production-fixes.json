@@ -261,8 +261,10 @@
       "id": "O05",
       "priority": "P3",
       "title": "Оптимизировать поиск на основании плана SQL",
-      "status": "pending",
-      "checks": []
+      "status": "implemented",
+      "checks": [
+        "PostgreSQL EXPLAIN on all 23,736 catalog products: search medians Hager 30.627 to 9.538 ms, ETIMAT 40.568 to 1.913 ms, partial SKU 28.147 to 0.249 ms; concurrent GIN index migration preserves query semantics."
+      ]
     },
     {
       "id": "O06",
