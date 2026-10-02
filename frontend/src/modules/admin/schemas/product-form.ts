@@ -136,9 +136,9 @@ export const productFormSchema = z
       });
     }
 
-    const keys = values.specs.map(({ key }) =>
-      key.trim().toLocaleLowerCase("uk"),
-    );
+    // Supplier dimension names can differ by case (d and D). Match the
+    // backend's exact-key validation without merging distinct specifications.
+    const keys = values.specs.map(({ key }) => key.trim());
     if (new Set(keys).size !== keys.length) {
       context.addIssue({
         code: "custom",

@@ -1,0 +1,241 @@
+{
+  "started": "2026-10-03",
+  "baseline_release": "112c2ea",
+  "author": "axlrose023 <sloboda282@gmail.com>",
+  "items": [
+    {
+      "id": "R01",
+      "priority": "P1",
+      "title": "Редактор блокирует существующие характеристики у 208 товаров",
+      "status": "implemented",
+      "checks": [
+        "Frontend schema and editor regression: 4 tests passed; distinct d/D specifications preserved."
+      ]
+    },
+    {
+      "id": "R02",
+      "priority": "P1",
+      "title": "Калькулятор кабеля возвращает рекомендацию за пределами своей таблицы",
+      "status": "pending",
+      "checks": []
+    },
+    {
+      "id": "R03",
+      "priority": "P1",
+      "title": "Рекомендации товаров не соответствуют параметрам калькуляторов",
+      "status": "pending",
+      "checks": []
+    },
+    {
+      "id": "R04",
+      "priority": "P1",
+      "title": "Калькулятор расходует лимит расчёта корзины",
+      "status": "pending",
+      "checks": []
+    },
+    {
+      "id": "R05",
+      "priority": "P2",
+      "title": "Корзина принимает дробное количество, которое API отклоняет",
+      "status": "pending",
+      "checks": []
+    },
+    {
+      "id": "R06",
+      "priority": "P2",
+      "title": "Корзина разрешает больше строк, чем контракт checkout",
+      "status": "pending",
+      "checks": []
+    },
+    {
+      "id": "R07",
+      "priority": "P2",
+      "title": "Цена в боковой корзине может устареть",
+      "status": "pending",
+      "checks": []
+    },
+    {
+      "id": "R08",
+      "priority": "P2",
+      "title": "При возврате к закэшированному товару исчезает фото",
+      "status": "pending",
+      "checks": []
+    },
+    {
+      "id": "R09",
+      "priority": "P2",
+      "title": "Canonical и description остаются от предыдущего товара",
+      "status": "pending",
+      "checks": []
+    },
+    {
+      "id": "R10",
+      "priority": "P2",
+      "title": "Номер страницы допускает переполнение SQL OFFSET",
+      "status": "pending",
+      "checks": []
+    },
+    {
+      "id": "R11",
+      "priority": "P2",
+      "title": "Мобильный поиск сбрасывает фильтры",
+      "status": "pending",
+      "checks": []
+    },
+    {
+      "id": "R12",
+      "priority": "P2",
+      "title": "Смена условий оставляет старые карточки без признака обновления",
+      "status": "pending",
+      "checks": []
+    },
+    {
+      "id": "R13",
+      "priority": "P2",
+      "title": "Обещание отслеживания гостевого заказа ведёт в недоступную историю",
+      "status": "pending",
+      "checks": []
+    },
+    {
+      "id": "R14",
+      "priority": "P2",
+      "title": "Несогласованные тексты доставки, возврата и оплаты",
+      "status": "pending",
+      "checks": []
+    },
+    {
+      "id": "R15",
+      "priority": "P3",
+      "title": "Контракт изменения media меньше существующих галерей",
+      "status": "pending",
+      "checks": []
+    },
+    {
+      "id": "R16",
+      "priority": "P3",
+      "title": "Счётчики посетителей неустойчивы к параллельности и повтору заказа",
+      "status": "pending",
+      "checks": []
+    },
+    {
+      "id": "R17",
+      "priority": "P3",
+      "title": "Прямые HTML-ответы не содержат данных страницы; несуществующий URL отдаёт 200",
+      "status": "pending",
+      "checks": []
+    },
+    {
+      "id": "R18",
+      "priority": "P1",
+      "title": "Ручной ввод доставки не работает при сбое справочника городов",
+      "status": "pending",
+      "checks": []
+    },
+    {
+      "id": "R19",
+      "priority": "P2",
+      "title": "Переименование бренда разрывает связь с его товарами",
+      "status": "pending",
+      "checks": []
+    },
+    {
+      "id": "R20",
+      "priority": "P2",
+      "title": "Номер выбранного отделения или поштомата теряется при оформлении",
+      "status": "pending",
+      "checks": []
+    },
+    {
+      "id": "R21",
+      "priority": "P2",
+      "title": "Недоступные товары остаются в избранном без возможности очистки",
+      "status": "pending",
+      "checks": []
+    },
+    {
+      "id": "R22",
+      "priority": "P2",
+      "title": "Временная ошибка quote сбрасывает выбранный промокод",
+      "status": "pending",
+      "checks": []
+    },
+    {
+      "id": "R23",
+      "priority": "P2",
+      "title": "Сбой загрузки выдаётся за отсутствие бренда",
+      "status": "pending",
+      "checks": []
+    },
+    {
+      "id": "R24",
+      "priority": "P2",
+      "title": "Выбор города клавиатурой падает после обновления подсказок",
+      "status": "pending",
+      "checks": []
+    },
+    {
+      "id": "O01",
+      "priority": "P2",
+      "title": "Отложить формы обращений и их зависимости",
+      "status": "pending",
+      "checks": []
+    },
+    {
+      "id": "O02",
+      "priority": "P2",
+      "title": "Готовить размеры фото под карточку",
+      "status": "pending",
+      "checks": []
+    },
+    {
+      "id": "O03",
+      "priority": "P2",
+      "title": "Уменьшить лишнюю работу выдачи и рекомендаций",
+      "status": "pending",
+      "checks": []
+    },
+    {
+      "id": "O04",
+      "priority": "P2",
+      "title": "Сократить повторную работу справочников и facets",
+      "status": "pending",
+      "checks": []
+    },
+    {
+      "id": "O05",
+      "priority": "P3",
+      "title": "Оптимизировать поиск на основании плана SQL",
+      "status": "pending",
+      "checks": []
+    },
+    {
+      "id": "O06",
+      "priority": "P3",
+      "title": "Оставить глубокую пагинацию под наблюдением",
+      "status": "pending",
+      "checks": []
+    },
+    {
+      "id": "O07",
+      "priority": "P3",
+      "title": "Начинать нужные запросы раньше при переходах",
+      "status": "pending",
+      "checks": []
+    },
+    {
+      "id": "O08",
+      "priority": "P3",
+      "title": "Ограничить сетевое ожидание Redis для HTTP-запросов",
+      "status": "pending",
+      "checks": []
+    },
+    {
+      "id": "O09",
+      "priority": "P3",
+      "title": "Настроить реальные товарные подборки главной",
+      "status": "pending",
+      "checks": []
+    }
+  ],
+  "deployments": []
+}
