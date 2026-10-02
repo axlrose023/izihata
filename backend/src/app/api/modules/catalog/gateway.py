@@ -4,7 +4,7 @@ from collections.abc import Sequence
 from decimal import Decimal
 from uuid import UUID
 
-from sqlalchemy import Select, and_, case, delete, func, or_, select
+from sqlalchemy import Select, and_, case, delete, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
 from sqlalchemy.sql.elements import ColumnElement
@@ -800,6 +800,17 @@ class ProductGateway:
             ProductStockSubscription.status == StockSubscriptionStatus.ACTIVE,
         )
         return (await self._session.execute(stmt)).scalars().all()
+
+    async def mark_stock_subscription_notified(self, subscription_id: UUID) -> None:
+        stmt = (
+            update(ProductStockSubscription)
+            .where(
+                ProductStockSubscription.id == subscription_id,
+                ProductStockSubscription.status == StockSubscriptionStatus.ACTIVE,
+            )
+            .values(status=StockSubscriptionStatus.NOTIFIED)
+        )
+        await self._session.execute(stmt)
 
     async def get_many(self, product_ids: set[UUID]) -> Sequence[Product]:
         if not product_ids:

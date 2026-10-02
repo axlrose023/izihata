@@ -107,7 +107,7 @@ class TestCatalogExtensions:
             UUID(subscription_response.json()["id"]),
         )
         assert subscription is not None
-        assert subscription.status == StockSubscriptionStatus.NOTIFIED
+        assert subscription.status == StockSubscriptionStatus.ACTIVE
         event = (
             await uow.session.execute(
                 select(OutboxEvent).where(OutboxEvent.topic == "catalog.back_in_stock")

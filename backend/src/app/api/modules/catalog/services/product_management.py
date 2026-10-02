@@ -8,7 +8,6 @@ from app.api.modules.catalog.enums import (
     AttributeValueType,
     ProductAttributeSource,
     StockStatus,
-    StockSubscriptionStatus,
 )
 from app.api.modules.catalog.models import (
     CatalogAttribute,
@@ -420,7 +419,6 @@ class ProductManagementService:
     async def _notify_stock_subscribers(self, product_id: UUID) -> None:
         subscriptions = await self._uow.products.active_stock_subscriptions(product_id)
         for subscription in subscriptions:
-            subscription.status = StockSubscriptionStatus.NOTIFIED
             await self._uow.outbox.add(
                 "catalog.back_in_stock",
                 {
