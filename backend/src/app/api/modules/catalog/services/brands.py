@@ -1,6 +1,11 @@
 from uuid import UUID
 
 from app.api.common.exceptions import ConflictError, NotFoundError
+from app.api.modules.catalog.cache import (
+    PublicCatalogCache,
+    commit_catalog,
+    load_cached,
+)
 from app.api.modules.catalog.models import Brand
 from app.api.modules.catalog.schema import (
     AdminBrandResponse,
@@ -37,10 +42,16 @@ async def ensure_brand(uow: UnitOfWork, name: str) -> Brand:
 
 
 class BrandQueryService:
-    def __init__(self, uow: UnitOfWork):
+    def __init__(self, uow: UnitOfWork, cache: PublicCatalogCache | None = None):
         self._uow = uow
+        self._cache = cache
 
     async def list_brands(self) -> list[BrandResponse]:
+        return await load_cached(
+            self._cache, "brands", list[BrandResponse], self._load_brands
+        )
+
+    async def _load_brands(self) -> list[BrandResponse]:
         brands = await self._uow.brands.list(only_active=True)
         counts = await self._uow.brands.product_counts()
         return [
@@ -53,13 +64,14 @@ class BrandQueryService:
         brand = await self._uow.brands.get_by_slug(slug)
         if brand is None:
             raise NotFoundError("Brand not found", code="brand_not_found")
-        counts = await self._uow.brands.product_counts()
-        return BrandResponse.from_brand(brand, counts.get(brand.name, 0))
+        count = await self._uow.brands.product_count(brand.name)
+        return BrandResponse.from_brand(brand, count)
 
 
 class BrandManagementService:
-    def __init__(self, uow: UnitOfWork):
+    def __init__(self, uow: UnitOfWork, cache: PublicCatalogCache | None = None):
         self._uow = uow
+        self._cache = cache
 
     async def list_brands(self) -> list[AdminBrandResponse]:
         brands = await self._uow.brands.list(only_active=False)
@@ -89,7 +101,7 @@ class BrandManagementService:
         for field in ("logo_url", "description", "position", "is_active"):
             if field in request.model_fields_set:
                 setattr(brand, field, getattr(request, field))
-        await self._uow.commit()
+        await commit_catalog(self._uow, self._cache)
 
         counts = await self._uow.brands.product_counts()
         return AdminBrandResponse.from_brand(brand, counts.get(brand.name, 0))

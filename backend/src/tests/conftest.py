@@ -4,6 +4,7 @@ from app.settings import (
     Config,
     JwtConfig,
     PostgresConfig,
+    PublicCatalogCacheConfig,
     RateLimitConfig,
     RedisConfig,
 )
@@ -16,6 +17,7 @@ _test_config = Config(
     postgres=PostgresConfig(user="test", password="test", host="localhost", db="test"),
     redis=RedisConfig(host="localhost"),
     rate_limit=RateLimitConfig(enabled=False),
+    public_catalog_cache=PublicCatalogCacheConfig(enabled=False),
 )
 
 app.settings.get_config = lambda: _test_config

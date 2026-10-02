@@ -4,6 +4,7 @@ from uuid import UUID
 from sqlalchemy.exc import IntegrityError
 
 from app.api.common.exceptions import ConflictError, NotFoundError, UnprocessableError
+from app.api.modules.catalog.cache import PublicCatalogCache, commit_catalog
 from app.api.modules.catalog.enums import (
     AttributeValueType,
     ProductAttributeSource,
@@ -36,8 +37,9 @@ from app.database.uow import UnitOfWork
 
 
 class ProductManagementService:
-    def __init__(self, uow: UnitOfWork):
+    def __init__(self, uow: UnitOfWork, cache: PublicCatalogCache | None = None):
         self._uow = uow
+        self._cache = cache
 
     async def list_products(
         self,
@@ -273,7 +275,7 @@ class ProductManagementService:
             await ensure_brand(self._uow, product.brand)
             await self._uow.products.create(product)
             await self._replace_relations(product.id, request.relations)
-            await self._uow.commit()
+            await commit_catalog(self._uow, self._cache)
         except IntegrityError as error:
             await self._uow.rollback()
             raise ConflictError(
@@ -373,7 +375,7 @@ class ProductManagementService:
                 product.stock_status
             ):
                 await self._notify_stock_subscribers(product.id)
-            await self._uow.commit()
+            await commit_catalog(self._uow, self._cache)
         except IntegrityError as error:
             await self._uow.rollback()
             raise ConflictError(

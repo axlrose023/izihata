@@ -4,6 +4,11 @@ from uuid import UUID
 from xml.etree.ElementTree import Element, SubElement, tostring
 
 from app.api.common.exceptions import NotFoundError
+from app.api.modules.catalog.cache import (
+    PublicCatalogCache,
+    catalog_cache_key,
+    load_cached,
+)
 from app.api.modules.catalog.enums import ProductRelationKind
 from app.api.modules.catalog.models import Product
 from app.api.modules.catalog.schema import (
@@ -27,8 +32,14 @@ from app.database.uow import UnitOfWork
 
 
 class CatalogQueryService:
-    def __init__(self, uow: UnitOfWork, site_origin: str = "http://localhost:3000"):
+    def __init__(
+        self,
+        uow: UnitOfWork,
+        site_origin: str = "http://localhost:3000",
+        cache: PublicCatalogCache | None = None,
+    ):
         self._uow = uow
+        self._cache = cache
         self._site_origin = site_origin.rstrip("/")
 
     async def get_sitemap(self) -> str:
@@ -55,6 +66,11 @@ class CatalogQueryService:
         return tostring(root, encoding="unicode", xml_declaration=True)
 
     async def get_categories(self) -> list[CategoryResponse]:
+        return await load_cached(
+            self._cache, "categories", list[CategoryResponse], self._load_categories
+        )
+
+    async def _load_categories(self) -> list[CategoryResponse]:
         categories = await self._uow.categories.list_active()
         (
             category_counts,
@@ -82,6 +98,11 @@ class CatalogQueryService:
         ]
 
     async def get_sections(self) -> list[CatalogSectionResponse]:
+        return await load_cached(
+            self._cache, "sections", list[CatalogSectionResponse], self._load_sections
+        )
+
+    async def _load_sections(self) -> list[CatalogSectionResponse]:
         sections = await self._uow.categories.list_active_sections()
         (
             category_counts,
@@ -127,6 +148,16 @@ class CatalogQueryService:
     async def get_facets(
         self, params: ProductListParams, *, include_specs: bool = False
     ) -> ProductFacets:
+        return await load_cached(
+            self._cache,
+            catalog_cache_key("facets", params, include_specs=include_specs),
+            ProductFacets,
+            lambda: self._load_facets(params, include_specs=include_specs),
+        )
+
+    async def _load_facets(
+        self, params: ProductListParams, *, include_specs: bool = False
+    ) -> ProductFacets:
         params = await self._resolve_exact_search(params)
         brand_rows = await self._uow.products.brand_facets(params)
         minimum, maximum = await self._uow.products.price_facet(params)
@@ -154,6 +185,14 @@ class CatalogQueryService:
         )
 
     async def get_spec_facets(self, params: SpecFacetParams) -> SpecFacetPageResponse:
+        return await load_cached(
+            self._cache,
+            catalog_cache_key("spec-facets", params),
+            SpecFacetPageResponse,
+            lambda: self._load_spec_facets(params),
+        )
+
+    async def _load_spec_facets(self, params: SpecFacetParams) -> SpecFacetPageResponse:
         params = await self._resolve_exact_search(params)
         rows = await self._uow.products.spec_facet_page(params)
         return SpecFacetPageResponse(

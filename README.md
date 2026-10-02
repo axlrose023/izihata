@@ -166,3 +166,13 @@ It uses the same `BUNNY_*` storage credentials as supplier imports and does not
 require Bunny Image Optimizer. Failed conversions keep the original image and
 are reported for retry. Metadata is ignored automatically if an original URL is
 changed. Conversion uses [Pillow](https://pillow.readthedocs.io/en/stable/reference/Image.html).
+
+Public catalog directories and filter facets use a 30-second Redis cache.
+Staff catalog changes invalidate it after a successful database commit; CLI
+imports become visible when the TTL expires. Product prices, checkout quotes,
+orders, customer sessions and stock validation always read their current data.
+Set `APP__PUBLIC_CATALOG_CACHE__ENABLED=false` to disable it, or set
+`APP__PUBLIC_CATALOG_CACHE__TTL_SECONDS` (1–300). HTTP Redis connect/read timeouts
+default to one second and are configurable via
+`APP__REDIS__SOCKET_CONNECT_TIMEOUT_SECONDS` and
+`APP__REDIS__SOCKET_TIMEOUT_SECONDS`; blocking task queue reads are separate.

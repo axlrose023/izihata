@@ -3,6 +3,7 @@ from uuid import UUID
 from sqlalchemy.exc import IntegrityError
 
 from app.api.common.exceptions import ConflictError, NotFoundError
+from app.api.modules.catalog.cache import PublicCatalogCache, commit_catalog
 from app.api.modules.catalog.enums import ReviewStatus
 from app.api.modules.catalog.models import (
     CatalogAttribute,
@@ -27,8 +28,9 @@ from app.database.uow import UnitOfWork
 
 
 class CatalogAdministrationService:
-    def __init__(self, uow: UnitOfWork):
+    def __init__(self, uow: UnitOfWork, cache: PublicCatalogCache | None = None):
         self._uow = uow
+        self._cache = cache
 
     async def _commit_unique_value(
         self,
@@ -37,7 +39,7 @@ class CatalogAdministrationService:
         code: str,
     ) -> None:
         try:
-            await self._uow.commit()
+            await commit_catalog(self._uow, self._cache)
         except IntegrityError as exc:
             await self._uow.rollback()
             raise ConflictError(detail, code=code) from exc
@@ -71,7 +73,7 @@ class CatalogAdministrationService:
             )
         for field, value in request.model_dump(exclude_unset=True).items():
             setattr(section, field, value)
-        await self._uow.commit()
+        await commit_catalog(self._uow, self._cache)
         return AdminCatalogSectionResponse.model_validate(section)
 
     async def assign_category_section(
@@ -94,7 +96,7 @@ class CatalogAdministrationService:
             category.section_id = section.id
         else:
             category.section_id = None
-        await self._uow.commit()
+        await commit_catalog(self._uow, self._cache)
 
     async def list_attributes(self) -> list[CatalogAttributeResponse]:
         attributes = await self._uow.categories.list_attributes()
@@ -148,7 +150,7 @@ class CatalogAdministrationService:
                 for item in request.attributes
             ],
         )
-        await self._uow.commit()
+        await commit_catalog(self._uow, self._cache)
         return await self.list_category_attributes(category.id)
 
     async def list_category_attributes(
@@ -206,4 +208,4 @@ class CatalogAdministrationService:
             "catalog.review_moderated",
             {"review_id": str(review.id), "status": review.status.value},
         )
-        await self._uow.commit()
+        await commit_catalog(self._uow, self._cache)

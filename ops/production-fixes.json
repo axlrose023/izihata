@@ -254,8 +254,10 @@
       "id": "O04",
       "priority": "P2",
       "title": "Сократить повторную работу справочников и facets",
-      "status": "pending",
-      "checks": []
+      "status": "implemented",
+      "checks": [
+        "110 cache/catalog/admin regressions passed; invalidation follows successful catalog commits, outages/corrupt values fall back to SQL, concurrent misses are coalesced. Full-catalog PostgreSQL/Redis benchmark: repeated directories/facets 1.0–1.8 ms with zero SQL queries; facets cold 26.1 ms."
+      ]
     },
     {
       "id": "O05",

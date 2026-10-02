@@ -76,6 +76,17 @@ class BrandGateway:
         stmt = select(func.coalesce(func.max(Brand.position), -1) + 1)
         return int((await self._session.execute(stmt)).scalar_one())
 
+    async def product_count(self, name: str) -> int:
+        return int(
+            (
+                await self._session.execute(
+                    select(func.count(Product.id)).where(
+                        Product.brand == name, Product.is_active.is_(True)
+                    )
+                )
+            ).scalar_one()
+        )
+
     async def product_counts(self) -> dict[str, int]:
         stmt = (
             select(Product.brand, func.count(Product.id))

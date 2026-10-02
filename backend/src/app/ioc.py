@@ -16,6 +16,7 @@ from app.api.modules.auth.service import (
     LogoutSessionService,
     RefreshSessionService,
 )
+from app.api.modules.catalog.cache import PublicCatalogCache
 from app.api.modules.catalog.service import (
     BrandManagementService,
     BrandQueryService,
@@ -105,6 +106,16 @@ class ServicesProvider(Provider):
     """Services provider for dependency injection."""
 
     @provide(scope=Scope.APP)
+    def get_public_catalog_cache(
+        self, redis: Redis, config: Config
+    ) -> PublicCatalogCache:
+        return PublicCatalogCache(
+            redis,
+            enabled=config.public_catalog_cache.enabled,
+            ttl=config.public_catalog_cache.ttl_seconds,
+        )
+
+    @provide(scope=Scope.APP)
     def get_jwt_service(self, config: Config) -> JwtService:
         return JwtService(config)
 
@@ -128,12 +139,16 @@ class ServicesProvider(Provider):
         return MediaStorageService(config.media_root)
 
     @provide(scope=Scope.REQUEST)
-    def get_brand_query_service(self, uow: UnitOfWork) -> BrandQueryService:
-        return BrandQueryService(uow)
+    def get_brand_query_service(
+        self, uow: UnitOfWork, cache: PublicCatalogCache
+    ) -> BrandQueryService:
+        return BrandQueryService(uow, cache)
 
     @provide(scope=Scope.REQUEST)
-    def get_brand_management_service(self, uow: UnitOfWork) -> BrandManagementService:
-        return BrandManagementService(uow)
+    def get_brand_management_service(
+        self, uow: UnitOfWork, cache: PublicCatalogCache
+    ) -> BrandManagementService:
+        return BrandManagementService(uow, cache)
 
     @provide(scope=Scope.REQUEST)
     def get_visitor_tracking_service(self, uow: UnitOfWork) -> VisitorTrackingService:
@@ -226,27 +241,26 @@ class ServicesProvider(Provider):
         self,
         uow: UnitOfWork,
         config: Config,
+        cache: PublicCatalogCache,
     ) -> CatalogQueryService:
         site_origin = (
             config.api.allowed_origins[0]
             if config.api.allowed_origins
             else "http://localhost:3000"
         )
-        return CatalogQueryService(uow, site_origin)
+        return CatalogQueryService(uow, site_origin, cache)
 
     @provide(scope=Scope.REQUEST)
     def get_catalog_administration_service(
-        self,
-        uow: UnitOfWork,
+        self, uow: UnitOfWork, cache: PublicCatalogCache
     ) -> CatalogAdministrationService:
-        return CatalogAdministrationService(uow)
+        return CatalogAdministrationService(uow, cache)
 
     @provide(scope=Scope.REQUEST)
     def get_product_management_service(
-        self,
-        uow: UnitOfWork,
+        self, uow: UnitOfWork, cache: PublicCatalogCache
     ) -> ProductManagementService:
-        return ProductManagementService(uow)
+        return ProductManagementService(uow, cache)
 
     @provide(scope=Scope.REQUEST)
     def get_review_submission_service(

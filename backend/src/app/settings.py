@@ -29,6 +29,11 @@ class RedisConfig(BaseModel):
     db: int = Field(default=0, ge=0)
 
 
+class PublicCatalogCacheConfig(BaseModel):
+    enabled: bool = True
+    ttl_seconds: int = Field(default=30, ge=1, le=300)
+
+
 class RateLimitConfig(BaseModel):
     enabled: bool = True
     fail_open: bool = False
@@ -120,6 +125,7 @@ class Config(BaseSettings):
     postgres: PostgresConfig
     redis: RedisConfig
     rate_limit: RateLimitConfig = RateLimitConfig()
+    public_catalog_cache: PublicCatalogCacheConfig = PublicCatalogCacheConfig()
     nova_poshta: NovaPoshtaConfig = NovaPoshtaConfig()
     outbox: OutboxConfig = OutboxConfig()
 
