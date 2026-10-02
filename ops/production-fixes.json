@@ -82,8 +82,10 @@
       "id": "R10",
       "priority": "P2",
       "title": "Номер страницы допускает переполнение SQL OFFSET",
-      "status": "pending",
-      "checks": []
+      "status": "implemented",
+      "checks": [
+        "2 pagination regressions passed; OpenAPI page bounds guarantee OFFSET fits signed BIGINT at every supported page size; overflowing requests return 422."
+      ]
     },
     {
       "id": "R11",
