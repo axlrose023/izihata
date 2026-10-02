@@ -630,7 +630,7 @@ def retry_dead_outbox(
 
 @app.command("image-variants")
 def image_variants(
-    concurrency: Annotated[int, typer.Option(min=1, max=4)] = 2,
+    concurrency: Annotated[int, typer.Option(min=1, max=8)] = 2,
     limit: Annotated[int | None, typer.Option(min=1)] = None,
 ) -> None:
     """Generate small WebP copies in the existing bucket; safe to resume."""

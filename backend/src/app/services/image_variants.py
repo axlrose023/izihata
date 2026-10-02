@@ -5,6 +5,7 @@ import hashlib
 import io
 import json
 import logging
+import time
 from collections import Counter
 from collections.abc import Callable
 
@@ -60,8 +61,8 @@ async def generate_image_variants(
     limit: int | None = None,
     progress: Callable[[str], None] = print,
 ) -> dict[str, int]:
-    if not 1 <= concurrency <= 4:
-        raise ValueError("Image processing concurrency must be between 1 and 4")
+    if not 1 <= concurrency <= 8:
+        raise ValueError("Image processing concurrency must be between 1 and 8")
     if limit is not None and limit < 1:
         raise ValueError("Limit must be positive")
     known: dict[str, dict | None] = {}
@@ -86,11 +87,14 @@ async def generate_image_variants(
     counters = Counter(total=len(known), generated=0, reused=0, failed=0, skipped=0)
     pending = iter(list(known.items())[:limit] if limit else known.items())
     base_url = storage.public_base_url.rstrip("/")
+    started = time.monotonic()
+    encoding_slots = asyncio.Semaphore(2)
+    upload_slots = asyncio.Semaphore(8)
     timeout = httpx.Timeout(30, connect=5)
     async with httpx.AsyncClient(
         timeout=timeout,
         follow_redirects=False,
-        limits=httpx.Limits(max_connections=concurrency + 1),
+        limits=httpx.Limits(max_connections=concurrency + 8),
     ) as client:
 
         async def worker() -> None:
@@ -112,22 +116,37 @@ async def generate_image_variants(
                         if content_type.split(";", 1)[0] == "image/svg+xml":
                             counters["skipped"] += 1
                             continue
-                        variants = await asyncio.to_thread(encode_variants, content)
+                        async with encoding_slots:
+                            variants = await asyncio.to_thread(encode_variants, content)
                         digest = hashlib.sha256(content).hexdigest()
-                        sizes = {}
-                        for width, encoded in variants.items():
-                            if encoded is content:
-                                sizes[str(width)] = source
-                                continue
-                            if len(encoded) >= len(content):
-                                continue
-                            key = f"variants/{GENERATOR}/{digest}/{width}.webp"
-                            await with_retries(
-                                lambda key=key, encoded=encoded: put_object(
-                                    client, storage, key, encoded, "image/webp"
+
+                        async def upload(
+                            width: int,
+                            encoded: bytes,
+                            original: bytes,
+                            source_url: str,
+                            digest_value: str,
+                        ) -> tuple[str, str] | None:
+                            if encoded is original:
+                                return str(width), source_url
+                            if len(encoded) >= len(original):
+                                return None
+                            key = f"variants/{GENERATOR}/{digest_value}/{width}.webp"
+                            async with upload_slots:
+                                await with_retries(
+                                    lambda: put_object(
+                                        client, storage, key, encoded, "image/webp"
+                                    )
                                 )
+                            return str(width), f"{base_url}/{key}"
+
+                        uploaded = await asyncio.gather(
+                            *(
+                                upload(width, encoded, content, source, digest)
+                                for width, encoded in variants.items()
                             )
-                            sizes[str(width)] = f"{base_url}/{key}"
+                        )
+                        sizes = dict(item for item in uploaded if item is not None)
                         metadata = {
                             "source": source,
                             "generator": GENERATOR,
@@ -163,8 +182,10 @@ async def generate_image_variants(
                     + counters["skipped"]
                 )
                 if done % 100 == 0:
+                    counters["elapsed_seconds"] = int(time.monotonic() - started)
                     progress(json.dumps(dict(counters)))
 
         await asyncio.gather(*(worker() for _ in range(concurrency)))
+    counters["elapsed_seconds"] = int(time.monotonic() - started)
     progress(json.dumps(dict(counters)))
     return dict(counters)
