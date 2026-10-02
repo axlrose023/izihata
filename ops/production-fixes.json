@@ -125,8 +125,10 @@
       "id": "R15",
       "priority": "P3",
       "title": "Контракт изменения media меньше существующих галерей",
-      "status": "pending",
-      "checks": []
+      "status": "implemented",
+      "checks": [
+        "Gallery contract regression passed: 22 ordered images accepted without truncation; write limit raised to 100 to match existing galleries while remaining bounded."
+      ]
     },
     {
       "id": "R16",

@@ -868,7 +868,7 @@ class CreateProductRequest(StrictSchema):
         decimal_places=2,
     )
     wholesale_min_quantity: int | None = Field(default=None, ge=1, le=100000)
-    media: list[ProductMediaInput] = Field(default_factory=list, max_length=20)
+    media: list[ProductMediaInput] = Field(default_factory=list, max_length=100)
     documents: list[ProductDocumentInput] = Field(default_factory=list, max_length=20)
     relations: list[ProductRelationInput] = Field(default_factory=list, max_length=30)
     specs: dict[str, str] = Field(default_factory=dict)
@@ -959,7 +959,7 @@ class UpdateProductRequest(StrictSchema):
         decimal_places=2,
     )
     wholesale_min_quantity: int | None = Field(default=None, ge=1, le=100000)
-    media: list[ProductMediaInput] | None = Field(default=None, max_length=20)
+    media: list[ProductMediaInput] | None = Field(default=None, max_length=100)
     documents: list[ProductDocumentInput] | None = Field(default=None, max_length=20)
     relations: list[ProductRelationInput] | None = Field(default=None, max_length=30)
     specs: dict[str, str] | None = None
