@@ -156,7 +156,7 @@ export function ProductFormDialog({
       const payload = {
         category_id: values.category_id,
         subcategory_id: values.subcategory_id || null,
-        sku: values.sku.trim().toUpperCase(),
+        sku: values.sku.trim(),
         name: values.name.trim(),
         brand: values.brand.trim(),
         ...(values.brand_country.trim()

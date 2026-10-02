@@ -17,8 +17,8 @@ export const productFormSchema = z
       .min(1, "Вкажіть SKU")
       .max(64)
       .regex(
-        /^[A-Za-z0-9][A-Za-z0-9._/-]*$/,
-        "Лише латинські літери, цифри та символи . _ / -",
+        /^\S+$/,
+        "SKU не може містити пробіли",
       ),
     name: z.string().trim().min(2, "Вкажіть назву").max(240),
     brand: z.string().trim().min(1, "Вкажіть бренд").max(120),

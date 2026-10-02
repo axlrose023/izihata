@@ -89,7 +89,7 @@ async def get_featured_reviews(
 async def get_product(
     product_slug: Annotated[
         str,
-        Path(min_length=1, max_length=180, pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$"),
+        Path(min_length=1, max_length=180, pattern=r"^[^/\s?#]+$"),
     ],
     service: FromDishka[CatalogQueryService],
 ) -> ProductDetailResponse:
@@ -105,7 +105,7 @@ async def get_product(
 async def create_product_review(
     product_slug: Annotated[
         str,
-        Path(min_length=1, max_length=180, pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$"),
+        Path(min_length=1, max_length=180, pattern=r"^[^/\s?#]+$"),
     ],
     request: CreateProductReviewRequest,
     service: FromDishka[ReviewSubmissionService],
@@ -122,7 +122,7 @@ async def create_product_review(
 async def create_stock_subscription(
     product_slug: Annotated[
         str,
-        Path(min_length=1, max_length=180, pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$"),
+        Path(min_length=1, max_length=180, pattern=r"^[^/\s?#]+$"),
     ],
     request: CreateStockSubscriptionRequest,
     service: FromDishka[StockSubscriptionService],

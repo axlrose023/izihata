@@ -8,8 +8,7 @@ from app.api.common.utils import (
     normalize_text,
 )
 
-_SKU_PATTERN = re.compile(r"[A-Z0-9][A-Z0-9._/-]*")
-_SLUG_SEPARATORS = re.compile(r"[._/]+")
+_SKU_PATTERN = re.compile(r"[^\s]+")
 _REPEATED_DASHES = re.compile(r"-+")
 _NON_SLUG = re.compile(r"[^a-z0-9]+")
 _CYRILLIC = "абвгґдеєжзиіїйклмнопрстуфхцчшщьюяыэёъ"
@@ -56,17 +55,16 @@ _TRANSLITERATION = dict(zip(_CYRILLIC, _LATIN, strict=True))
 
 
 def normalize_sku(value: object) -> str:
-    sku = normalize_text(value).upper()
+    sku = normalize_text(value)
     if _SKU_PATTERN.fullmatch(sku) is None:
         raise ValueError(
-            "SKU may contain only Latin letters, digits, '.', '_', '/' and '-'"
+            "SKU cannot contain whitespace"
         )
     return sku
 
 
 def product_slug_from_sku(sku: str) -> str:
-    slug = _SLUG_SEPARATORS.sub("-", sku.lower())
-    return _REPEATED_DASHES.sub("-", slug).strip("-")
+    return slugify(sku)
 
 
 def slugify(value: str) -> str:

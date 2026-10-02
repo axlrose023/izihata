@@ -322,7 +322,7 @@ class ProductManagementService:
         )
         sku = data.get("sku", product.sku)
         slug = product_slug_from_sku(sku)
-        if "sku" in data:
+        if "sku" in data and sku != product.sku:
             conflict = await self._uow.products.identity_conflict(
                 sku,
                 slug,
