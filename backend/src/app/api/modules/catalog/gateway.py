@@ -474,9 +474,20 @@ class ProductGateway:
         )
 
     async def list(self, params: ProductListParams) -> Sequence[Product]:
+        # Sort/page narrow IDs before loading full product rows and relations.
+        page_ids = (
+            self._ordered(
+                select(Product.id).where(*self._conditions(params)),
+                params.sort,
+                exact_sku=params.search,
+            )
+            .offset(params.offset)
+            .limit(params.page_size)
+            .subquery()
+        )
         stmt = (
             select(Product)
-            .where(*self._conditions(params))
+            .join(page_ids, Product.id == page_ids.c.id)
             .options(
                 joinedload(Product.category),
                 joinedload(Product.subcategory),
@@ -486,8 +497,6 @@ class ProductGateway:
                     )
                 ),
             )
-            .offset(params.offset)
-            .limit(params.page_size)
         )
         result = await self._session.execute(
             self._ordered(stmt, params.sort, exact_sku=params.search)

@@ -270,8 +270,10 @@
       "id": "O06",
       "priority": "P3",
       "title": "Оставить глубокую пагинацию под наблюдением",
-      "status": "pending",
-      "checks": []
+      "status": "implemented",
+      "checks": [
+        "55 catalog regressions and 90 PostgreSQL comparisons passed across all six sorts, first/deep/empty pages, brands and search; narrow-ID paging preserved every ordered result. EXPLAIN deep popular page 201.821 to 13.213 ms."
+      ]
     },
     {
       "id": "O07",
