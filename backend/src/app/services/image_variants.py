@@ -22,7 +22,7 @@ from app.clients.bunny_storage import (
 )
 
 logger = logging.getLogger(__name__)
-GENERATOR = "webp-v1"
+GENERATOR = "webp-v2"
 WIDTHS = (80, 160, 320, 640, 960, 1600)
 
 
@@ -41,12 +41,14 @@ def encode_variants(content: bytes) -> dict[int, bytes]:
         result: dict[int, bytes] = {}
         for width in WIDTHS:
             variant = image.copy()
-            variant.thumbnail((width, width), Image.Resampling.LANCZOS)
+            variant.thumbnail((width, image.height), Image.Resampling.LANCZOS)
             if variant.width in result:
                 continue
             output = io.BytesIO()
             variant.save(output, "WEBP", quality=82, method=4)
             result[variant.width] = output.getvalue()
+        # Keep an already optimized original instead of making a larger copy.
+        result[image.width] = content
         return result
 
 
@@ -114,6 +116,11 @@ async def generate_image_variants(
                         digest = hashlib.sha256(content).hexdigest()
                         sizes = {}
                         for width, encoded in variants.items():
+                            if encoded is content:
+                                sizes[str(width)] = source
+                                continue
+                            if len(encoded) >= len(content):
+                                continue
                             key = f"variants/{GENERATOR}/{digest}/{width}.webp"
                             await with_retries(
                                 lambda key=key, encoded=encoded: put_object(

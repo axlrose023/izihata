@@ -206,7 +206,8 @@
       "title": "Готовить размеры фото под карточку",
       "status": "implemented",
       "checks": [
-        "321 backend and 94 frontend tests passed; original URLs retained, WebP sizes preserve alpha and ratio, stale variants ignored; storage transport reused by supplier imports."
+        "321 backend and 94 frontend tests passed; original URLs retained, WebP sizes preserve alpha and ratio, stale variants ignored; storage transport reused by supplier imports.",
+        "Production sample thumbnails: 7,654 bytes vs original 23,456 bytes. Follow-up prevents larger derivatives and keeps full-size originals; 4 image regressions passed."
       ]
     },
     {

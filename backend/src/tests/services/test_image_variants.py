@@ -36,3 +36,11 @@ def test_metadata_is_ignored_after_original_image_changes():
 def test_invalid_images_are_rejected_without_replacing_the_original():
     with pytest.raises(OSError):
         encode_variants(b"not an image")
+
+
+def test_original_bytes_are_retained_for_the_full_size_variant():
+    content = image_bytes((200, 1200))
+    variants = encode_variants(content)
+    assert variants[200] is content
+    with Image.open(io.BytesIO(variants[80])) as image:
+        assert image.size == (80, 480)
