@@ -297,8 +297,10 @@
       "id": "O09",
       "priority": "P3",
       "title": "Настроить реальные товарные подборки главной",
-      "status": "pending",
-      "checks": []
+      "status": "implemented",
+      "checks": [
+        "2 homepage rail regressions passed; default selection now shows real catalog products without inventing popularity/badges, requests wait for visibility, errors show retry; typecheck/lint passed."
+      ]
     },
     {
       "id": "R25",

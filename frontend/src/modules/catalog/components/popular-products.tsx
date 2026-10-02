@@ -5,6 +5,8 @@ import { Link } from "react-router-dom";
 import { fetchProducts } from "@/modules/catalog/api/catalog-api";
 import { catalogKeys } from "@/modules/catalog/api/catalog-queries";
 import { ProductCard } from "@/modules/catalog/components/product-card";
+import { useInView } from "@/shared/lib/use-in-view";
+import { ErrorNotice } from "@/shared/ui/error-notice";
 import { Carousel } from "@/shared/ui/carousel";
 
 // Four cards are visible on desktop; load the following four at once so the
@@ -13,6 +15,12 @@ const PAGE_SIZE = 8;
 
 // Три добірки під одним заголовком, як на артборді Main.
 const rails = [
+  {
+    id: "catalog",
+    label: "Товари з каталогу",
+    href: "/catalog",
+    params: { sort: "popular" as const },
+  },
   {
     id: "popular",
     label: "Популярне",
@@ -39,17 +47,22 @@ const rails = [
 export function PopularProducts() {
   const [activeRail, setActiveRail] = useState(rails[0].id);
   const rail = rails.find((item) => item.id === activeRail) ?? rails[0];
+  const { ref: railRef, isVisible: railVisible } = useInView<HTMLElement>();
   // "Показати ще" appends the next page to the rail instead of replacing it.
   const result = useInfiniteQuery({
     queryKey: [...catalogKeys.all, "home-rail", rail.id],
+    enabled: railVisible,
     initialPageParam: 1,
-    queryFn: ({ pageParam }) =>
-      fetchProducts({
-        ...rail.params,
-        page: pageParam,
-        page_size: PAGE_SIZE,
-        include_facets: false,
-      }),
+    queryFn: ({ pageParam, signal }) =>
+      fetchProducts(
+        {
+          ...rail.params,
+          page: pageParam,
+          page_size: PAGE_SIZE,
+          include_facets: false,
+        },
+        signal,
+      ),
     getNextPageParam: (last) => (last.has_next ? last.page + 1 : undefined),
     staleTime: 60_000,
   });
@@ -58,12 +71,12 @@ export function PopularProducts() {
   const hasMore = result.hasNextPage;
 
   return (
-    <section className="section section--tint popular-products">
+    <section ref={railRef} className="section section--tint popular-products">
       <div className="container">
         <div className="section-heading">
           <div>
-            <span className="eyebrow">Вибір покупців</span>
-            <h2>Часто купують</h2>
+            <span className="eyebrow">Підбір товарів</span>
+            <h2>{rail.label}</h2>
           </div>
           <div className="home-rail-tabs" role="tablist">
             {rails.map((item) => (
@@ -80,7 +93,13 @@ export function PopularProducts() {
           </div>
           <Link to={rail.href}>Увесь каталог →</Link>
         </div>
-        {result.isError || (!items.length && !result.isPending) ? (
+        {result.isError ? (
+          <ErrorNotice
+            error={result.error}
+            fallback="Не вдалося завантажити товари."
+            onRetry={() => void result.refetch()}
+          />
+        ) : !items.length && !result.isPending ? (
           <p className="home-rail-empty">У цій добірці поки порожньо.</p>
         ) : !items.length ? (
           <div className="page-loader">Завантажуємо товари…</div>
