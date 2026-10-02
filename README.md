@@ -94,6 +94,42 @@ filter products. Manufacturer codes remain in product details and SKU search.
 Filter definitions do not forbid free-form supplier fields in the editor;
 explicit required fields and numeric definitions still validate their values.
 
+### Concurrent catalog check
+
+Run the bounded public HTTP scenario in the deployed backend environment:
+
+```bash
+docker compose --env-file .env.production -f compose.production.yml exec -T app python -m cli.catalog_load --base-url https://izihata.com.ua --output /tmp/catalog-load.json
+docker compose --env-file .env.production -f compose.production.yml cp app:/tmp/catalog-load.json /tmp/catalog-load.json
+```
+
+The default is 55 requests per stage with 1, 5, 10 and 20 concurrent requests.
+It covers the grid, largest category, search, SKU lookup, basic and specification
+filters, product details, category references, homepage HTML and a basket quote.
+Responses use the application's existing schemas. Quotes do not create orders.
+The report includes latency percentiles, throughput, statuses and validation
+errors per stage and route. A failed response stops new requests; there are no
+retries. The request budget leaves room below the catalog and quote rate limits.
+Wait at least 60 seconds between runs to avoid sharing their per-IP quota.
+
+This is a short concurrency check, not a capacity ceiling or a full browser test:
+it does not simulate user think time, image downloads or external delivery calls.
+
+Production check on 2026-10-02, application release `a71f032`, 23,736 products:
+
+| Concurrent requests | Completed | p50 | p95 | Maximum | Requests/s |
+| --- | --- | --- | --- | --- | --- |
+| 1 | 55 | 90 ms | 169 ms | 191 ms | 10.36 |
+| 5 | 55 | 100 ms | 314 ms | 398 ms | 42.94 |
+| 10 | 55 | 159 ms | 441 ms | 568 ms | 49.24 |
+| 20 | 55 | 221 ms | 514 ms | 613 ms | 67.44 |
+
+All 220 measured responses returned HTTP 200 and passed schema validation.
+No timeouts or rate-limit responses occurred. All six application services were
+healthy before and after the run. These are short bursts with a warmed client;
+each route has only five samples per stage, so its percentile is not a long-term
+service guarantee.
+
 ### Production backups and health
 
 `ops/backup-production.sh` saves a custom PostgreSQL dump, local uploaded media,
