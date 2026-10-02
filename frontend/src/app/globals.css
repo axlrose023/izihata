@@ -3048,11 +3048,13 @@ h2 {
 }
 .product-media-gallery__thumbnails {
   display: flex;
-  flex-wrap: wrap;
+  overflow-x: auto;
+  padding-bottom: 4px;
   gap: 10px;
   margin-top: 12px;
 }
 .product-media-gallery__thumbnails button {
+  flex: 0 0 68px;
   width: 68px;
   height: 68px;
   overflow: hidden;
