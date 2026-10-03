@@ -6,7 +6,28 @@ import type { CatalogSection } from "@/shared/types/api";
 import { pluralizeProducts } from "@/shared/lib/format";
 import { VisibleImage } from "@/shared/ui/visible-image";
 
-export function SectionCards({ sections }: { sections: CatalogSection[] }) {
+export function SectionCards({
+  sections,
+  loading = false,
+}: {
+  sections: CatalogSection[];
+  loading?: boolean;
+}) {
+  if (loading)
+    return (
+      <div className="section-card-grid" aria-busy="true">
+        <span className="sr-only" role="status">
+          Завантажуємо напрями каталогу…
+        </span>
+        {Array.from({ length: 3 }, (_, index) => (
+          <div
+            aria-hidden="true"
+            className="section-card section-card--skeleton"
+            key={index}
+          />
+        ))}
+      </div>
+    );
   return (
     <div className="section-card-grid">
       {sections.map((section) => {

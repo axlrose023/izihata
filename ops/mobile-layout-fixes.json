@@ -45,9 +45,21 @@
     {
       "id": "M03",
       "title": "Reserve the home product rail and prevent autonomous touch scrolling",
-      "status": "pending",
+      "status": "verified_local",
       "before": [
         "Lazy rail inserts about 238px while scrolling; measured shift 0.0901"
+      ],
+      "changes": [
+        "Home rail reserves card geometry plus the existing 68px carousel/button footprint across loading, error and empty states",
+        "Section placeholders reuse the existing section-card grid during client navigation without fake names or links",
+        "Gallery image and broken-image fallback share one fixed responsive media box; card visuals cannot shrink in flex layout",
+        "Carousel autoplay is disabled for coarse pointers; favorite/compare actions are visible without hover",
+        "Long product values/prices wrap within their containers"
+      ],
+      "checks": [
+        "153 frontend tests and full frontend static/build checks passed",
+        "12 mobile browser tests passed including delayed home products and broken-image geometry at 390px",
+        "Mouse, touch and reduced-motion autoplay behavior covered by three unit cases"
       ]
     },
     {

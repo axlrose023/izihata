@@ -64,6 +64,8 @@ export function Carousel({
 
   useEffect(() => {
     if (!autoplayMs || paused) return;
+    if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches)
+      return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const timer = window.setInterval(() => scrollByPage(1), autoplayMs);
     return () => window.clearInterval(timer);

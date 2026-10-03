@@ -93,38 +93,40 @@ export function PopularProducts() {
           </div>
           <Link to={rail.href}>Увесь каталог →</Link>
         </div>
-        {result.isError ? (
-          <ErrorNotice
-            error={result.error}
-            fallback="Не вдалося завантажити товари."
-            onRetry={() => void result.refetch()}
-          />
-        ) : !items.length && !result.isPending ? (
-          <p className="home-rail-empty">У цій добірці поки порожньо.</p>
-        ) : !items.length ? (
-          <div className="page-loader">Завантажуємо товари…</div>
-        ) : (
-          <Carousel ariaLabel={rail.label} autoplayMs={10_000} key={rail.id}>
-            {items.map((product) => (
-              <div
-                className="carousel__item carousel__item--product"
-                key={product.id}
-              >
-                <ProductCard product={product} />
-              </div>
-            ))}
-          </Carousel>
-        )}
-        {hasMore ? (
-          <button
-            className="show-all-button"
-            disabled={result.isFetchingNextPage}
-            onClick={() => void result.fetchNextPage()}
-            type="button"
-          >
-            {result.isFetchingNextPage ? "Завантажуємо…" : "Показати ще"}
-          </button>
-        ) : null}
+        <div className="home-rail-content" aria-busy={result.isFetching}>
+          {result.isError ? (
+            <ErrorNotice
+              error={result.error}
+              fallback="Не вдалося завантажити товари."
+              onRetry={() => void result.refetch()}
+            />
+          ) : !items.length && !result.isPending ? (
+            <p className="home-rail-empty">У цій добірці поки порожньо.</p>
+          ) : !items.length ? (
+            <div className="page-loader">Завантажуємо товари…</div>
+          ) : (
+            <Carousel ariaLabel={rail.label} autoplayMs={10_000} key={rail.id}>
+              {items.map((product) => (
+                <div
+                  className="carousel__item carousel__item--product"
+                  key={product.id}
+                >
+                  <ProductCard product={product} />
+                </div>
+              ))}
+            </Carousel>
+          )}
+          {hasMore ? (
+            <button
+              className="show-all-button"
+              disabled={result.isFetchingNextPage}
+              onClick={() => void result.fetchNextPage()}
+              type="button"
+            >
+              {result.isFetchingNextPage ? "Завантажуємо…" : "Показати ще"}
+            </button>
+          ) : null}
+        </div>
       </div>
     </section>
   );

@@ -11,6 +11,73 @@ async function expectDocumentFits(page: Page) {
   expect(await page.evaluate(() => window.scrollX)).toBe(0);
 }
 
+test("lazy home products do not move the following sections", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  let release!: () => void;
+  const pending = new Promise<void>((done) => {
+    release = done;
+  });
+  await page.route("**/api/v1/catalog/products?**", async (route) => {
+    await pending;
+    await route.continue();
+  });
+  await page.goto("/");
+  await page.evaluate(() => document.fonts.ready);
+  await expect(
+    page.locator("#catalog .section-card:not(.section-card--skeleton)").first(),
+  ).toBeVisible();
+  const rail = page.locator(".popular-products");
+  await rail.scrollIntoViewIfNeeded();
+  const nextSection = page.locator(".home-entry-points");
+  const documentTop = () =>
+    nextSection.evaluate(
+      (element) => element.getBoundingClientRect().top + window.scrollY,
+    );
+  const before = await documentTop();
+  try {
+    await expect(rail.getByText("Завантажуємо товари…")).toBeVisible();
+  } finally {
+    release();
+  }
+  await expect(rail.locator(".product-card").first()).toBeVisible();
+  expect(await documentTop()).toBeCloseTo(before, 0);
+  await expectDocumentFits(page);
+});
+
+test("broken gallery images keep the reserved media dimensions", async ({
+  page,
+  request,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const products = await request.get(
+    "/api/v1/catalog/products?page_size=1&include_facets=false",
+  );
+  const product = (await products.json()).items[0] as { slug: string };
+  let release!: () => void;
+  const pending = new Promise<void>((done) => {
+    release = done;
+  });
+  await page.route("**/*", async (route) => {
+    if (route.request().resourceType() !== "image") return route.continue();
+    await pending;
+    await route.abort();
+  });
+  await page.goto(`/products/${product.slug}`, {
+    waitUntil: "domcontentloaded",
+  });
+  const visual = page.locator(".product-detail__visual");
+  await expect(visual).toBeVisible();
+  const before = await visual.boundingBox();
+  release();
+  await expect(visual.locator("svg")).toBeVisible();
+  const after = await visual.boundingBox();
+  expect(after!.height).toBe(before!.height);
+  expect(after!.width).toBe(before!.width);
+  await expectDocumentFits(page);
+});
+
 test("catalog refresh keeps scroll position and card geometry", async ({
   page,
 }) => {

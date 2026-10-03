@@ -97,7 +97,7 @@ export function HomePage() {
           </div>
           <Link to="/catalog">Дивитися все →</Link>
         </div>
-        <SectionCards sections={sections} />
+        <SectionCards loading={sectionsResult.isPending} sections={sections} />
       </section>
 
       <PopularProducts />
