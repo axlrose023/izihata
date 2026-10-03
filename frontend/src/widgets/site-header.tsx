@@ -13,7 +13,7 @@ import {
   ShoppingCart,
   UserRound,
 } from "lucide-react";
-import { lazy, Suspense, useState } from "react";
+import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 
 import { cartCount, useCartStore } from "@/modules/cart/store";
@@ -24,11 +24,7 @@ import { useCustomerAuth } from "@/modules/customers/customer-auth-context";
 import { formatMoney, pluralizePositions } from "@/shared/lib/format";
 import { Logo } from "@/shared/ui/logo";
 import { storeInfo } from "@/shared/config/store-info";
-import { OverlayLoadingState } from "@/shared/ui/overlay-loading-state";
-
-const SiteSidebar = lazy(() =>
-  import("./site-sidebar").then((module) => ({ default: module.SiteSidebar })),
-);
+import { SiteSidebar } from "./site-sidebar";
 
 export function SiteHeader() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -147,16 +143,7 @@ export function SiteHeader() {
         </div>
       </div>
       {menuOpen ? (
-        <Suspense
-          fallback={
-            <OverlayLoadingState
-              label="Завантажуємо меню"
-              onClose={() => setMenuOpen(false)}
-            />
-          }
-        >
-          <SiteSidebar onClose={() => setMenuOpen(false)} open />
-        </Suspense>
+        <SiteSidebar onClose={() => setMenuOpen(false)} open />
       ) : null}
       <nav className="catalog-nav">
         <div className="container catalog-nav__inner">

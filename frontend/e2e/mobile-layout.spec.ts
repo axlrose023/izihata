@@ -356,7 +356,40 @@ test("catalog refresh keeps scroll position and card geometry", async ({
   expect(await page.evaluate(() => window.scrollY)).toBe(scroll);
 });
 
-for (const overlay of ["menu", "cart"] as const) {
+test("mobile menu opens with the network offline without moving the header", async ({
+  page,
+  context,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await expect(page.locator(".category-card").first()).toBeVisible();
+  const header = page.locator(".site-header");
+  const before = await header.boundingBox();
+  await context.setOffline(true);
+  try {
+    const menuButton = page.getByRole("button", { name: "Відкрити меню" });
+    await menuButton.click();
+    const menu = page.getByRole("dialog", { name: "Головне меню" });
+    await expect(menu).toBeVisible();
+    await expect(page.locator(".overlay-loading")).toHaveCount(0);
+    expect((await header.boundingBox())!.height).toBe(before!.height);
+    await menu.getByRole("button", { name: "Каталог товарів" }).click();
+    await expect(
+      menu.locator(".site-sidebar__categories a").nth(1),
+    ).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(menu).toBeHidden();
+    expect(await page.evaluate(() => document.body.style.overflow)).toBe("");
+    await menuButton.click();
+    await expect(menu.locator(".site-sidebar__auth")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expectDocumentFits(page);
+  } finally {
+    await context.setOffline(false);
+  }
+});
+
+for (const overlay of ["cart"] as const) {
   test(`cold ${overlay} overlay does not resize the header and can be cancelled`, async ({
     page,
   }) => {
@@ -366,9 +399,7 @@ for (const overlay of ["menu", "cart"] as const) {
       release = done;
     });
     const module =
-      overlay === "menu"
-        ? /(?:\/assets\/site-sidebar-[^/]+\.js|\/src\/widgets\/site-sidebar\.tsx)(?:\?|$)/
-        : /(?:\/assets\/cart-drawer-[^/]+\.js|\/src\/modules\/cart\/components\/cart-drawer\.tsx)(?:\?|$)/;
+      /(?:\/assets\/cart-drawer-[^/]+\.js|\/src\/modules\/cart\/components\/cart-drawer\.tsx)(?:\?|$)/;
     await page.route(module, async (route) => {
       await pending;
       await route.continue();
@@ -380,7 +411,7 @@ for (const overlay of ["menu", "cart"] as const) {
     try {
       await page
         .getByRole("button", {
-          name: overlay === "menu" ? "Відкрити меню" : "Кошик: 0",
+          name: "Кошик: 0",
           exact: true,
         })
         .click();
