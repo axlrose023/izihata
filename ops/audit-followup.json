@@ -206,8 +206,10 @@
     {
       "id": "O21",
       "title": "Объединить запросы связей товара",
-      "status": "pending",
-      "checks": []
+      "status": "verified_local",
+      "checks": [
+        "22 relation/catalog/public HTML tests and mypy pass. One ranked query plus one shared primary-attribute load replaces per-kind queries; limits, ordering and inactive exclusion retained."
+      ]
     },
     {
       "id": "A20",

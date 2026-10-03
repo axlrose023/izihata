@@ -290,17 +290,13 @@ class CatalogQueryService:
         self,
         product_id: UUID,
     ) -> tuple[Sequence[Product], Sequence[Product], Sequence[Product]]:
+        groups: dict[ProductRelationKind, list[Product]] = {
+            kind: [] for kind in ProductRelationKind
+        }
+        for kind, product in await self._uow.products.list_related_groups(product_id):
+            groups[kind].append(product)
         return (
-            await self._uow.products.list_related(
-                product_id,
-                ProductRelationKind.RELATED,
-            ),
-            await self._uow.products.list_related(
-                product_id,
-                ProductRelationKind.ALTERNATIVE,
-            ),
-            await self._uow.products.list_related(
-                product_id,
-                ProductRelationKind.BOUGHT_TOGETHER,
-            ),
+            groups[ProductRelationKind.RELATED],
+            groups[ProductRelationKind.ALTERNATIVE],
+            groups[ProductRelationKind.BOUGHT_TOGETHER],
         )

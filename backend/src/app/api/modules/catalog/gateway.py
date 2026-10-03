@@ -786,24 +786,40 @@ class ProductGateway:
         )
         return (await self._session.execute(stmt)).scalars().all()
 
-    async def list_related(
+    async def list_related_groups(
         self,
         source_product_id: UUID,
-        kind: ProductRelationKind,
         *,
         limit: int = 8,
-    ) -> Sequence[Product]:
-        stmt = (
-            select(Product)
+    ) -> Sequence[tuple[ProductRelationKind, Product]]:
+        ranked = (
+            select(
+                ProductRelation.target_product_id,
+                ProductRelation.kind,
+                func.row_number()
+                .over(
+                    partition_by=ProductRelation.kind,
+                    order_by=(
+                        ProductRelation.position,
+                        ProductRelation.target_product_id,
+                    ),
+                )
+                .label("rank"),
+            )
             .join(
-                ProductRelation,
+                Product,
                 ProductRelation.target_product_id == Product.id,
             )
             .where(
                 ProductRelation.source_product_id == source_product_id,
-                ProductRelation.kind == kind,
                 Product.is_active.is_(True),
             )
+            .subquery()
+        )
+        stmt = (
+            select(ranked.c.kind, Product)
+            .join(Product, Product.id == ranked.c.target_product_id)
+            .where(ranked.c.rank <= limit)
             .options(
                 joinedload(Product.category),
                 joinedload(Product.subcategory),
@@ -813,10 +829,12 @@ class ProductGateway:
                     )
                 ),
             )
-            .order_by(ProductRelation.position, Product.id)
-            .limit(limit)
+            .order_by(ranked.c.kind, ranked.c.rank)
         )
-        return (await self._session.execute(stmt)).scalars().unique().all()
+        return [
+            (kind, product)
+            for kind, product in (await self._session.execute(stmt)).unique().all()
+        ]
 
     async def list_relations(
         self,
