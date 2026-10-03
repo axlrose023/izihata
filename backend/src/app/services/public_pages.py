@@ -5,7 +5,7 @@ import json
 import re
 from dataclasses import dataclass, field
 from html import escape
-from urllib.parse import parse_qsl, quote, urlencode
+from urllib.parse import parse_qsl, quote, urlencode, urlsplit
 
 import httpx
 from pydantic import ValidationError
@@ -41,6 +41,7 @@ class PublicPage:
     image: str | None = None
     structured_data: dict | None = None
     seeds: dict = field(default_factory=dict)
+    image_preloads: list[str] = field(default_factory=list)
 
 
 class FrontendTemplateClient:
@@ -129,6 +130,17 @@ class PublicPageService:
                 image=product.image_url,
                 structured_data=product_structured_data(product),
                 seeds=seeds,
+                image_preloads=[
+                    image_preload(
+                        product.image_url
+                        or (product.media[0].url if product.media else None),
+                        product.image_variants
+                        if product.image_url
+                        else (product.media[0].image_variants if product.media else {}),
+                        "(max-width: 820px) 100vw, 50vw",
+                        maximum_width=1600,
+                    )
+                ],
             )
         if not parts:
             sections = await self._catalog.get_sections()
@@ -278,7 +290,86 @@ class PublicPageService:
             )
             + "</ul>"
         )
-        return PublicPage(title, content=content, seeds=seeds)
+        return PublicPage(
+            title,
+            content=content,
+            seeds=seeds,
+            image_preloads=[
+                image_preload(
+                    item.image_url,
+                    item.image_variants,
+                    "(max-width: 820px) 50vw, 400px",
+                )
+                for item in products.items[:2]
+            ],
+        )
+
+
+def image_preload(
+    source: str | None,
+    variants: dict[str, str],
+    sizes: str,
+    *,
+    maximum_width: int = 960,
+) -> str:
+    if not source:
+        return ""
+    generated = sorted(
+        (int(width), url)
+        for width, url in variants.items()
+        if width.isdecimal() and int(width) > 0
+    )
+    selected = [item for item in generated if item[0] <= maximum_width]
+    larger = next((item for item in generated if item[0] > maximum_width), None)
+    if larger and (selected[-1][0] if selected else 0) < maximum_width:
+        selected.append(larger)
+    attrs = ""
+    if selected:
+        source = selected[-1][1]
+        srcset = ", ".join(f"{url} {width}w" for width, url in selected)
+        attrs = f' imagesrcset="{escape(srcset, quote=True)}" imagesizes="{escape(sizes, quote=True)}"'
+    return f'<link rel="preload" as="image" href="{escape(source, quote=True)}"{attrs} fetchpriority="high">'
+
+
+def route_preloads(template: str, path: str) -> str:
+    manifest = re.search(
+        r'<script id="public-route-preloads" type="application/json">(.*?)</script>',
+        template,
+        flags=re.S,
+    )
+    if not manifest:
+        return template
+    parts = path.strip("/").split("/") if path != "/" else []
+    module = None
+    if not parts:
+        module = "home-page"
+    elif parts[0] == "catalog":
+        module = "catalog-page"
+    elif parts == ["brands"]:
+        module = "brand-pages"
+    elif len(parts) == 2:
+        module = {
+            "brands": "brand-products-page",
+            "sections": "section-page",
+            "products": "product-page",
+        }.get(parts[0])
+    try:
+        mapping = json.loads(manifest[1])
+        files = mapping.get(module, []) if isinstance(mapping, dict) else []
+        if not isinstance(files, list):
+            files = []
+    except (ValueError, TypeError):
+        files = []
+    links = "".join(
+        f'<link rel="modulepreload" crossorigin href="{escape(filename, quote=True)}">'
+        for filename in dict.fromkeys(
+            filename
+            for filename in files
+            if isinstance(filename, str)
+            and re.fullmatch(r"/assets/[\w.-]+\.js", filename)
+        )
+    )
+    return template[: manifest.start()] + links + template[manifest.end() :]
 
 
 def product_structured_data(product: ProductDetailResponse) -> dict:
@@ -317,6 +408,7 @@ def product_structured_data(product: ProductDetailResponse) -> dict:
 
 
 def render_page(template: str, page: PublicPage, canonical: str) -> str:
+    template = route_preloads(template, urlsplit(canonical).path)
     title = page.title + " | IZI HATA"
     template = re.sub(
         r"<title>.*?</title>",
@@ -346,7 +438,9 @@ def render_page(template: str, page: PublicPage, canonical: str) -> str:
             + inline_json(page.structured_data)
             + "</script>"
         )
-    template = template.replace("</head>", metadata + "</head>", 1)
+    template = template.replace(
+        "</head>", metadata + "".join(page.image_preloads) + "</head>", 1
+    )
     content = f'<main class="container"><nav>{link("/", "IZI HATA")} · {link("/catalog", "Каталог")}</nav><h1>{escape(page.title)}</h1>{page.content}</main>'
     return template.replace(
         '<div id="root"></div>',

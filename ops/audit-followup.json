@@ -176,8 +176,10 @@
     {
       "id": "O17",
       "title": "Ранняя загрузка route chunk и фото первого экрана",
-      "status": "pending",
-      "checks": []
+      "status": "verified_local",
+      "checks": [
+        "24 public HTML/preload tests and 400 backend tests pass; built map contains 13 route modules and every hashed dependency exists; catalog excludes unrelated pages/overlays. Responsive preload matches current image candidates."
+      ]
     },
     {
       "id": "O18",

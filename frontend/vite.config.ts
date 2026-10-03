@@ -1,8 +1,9 @@
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
+import { publicRoutePreloads } from "./build-public-preloads";
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), publicRoutePreloads()],
   resolve: {
     alias: { "@": new URL("./src", import.meta.url).pathname },
   },
