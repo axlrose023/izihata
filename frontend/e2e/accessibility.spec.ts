@@ -32,6 +32,19 @@ test("lead dialog meets WCAG A/AA checks", async ({ page }) => {
   await expectNoAccessibilityViolations(page);
 });
 
+test("mobile menu has accessible contrast and a usable close control", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Відкрити меню" }).click();
+  const menu = page.getByRole("dialog", { name: "Головне меню" });
+  await expect(menu).toBeVisible();
+  await expectNoAccessibilityViolations(page);
+  await menu.getByRole("button", { name: "Закрити меню" }).click();
+  await expect(menu).toBeHidden();
+});
+
 test("signed-in admin screens meet WCAG A/AA checks", async ({ page }) => {
   const username = process.env.ADMIN_USERNAME;
   const password = process.env.ADMIN_PASSWORD;

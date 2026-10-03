@@ -1361,6 +1361,7 @@ h2 {
   width: min(340px, 88vw);
   overflow-y: auto;
   overscroll-behavior: contain;
+  color: var(--ink);
   background: #fff;
 }
 .site-sidebar__head {
@@ -1374,6 +1375,18 @@ h2 {
   border-bottom: 1px solid var(--line);
   background: #fff;
 }
+.site-sidebar__head .icon-button {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  color: var(--accent);
+  border-color: var(--navy);
+  background: var(--navy);
+}
+.site-sidebar__head .icon-button:hover {
+  border-color: var(--ink-panel);
+  background: var(--ink-panel);
+}
 .site-sidebar__auth {
   display: flex;
   align-items: center;
@@ -1381,6 +1394,9 @@ h2 {
   padding: 16px 18px;
   border-bottom: 1px solid var(--line);
   background: var(--surface);
+}
+.site-sidebar__auth:hover {
+  background: var(--surface-accent);
 }
 .site-sidebar__auth svg {
   flex-shrink: 0;
