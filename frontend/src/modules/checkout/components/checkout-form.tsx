@@ -120,6 +120,9 @@ export function CheckoutForm() {
   const [selectedPointRef, setSelectedPointRef] = useState<string | null>(null);
   const [manualDelivery, setManualDelivery] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [sessionNotice, setSessionNotice] = useState<string | null>(null);
+  const sessionReady =
+    customerStatus === "guest" || customerStatus === "authenticated";
 
   useEffect(() => {
     if (customerStatus === "idle") void restore();
@@ -197,18 +200,27 @@ export function CheckoutForm() {
   const quoteIsStale = serializedItems !== quotedItems;
   const quote = useQuery({
     queryKey: ["quote", sessionVersion, customerStatus, quotedItems, promoCode],
-    enabled: items.length > 0 && !tooManyItems,
-    queryFn: ({ signal }) => {
+    enabled: items.length > 0 && !tooManyItems && sessionReady,
+    queryFn: async ({ signal }) => {
       const send =
         customerStatus === "authenticated" ? customerRequest : apiClient;
-      return send<Quote>("/checkout/quote", {
-        method: "POST",
-        signal,
-        body: JSON.stringify({
-          items: JSON.parse(quotedItems) as typeof items,
-          promo_code: promoCode,
-        }),
-      });
+      try {
+        return await send<Quote>("/checkout/quote", {
+          method: "POST",
+          signal,
+          body: JSON.stringify({
+            items: JSON.parse(quotedItems) as typeof items,
+            promo_code: promoCode,
+          }),
+        });
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 401) {
+          setSessionNotice(
+            "Сесія завершилася. Увійдіть повторно або оформіть замовлення як гість.",
+          );
+        }
+        throw error;
+      }
     },
   });
 
@@ -240,7 +252,13 @@ export function CheckoutForm() {
       setError("point", { message: "Оберіть відділення зі списку" });
       return;
     }
-    if (!quote.data || quoteIsStale || quote.isFetching || quote.isError) {
+    if (
+      !sessionReady ||
+      !quote.data ||
+      quoteIsStale ||
+      quote.isFetching ||
+      quote.isError
+    ) {
       setSubmitError("Дочекайтеся розрахунку замовлення");
       return;
     }
@@ -296,6 +314,16 @@ export function CheckoutForm() {
   return (
     <div className="checkout-layout">
       <form className="checkout-form" id="checkout-form" onSubmit={submit}>
+        {sessionNotice ? <p role="alert">{sessionNotice}</p> : null}
+        {customerStatus === "unavailable" ? (
+          <p role="alert">
+            Не вдалося перевірити сесію. Повторіть перевірку, щоб зберегти умови
+            вашого акаунта.
+            <button type="button" onClick={() => void restore()}>
+              Перевірити сесію
+            </button>
+          </p>
+        ) : null}
         <section className="checkout-card checkout-card--contacts">
           <span className="checkout-step">01</span>
           <div>
@@ -647,6 +675,7 @@ export function CheckoutForm() {
           className="button button--primary button--wide checkout-submit"
           disabled={
             isSubmitting ||
+            !sessionReady ||
             quote.isFetching ||
             quote.isError ||
             !quote.data ||

@@ -17,8 +17,16 @@ import { productFixture } from "@/tests/product-fixture";
 import { CheckoutForm } from "./checkout-form";
 
 vi.mock("@/shared/api/client", () => ({ apiClient: vi.fn() }));
+const { auth } = vi.hoisted(() => ({
+  auth: {
+    status: "guest",
+    sessionVersion: 0,
+    restore: vi.fn(),
+    request: vi.fn(),
+  },
+}));
 vi.mock("@/modules/customers/customer-auth-context", () => ({
-  useCustomerAuth: () => ({ status: "guest", sessionVersion: 0 }),
+  useCustomerAuth: () => auth,
 }));
 vi.mock("@/shared/lib/use-debounced-value", () => ({
   useDebouncedValue: (value: unknown) => value,
@@ -56,6 +64,9 @@ const unavailable = new ApiError(
 
 beforeEach(() => {
   vi.clearAllMocks();
+  auth.status = "guest";
+  auth.sessionVersion = 0;
+  auth.request.mockReset();
   useCartStore.setState({ lines: [{ product, quantity: 1 }], isOpen: false });
 });
 afterEach(cleanup);
@@ -287,4 +298,39 @@ it("shows server unit prices instead of stale persisted prices", async () => {
   expect(
     container.querySelector(".order-summary__line")?.textContent,
   ).not.toContain("999");
+});
+
+it.each(["idle", "loading", "unavailable"])(
+  "does not calculate guest prices while session is %s",
+  (status) => {
+    auth.status = status;
+    renderForm();
+    expect(apiClient).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole("button", { name: "Підтвердити замовлення" }),
+    ).toBeDisabled();
+    if (status === "unavailable") {
+      fireEvent.click(screen.getByRole("button", { name: "Перевірити сесію" }));
+      expect(auth.restore).toHaveBeenCalledTimes(1);
+    }
+  },
+);
+
+it("keeps an expired-session notice when the basket is recalculated for a guest", async () => {
+  auth.status = "authenticated";
+  auth.request.mockImplementation(async () => {
+    auth.status = "guest";
+    auth.sessionVersion++;
+    throw new ApiError(401, "Expired", undefined, "unauthorized");
+  });
+  renderForm();
+  await screen.findByText(/Сесія завершилася/);
+  await waitFor(() =>
+    expect(apiClient).toHaveBeenCalledWith(
+      "/checkout/quote",
+      expect.anything(),
+    ),
+  );
+  expect(screen.getByText(/Сесія завершилася/)).toBeInTheDocument();
+  expect(useCartStore.getState().lines).toHaveLength(1);
 });

@@ -122,7 +122,8 @@
       "title": "Отозванная сессия становится гостевой в checkout без сигнала фронтенду",
       "status": "verified_local",
       "checks": [
-        "6 customer API tests passed: revoked bearer gets 401 on quote/order, absent bearer still permits guest quote."
+        "6 customer API tests passed: revoked bearer gets 401 on quote/order, absent bearer still permits guest quote.",
+        "11 checkout UI tests pass: no guest quote while session restore is unresolved/unavailable, retry offered, expired-session notice retained after guest recalculation, basket preserved."
       ]
     },
     {
