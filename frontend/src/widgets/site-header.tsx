@@ -16,6 +16,7 @@ import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 
 import { cartCount, useCartStore } from "@/modules/cart/store";
+import { preloadCartDrawer } from "@/modules/cart/components/load-cart-drawer";
 import { ProductSearch } from "@/modules/catalog/components/product-search";
 import { useCollectionStore } from "@/modules/collections/store";
 import { LeadAction } from "@/modules/leads/components/lead-action";
@@ -119,6 +120,9 @@ export function SiteHeader() {
             aria-label={`Кошик: ${cartCount(lines)}`}
             className="header-cart"
             onClick={openCart}
+            onFocus={preloadCartDrawer}
+            onPointerEnter={preloadCartDrawer}
+            onPointerDown={preloadCartDrawer}
             type="button"
           >
             <ShoppingCart />
@@ -189,6 +193,9 @@ export function SiteHeader() {
         <button
           aria-label={`Кошик: ${cartCount(lines)}`}
           onClick={openCart}
+          onFocus={preloadCartDrawer}
+          onPointerEnter={preloadCartDrawer}
+          onPointerDown={preloadCartDrawer}
           type="button"
         >
           <ShoppingCart size={20} />

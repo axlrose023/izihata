@@ -20,6 +20,7 @@ import { useCallback, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { cartCount, useCartStore } from "@/modules/cart/store";
+import { preloadCartDrawer } from "@/modules/cart/components/load-cart-drawer";
 import { categoriesQuery } from "@/modules/catalog/api/catalog-queries";
 import { useCollectionStore } from "@/modules/collections/store";
 import { useCustomerAuth } from "@/modules/customers/customer-auth-context";
@@ -163,6 +164,9 @@ export function SiteSidebar({
             <div className="site-sidebar__section">
               <nav className="site-sidebar__links">
                 <button
+                  onFocus={preloadCartDrawer}
+                  onPointerEnter={preloadCartDrawer}
+                  onPointerDown={preloadCartDrawer}
                   onClick={() => {
                     close();
                     openCart();
