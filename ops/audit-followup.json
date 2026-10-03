@@ -160,8 +160,10 @@
     {
       "id": "O15",
       "title": "Остановить запросы выбранных адресов доставки",
-      "status": "pending",
-      "checks": []
+      "status": "verified_local",
+      "checks": [
+        "7 checkout regressions pass: selecting city/point sends no extra label search or invalidation request; editing resumes correct searches."
+      ]
     },
     {
       "id": "O16",

@@ -201,6 +201,39 @@ it("submits the full delivery point description including its number", async () 
   );
 });
 
+it("stops directory searches after selection and resumes when edited", async () => {
+  const { client } = renderForm(false, false, [
+    {
+      ref: "point-8",
+      label: "вул. Хрещатик, 1",
+      name: "Відділення № 8: вул. Хрещатик, 1",
+      number: "8",
+    },
+  ]);
+  const [city, point] = screen.getAllByRole("combobox");
+  fireEvent.focus(city);
+  fireEvent.change(city, { target: { value: "Ки" } });
+  fireEvent.mouseDown(await screen.findByRole("option", { name: "Київ" }));
+  fireEvent.focus(point);
+  fireEvent.change(point, { target: { value: "8" } });
+  fireEvent.mouseDown(
+    await screen.findByRole("option", { name: "вул. Хрещатик, 1" }),
+  );
+  const directoryCalls = () =>
+    vi.mocked(apiClient).mock.calls.filter(([path]) =>
+      path.startsWith("/delivery/"),
+    );
+  expect(directoryCalls()).toHaveLength(3);
+  await act(async () => {
+    await client.invalidateQueries({ queryKey: ["delivery"] });
+  });
+  expect(directoryCalls()).toHaveLength(3);
+  fireEvent.change(point, { target: { value: "інше" } });
+  await waitFor(() => expect(directoryCalls()).toHaveLength(4));
+  fireEvent.change(city, { target: { value: "Львів" } });
+  await waitFor(() => expect(directoryCalls()).toHaveLength(5));
+});
+
 it("retains the applied promo through temporary failures and retries explicitly", async () => {
   renderForm();
   await waitFor(() =>

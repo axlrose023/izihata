@@ -155,7 +155,11 @@ export function CheckoutForm() {
   const isNovaPoshta = deliveryMethod !== "pickup";
   const cities = useQuery({
     queryKey: ["delivery", "cities", deferredCity],
-    enabled: isNovaPoshta && !manualDelivery && deferredCity.length >= 2,
+    enabled:
+      isNovaPoshta &&
+      !manualDelivery &&
+      selectedCityRef === null &&
+      deferredCity.length >= 2,
     queryFn: ({ signal }) =>
       apiClient<DeliveryCityOption[]>(
         `/delivery/cities?${new URLSearchParams({ search: deferredCity })}`,
@@ -166,7 +170,11 @@ export function CheckoutForm() {
     deliveryMethod === "nova_poshta_locker" ? "locker" : "branch";
   const points = useQuery({
     queryKey: ["delivery", "points", selectedCityRef, pointKind, deferredPoint],
-    enabled: isNovaPoshta && !manualDelivery && selectedCityRef !== null,
+    enabled:
+      isNovaPoshta &&
+      !manualDelivery &&
+      selectedCityRef !== null &&
+      selectedPointRef === null,
     queryFn: ({ signal }) =>
       apiClient<DeliveryPointOption[]>(
         `/delivery/points?${new URLSearchParams({
