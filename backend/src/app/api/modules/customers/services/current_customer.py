@@ -51,7 +51,7 @@ class OptionalAuthenticateCustomer:
         credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
     ) -> Customer | None:
         if credentials is None:
+            if request.headers.get("Authorization"):
+                raise UnauthorizedError()
             return None
-        return await AuthenticateCustomer()._get_customer(
-            request, credentials.credentials
-        )
+        return await AuthenticateCustomer()(request, credentials)

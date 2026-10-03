@@ -94,8 +94,10 @@
     {
       "id": "A15",
       "title": "Отозванная сессия становится гостевой в checkout без сигнала фронтенду",
-      "status": "pending",
-      "checks": []
+      "status": "verified_local",
+      "checks": [
+        "6 customer API tests passed: revoked bearer gets 401 on quote/order, absent bearer still permits guest quote."
+      ]
     },
     {
       "id": "A16",

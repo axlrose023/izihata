@@ -159,3 +159,29 @@ class TestCustomersB2B:
             headers={"Authorization": f"Bearer {refreshed.json()['access_token']}"},
         )
         assert profile.status_code == 401
+
+    async def test_revoked_bearer_does_not_become_guest_checkout(self, client, product):
+        registration = await client.post(
+            "/api/v1/customer-auth/register", json=customer_payload()
+        )
+        headers = {"Authorization": f"Bearer {registration.json()['access_token']}"}
+        assert (await client.post("/api/v1/customer-auth/logout")).status_code == 204
+        payload = {"items": [{"product_id": str(product.id), "quantity": 1}]}
+        quote = await client.post(
+            "/api/v1/checkout/quote", json=payload, headers=headers
+        )
+        assert quote.status_code == 401
+        order = await client.post(
+            "/api/v1/orders",
+            headers=headers,
+            json={
+                **payload,
+                "customer_name": "Покупець Аудит",
+                "phone": "+380671234567",
+                "delivery": {"method": "pickup"},
+                "payment_method": "cash_on_delivery",
+            },
+        )
+        assert order.status_code == 401
+        guest_quote = await client.post("/api/v1/checkout/quote", json=payload)
+        assert guest_quote.status_code == 200
