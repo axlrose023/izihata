@@ -126,5 +126,15 @@
       ]
     }
   ],
-  "production_verification": []
+  "production_verification": [
+    {
+      "revision": "63eb1fe",
+      "deployed_at": "2026-10-03T22:02:01+03:00",
+      "checks": [
+        "Manual deployment completed; app, frontend, database, cache, tasks and scheduler are healthy",
+        "20 mobile layout checks passed on production in Chromium and 20 passed in WebKit across 320–1024px",
+        "Under 4x CPU throttling and a 150ms / 200KB/s mobile connection, home, catalog and product pages had 0 cumulative layout shift and 390px document width at a 390px viewport"
+      ]
+    }
+  ]
 }
