@@ -109,6 +109,21 @@
         "19 mobile checks passed in Chromium and WebKit across 20 public routes and widths 320–1024px",
         "Visual check at 810, 821 and 1024px confirmed one-line labels and no page overflow"
       ]
+    },
+    {
+      "id": "M07",
+      "title": "Keep home product cards visible while a new rail selection loads",
+      "status": "verified_local",
+      "before": [
+        "Changing a rail tab removed the current cards and replaced them with a loader before the next response arrived"
+      ],
+      "changes": [
+        "The rail query retains the displayed cards until the next selection has loaded"
+      ],
+      "checks": [
+        "Delayed-response regression check passed in Chromium; the original card kept the same vertical position",
+        "Equivalent WebKit probe passed at 390px with no horizontal overflow"
+      ]
     }
   ],
   "production_verification": []

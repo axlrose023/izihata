@@ -156,6 +156,45 @@ test("lazy home products do not move the following sections", async ({
   await expectDocumentFits(page);
 });
 
+test("switching a home rail keeps the current cards visible while loading", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  const rail = page.locator(".popular-products");
+  await rail.scrollIntoViewIfNeeded();
+  const card = rail.locator(".product-card").first();
+  await expect(card).toBeVisible();
+  const before = await card.boundingBox();
+  let release!: () => void;
+  const pending = new Promise<void>((done) => {
+    release = done;
+  });
+  await page.route("**/api/v1/catalog/products?**", async (route) => {
+    const requestUrl = new URL(route.request().url());
+    if (requestUrl.searchParams.get("is_popular") !== "true")
+      return route.continue();
+    await pending;
+    await route.continue();
+  });
+  try {
+    await rail.getByRole("tab", { name: "Популярне", exact: true }).click();
+    await expect(rail.locator(".home-rail-content")).toHaveAttribute(
+      "aria-busy",
+      "true",
+    );
+    await expect(card).toBeVisible();
+    expect((await card.boundingBox())!.y).toBeCloseTo(before!.y, 0);
+    await expectDocumentFits(page);
+  } finally {
+    release();
+  }
+  await expect(rail.locator(".home-rail-content")).toHaveAttribute(
+    "aria-busy",
+    "false",
+  );
+});
+
 test("broken gallery images keep the reserved media dimensions", async ({
   page,
   request,

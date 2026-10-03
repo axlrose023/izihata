@@ -1,4 +1,4 @@
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { keepPreviousData, useInfiniteQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 
@@ -64,6 +64,9 @@ export function PopularProducts() {
         signal,
       ),
     getNextPageParam: (last) => (last.has_next ? last.page + 1 : undefined),
+    // Keep the current rail visible while a different selection is loading.
+    // Replacing it with a loader made the whole home page look like it jumped.
+    placeholderData: keepPreviousData,
     staleTime: 60_000,
   });
   const items = result.data?.pages.flatMap((page) => page.items) ?? [];
