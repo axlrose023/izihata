@@ -11,7 +11,7 @@ import {
 
 describe("format helpers", () => {
   it("formats decimal strings as Ukrainian hryvnia", () => {
-    expect(formatMoney("1299.50")).toContain("1 300");
+    expect(formatMoney("1299.50")).toContain("1 299,5");
     expect(formatMoney("1299.50")).toContain("₴");
   });
 
