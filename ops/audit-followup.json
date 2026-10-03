@@ -179,7 +179,8 @@
       "title": "Ранняя загрузка route chunk и фото первого экрана",
       "status": "verified_local",
       "checks": [
-        "24 public HTML/preload tests and 400 backend tests pass; built map contains 13 route modules and every hashed dependency exists; catalog excludes unrelated pages/overlays. Responsive preload matches current image candidates."
+        "24 public HTML/preload tests and 400 backend tests pass; built map contains 13 route modules and every hashed dependency exists; catalog excludes unrelated pages/overlays. Responsive preload matches current image candidates.",
+        "401 backend tests, mypy, frontend build/lint pass; built bootstrap retains high priority; preload hints de-duplicate entry dependencies and use lower priority. Paired slow-device experiment showed lower card/photo time."
       ]
     },
     {
@@ -298,6 +299,62 @@
         }
       ],
       "browser": "Released assets: rejected B2B text correct, 1.5% retained; transparent PNG becomes WebP with alpha 0. B2B API mocked, no production write."
+    },
+    {
+      "release": "41c3cf3",
+      "services": "all six healthy; backup recent",
+      "query_profile": {
+        "admin_list": {
+          "ms": 63.39,
+          "sql": 2,
+          "rows": 100,
+          "response_bytes": 23816,
+          "response_fields": [
+            "id",
+            "sku",
+            "name",
+            "brand",
+            "price",
+            "old_price",
+            "stock_status",
+            "is_active"
+          ]
+        },
+        "product_detail": {
+          "ms": 54.94,
+          "sql": 6,
+          "response_bytes": 25944,
+          "reviews": 0,
+          "related": 0,
+          "alternatives": 0,
+          "bought_together": 0
+        },
+        "sitemap": [
+          {
+            "ms": 259.77,
+            "sql": 7,
+            "bytes": 1830786
+          },
+          {
+            "ms": 8.4,
+            "sql": 0,
+            "bytes": 1830786
+          }
+        ]
+      },
+      "mobile_interim": [
+        {
+          "html_ms": 661.9000000059605,
+          "cards_ms": 2554.2000000029802,
+          "photo_ms": 2631.7000000029802
+        },
+        {
+          "html_ms": 329,
+          "cards_ms": 2239.6000000089407,
+          "photo_ms": 2263.9000000059605
+        }
+      ],
+      "diagnosis": "Photos loaded before React; card timing did not consistently improve. Continued diagnosis showed bootstrap bandwidth competition. Paired browser experiment favored high main priority and low preparatory preloads."
     }
   ]
 }

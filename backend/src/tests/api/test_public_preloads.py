@@ -78,3 +78,14 @@ def test_invalid_template_map_does_not_break_html_or_load_foreign_assets():
         html = render_page(template, PublicPage("Page"), "https://example.com/catalog")
         assert "<h1>Page</h1>" in html
         assert "evil.example" not in html
+
+
+def test_preloads_do_not_compete_with_bootstrap_or_duplicate_existing_links():
+    template = '<head><script type="module" src="/assets/main.js"></script><script id="public-route-preloads" type="application/json">{"catalog-page":["/assets/catalog.js","/assets/main.js"]}</script></head><div id="root"></div>'
+    html = render_page(template, PublicPage("Page"), "https://example.com/catalog")
+    assert 'href="/assets/main.js"' not in html
+    assert 'rel="modulepreload" fetchpriority="low"' in html
+    assert 'fetchpriority="low"' in image_preload("/photo.png", {}, "400px")
+    assert 'fetchpriority="high"' in image_preload(
+        "/photo.png", {}, "50vw", priority="high"
+    )

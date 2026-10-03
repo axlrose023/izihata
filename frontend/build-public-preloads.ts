@@ -27,14 +27,21 @@ export function publicRoutePreloads(): Plugin {
           visit(chunk.fileName);
           routes[source] = [...files].map((filename) => `/${filename}`);
         }
-        return [
-          {
-            tag: "script",
-            attrs: { id: "public-route-preloads", type: "application/json" },
-            children: JSON.stringify(routes).replaceAll("<", "\\u003c"),
-            injectTo: "head",
-          },
-        ];
+        return {
+          html: _html.replace(/<script\b[^>]*type="module"[^>]*>/g, (tag) =>
+            tag.includes("fetchpriority=")
+              ? tag
+              : tag.replace("<script", '<script fetchpriority="high"'),
+          ),
+          tags: [
+            {
+              tag: "script",
+              attrs: { id: "public-route-preloads", type: "application/json" },
+              children: JSON.stringify(routes).replaceAll("<", "\\u003c"),
+              injectTo: "head",
+            },
+          ],
+        };
       },
     },
   };

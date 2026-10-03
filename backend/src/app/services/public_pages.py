@@ -139,6 +139,7 @@ class PublicPageService:
                         else (product.media[0].image_variants if product.media else {}),
                         "(max-width: 820px) 100vw, 50vw",
                         maximum_width=1600,
+                        priority="high",
                     )
                 ],
             )
@@ -311,6 +312,7 @@ def image_preload(
     sizes: str,
     *,
     maximum_width: int = 960,
+    priority: str = "low",
 ) -> str:
     if not source:
         return ""
@@ -328,7 +330,7 @@ def image_preload(
         source = selected[-1][1]
         srcset = ", ".join(f"{url} {width}w" for width, url in selected)
         attrs = f' imagesrcset="{escape(srcset, quote=True)}" imagesizes="{escape(sizes, quote=True)}"'
-    return f'<link rel="preload" as="image" href="{escape(source, quote=True)}"{attrs} fetchpriority="high">'
+    return f'<link rel="preload" as="image" href="{escape(source, quote=True)}"{attrs} fetchpriority="{escape(priority, quote=True)}">'
 
 
 def route_preloads(template: str, path: str) -> str:
@@ -360,12 +362,14 @@ def route_preloads(template: str, path: str) -> str:
             files = []
     except (ValueError, TypeError):
         files = []
+    already_linked = set(re.findall(r'(?:src|href)="(/assets/[\w.-]+\.js)"', template))
     links = "".join(
-        f'<link rel="modulepreload" crossorigin href="{escape(filename, quote=True)}">'
+        f'<link rel="modulepreload" fetchpriority="low" crossorigin href="{escape(filename, quote=True)}">'
         for filename in dict.fromkeys(
             filename
             for filename in files
             if isinstance(filename, str)
+            and filename not in already_linked
             and re.fullmatch(r"/assets/[\w.-]+\.js", filename)
         )
     )
