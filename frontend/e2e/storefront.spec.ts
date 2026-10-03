@@ -22,9 +22,7 @@ test("public routes render and product navigation works", async ({ page }) => {
   await expect(page.getByRole("heading", { level: 1 })).toContainText(
     "Все для щита, кабелю й освітлення",
   );
-  await expect(
-    page.getByRole("heading", { name: "Товари з каталогу" }),
-  ).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Усі товари" })).toBeVisible();
   await expect(page.getByRole("link", { name: /Дім і ремонт/ })).toBeVisible();
   await expect(page.getByText("Гуртові ціни", { exact: true })).toHaveCount(0);
   const searchResponse = page.waitForResponse(

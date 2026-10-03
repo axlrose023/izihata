@@ -29,7 +29,7 @@ it("shows actual catalog products without assigning popularity or badges", async
   show();
   await screen.findByText("Test product");
   expect(
-    screen.getByRole("heading", { name: "Товари з каталогу" }),
+    screen.getByRole("heading", { name: "Усі товари" }),
   ).toBeInTheDocument();
   expect(vi.mocked(fetchProducts).mock.calls[0][0]).toMatchObject({
     page: 1,

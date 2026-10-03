@@ -17,7 +17,7 @@ const PAGE_SIZE = 8;
 const rails = [
   {
     id: "catalog",
-    label: "Товари з каталогу",
+    label: "Усі товари",
     href: "/catalog",
     params: { sort: "popular" as const },
   },
