@@ -31,6 +31,12 @@ else
   printf 'public catalog: FAILED\n' >> "$report"
   failed=1
 fi
+if curl --fail --silent --show-error --max-time 15 'https://izihata.com.ua/catalog/categories' > /dev/null 2>&1; then
+  printf 'category directory: ok\n' >> "$report"
+else
+  printf 'category directory: FAILED\n' >> "$report"
+  failed=1
+fi
 if [[ -d "$backup_root" ]] && [[ -n "$(find "$backup_root" -mindepth 1 -maxdepth 1 -type d -name 'daily-*' -mmin -1560 -print -quit)" ]]; then
   printf 'daily backup: recent\n' >> "$report"
 else

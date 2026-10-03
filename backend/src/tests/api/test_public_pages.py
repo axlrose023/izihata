@@ -84,6 +84,23 @@ async def test_catalog_seed_preserves_repeated_filters_and_requested_page(
 
 
 @pytest.mark.asyncio
+async def test_catalog_directory_is_a_public_page(client, html_template):
+    categories = (await client.get("/api/v1/catalog/categories")).json()
+    response = await client.get("/catalog/categories")
+
+    assert response.status_code == 200, response.text
+    assert "<h1>Каталог товарів</h1>" in response.text
+    assert categories[0]["name"] in response.text
+    seeds = json.loads(
+        re.search(
+            r'<script id="public-catalog-data" type="application/json">(.*?)</script>',
+            response.text,
+        ).group(1)
+    )
+    assert seeds["/catalog/categories"] == categories
+
+
+@pytest.mark.asyncio
 async def test_bad_catalog_parameters_return_422_html(client, html_template):
     response = await client.get("/catalog?page=9223372036854775807")
     assert response.status_code == 422

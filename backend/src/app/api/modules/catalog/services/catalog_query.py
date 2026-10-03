@@ -53,7 +53,7 @@ class CatalogQueryService:
     async def _load_sitemap(self) -> str:
         namespace = "http://www.sitemaps.org/schemas/sitemap/0.9"
         root = Element(f"{{{namespace}}}urlset")
-        urls = {"/", "/catalog", "/brands"}
+        urls = {"/", "/catalog", "/catalog/categories", "/brands"}
         for section in await self._uow.categories.list_active_sections():
             urls.add(f"/sections/{section.slug}")
         urls.update(

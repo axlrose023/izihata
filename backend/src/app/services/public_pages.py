@@ -169,6 +169,21 @@ class PublicPageService:
             return PublicPage(
                 "Все для щита, кабелю й освітлення", content=content, seeds=seeds
             )
+        if parts == ["catalog", "categories"]:
+            content = (
+                "<ul>"
+                + "".join(
+                    f"<li>{link('/catalog/' + item.slug, item.name)} · {item.product_count}</li>"
+                    for item in categories
+                )
+                + "</ul>"
+            )
+            return PublicPage(
+                "Каталог товарів",
+                "Категорії електротоварів IZI HATA.",
+                content,
+                seeds=seeds,
+            )
         if parts == ["brands"] or (len(parts) == 2 and parts[0] == "brands"):
             brands = await self._brands.list_brands()
             seeds["/catalog/brands"] = [item.model_dump(mode="json") for item in brands]
@@ -345,6 +360,8 @@ def route_preloads(template: str, path: str) -> str:
     module = None
     if not parts:
         module = "home-page"
+    elif parts == ["catalog", "categories"]:
+        module = "catalog-directory-page"
     elif parts[0] == "catalog":
         module = "catalog-page"
     elif parts == ["brands"]:

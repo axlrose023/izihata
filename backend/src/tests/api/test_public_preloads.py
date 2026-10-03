@@ -10,6 +10,7 @@ from app.services.public_pages import PublicPage, image_preload, render_page
     [
         ("/catalog", "catalog-page"),
         ("/catalog/lowvoltage", "catalog-page"),
+        ("/catalog/categories", "catalog-directory-page"),
         ("/products/example", "product-page"),
         ("/brands", "brand-pages"),
         ("/brands/hager", "brand-products-page"),
@@ -22,6 +23,7 @@ def test_only_current_route_and_dependencies_are_preloaded(path, module):
         name: [f"/assets/{name}.js", "/assets/shared.js"]
         for name in [
             "catalog-page",
+            "catalog-directory-page",
             "product-page",
             "brand-pages",
             "brand-products-page",

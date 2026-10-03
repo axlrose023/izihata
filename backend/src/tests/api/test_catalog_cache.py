@@ -123,6 +123,7 @@ async def test_sitemap_cache_reuses_xml_and_invalidates_with_catalog(uow):
     service._load_sitemap = AsyncMock(wraps=service._load_sitemap)
     first = await service.get_sitemap()
     assert "/products/" in first
+    assert "https://example.com/catalog/categories" in first
     assert await service.get_sitemap() == first
     service._load_sitemap.assert_awaited_once()
     await cache.invalidate()
