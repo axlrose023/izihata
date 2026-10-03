@@ -3,13 +3,14 @@ import { useQuery } from "@tanstack/react-query";
 import { Check, LoaderCircle, ShoppingBag } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
 
 import { MAX_CART_LINES, useCartStore } from "@/modules/cart/store";
 import { ProductVisual } from "@/modules/catalog/components/product-visual";
 import { DeliveryAutocomplete } from "@/modules/checkout/components/delivery-autocomplete";
 import { useCustomerAuth } from "@/modules/customers/customer-auth-context";
+import { storePolicyPages } from "@/shared/config/store-policy-pages";
 import { apiClient } from "@/shared/api/client";
 import {
   clearOrderRetry,
@@ -693,8 +694,31 @@ export function CheckoutForm() {
           {isSubmitting ? "Створюємо замовлення…" : "Підтвердити замовлення"}
         </button>
         <p className="checkout-consent">
-          Натискаючи кнопку, ви погоджуєтесь з умовами доставки, оплати та
-          повернення.
+          Натискаючи кнопку, ви погоджуєтесь з{" "}
+          <Link
+            to={storePolicyPages.terms.path}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            умовами користування сайтом
+          </Link>
+          ,{" "}
+          <Link
+            to={storePolicyPages.delivery.path}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            доставки й оплати
+          </Link>{" "}
+          та{" "}
+          <Link
+            to={storePolicyPages.warranty.path}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            повернення
+          </Link>
+          .
         </p>
         <div className="checkout-assurances">
           <span>Умови доставки й повернення уточнить менеджер</span>

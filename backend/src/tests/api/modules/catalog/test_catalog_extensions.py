@@ -63,6 +63,8 @@ class TestCatalogExtensions:
         assert response.headers["content-type"].startswith("application/xml")
         assert f"/products/{product.slug}" in response.text
         assert f"/product/{product.slug}" not in response.text
+        for path in ["/delivery-and-payment", "/warranty-return", "/terms-of-use"]:
+            assert f"{path}</" in response.text
 
     async def test_lists_seeded_sections_and_filters_products_by_section(
         self,

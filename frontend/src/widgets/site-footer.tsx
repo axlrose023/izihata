@@ -4,6 +4,7 @@ import { MapPin, MessageCircle, Phone } from "lucide-react";
 import { LeadAction } from "@/modules/leads/components/lead-action";
 import { Logo } from "@/shared/ui/logo";
 import { storeInfo } from "@/shared/config/store-info";
+import { storePolicyPages } from "@/shared/config/store-policy-pages";
 
 export function SiteFooter() {
   return (
@@ -12,8 +13,8 @@ export function SiteFooter() {
         <div className="site-footer__brand">
           <Logo inverse />
           <p>
-            Практичний каталог електротоварів з прозорою наявністю та точним
-            серверним розрахунком замовлення.
+            Електротовари для дому, монтажу й бізнесу. Допоможемо підібрати
+            обладнання та узгодити умови замовлення.
           </p>
           <LeadAction
             className="button button--light"
@@ -23,9 +24,13 @@ export function SiteFooter() {
         </div>
         <div>
           <h3>Допомога</h3>
-          <Link to="/advisors">Підбір товарів</Link>
-          <Link to="/custom-boards">Щити на замовлення</Link>
-          <LeadAction label="Уточнити доставку і гарантію" type="callback" />
+          <Link to={storePolicyPages.delivery.path}>
+            {storePolicyPages.delivery.title}
+          </Link>
+          <Link to={storePolicyPages.warranty.path}>
+            {storePolicyPages.warranty.title}
+          </Link>
+          <LeadAction label="Потрібна консультація?" type="callback" />
         </div>
         <div>
           <h3>Каталог</h3>
@@ -59,7 +64,9 @@ export function SiteFooter() {
       <div className="container site-footer__bottom">
         <span>© {new Date().getFullYear()} IZI HATA</span>
         <div>
-          <span>Ціни в замовленні підтверджує сервер.</span>
+          <Link to={storePolicyPages.terms.path}>
+            {storePolicyPages.terms.title}
+          </Link>
           <Link to="/admin/login">Адмін-панель</Link>
         </div>
       </div>

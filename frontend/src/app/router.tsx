@@ -129,6 +129,27 @@ export const router = createBrowserRouter([
         }),
       },
       {
+        path: "delivery-and-payment",
+        lazy: async () => ({
+          Component: (await import("@/pages/store/store-policy-pages"))
+            .DeliveryPaymentPage,
+        }),
+      },
+      {
+        path: "warranty-return",
+        lazy: async () => ({
+          Component: (await import("@/pages/store/store-policy-pages"))
+            .WarrantyReturnPage,
+        }),
+      },
+      {
+        path: "terms-of-use",
+        lazy: async () => ({
+          Component: (await import("@/pages/store/store-policy-pages"))
+            .TermsOfUsePage,
+        }),
+      },
+      {
         path: "favorites",
         lazy: async () => ({
           Component: (await import("@/pages/store/collection-pages"))
