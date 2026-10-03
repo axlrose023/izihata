@@ -62,8 +62,10 @@
     {
       "id": "A08",
       "title": "Допустимая схема калькулятора автономности допускает значения, приводящие к Decimal InvalidOperation и HTTP 500",
-      "status": "pending",
-      "checks": []
+      "status": "verified_local",
+      "checks": [
+        "12 advisor API tests and ruff passed: excess precision rejected; unrepresentable results return 422; normal reference values unchanged."
+      ]
     },
     {
       "id": "A09",

@@ -8,9 +8,15 @@ from app.api.modules.catalog.schema import ProductResponse
 
 
 class ElectricalLoadRequest(StrictSchema):
-    power_w: Decimal | None = Field(default=None, gt=0, le=1000000)
-    current_a: Decimal | None = Field(default=None, gt=0, le=10000)
-    voltage_v: Decimal = Field(default=Decimal("230"), gt=0, le=1000)
+    power_w: Decimal | None = Field(
+        max_digits=13, decimal_places=6, default=None, gt=0, le=1000000
+    )
+    current_a: Decimal | None = Field(
+        max_digits=13, decimal_places=6, default=None, gt=0, le=10000
+    )
+    voltage_v: Decimal = Field(
+        max_digits=13, decimal_places=6, default=Decimal("230"), gt=0, le=1000
+    )
 
     @model_validator(mode="after")
     def require_single_load_value(self) -> "ElectricalLoadRequest":
@@ -28,7 +34,7 @@ class ElectricalLoadRequest(StrictSchema):
 
 
 class CableSizeRequest(ElectricalLoadRequest):
-    length_m: Decimal = Field(gt=0, le=10000)
+    length_m: Decimal = Field(max_digits=13, decimal_places=6, gt=0, le=10000)
     conductor_material: ConductorMaterial = ConductorMaterial.COPPER
 
 
@@ -44,7 +50,9 @@ class CableSizeResponse(StrictSchema):
 class BreakerRequest(ElectricalLoadRequest):
     number_of_poles: int | None = Field(default=None, ge=1, le=4)
     load_type: LoadType = LoadType.RESISTIVE
-    wiring_current_limit_a: Decimal | None = Field(default=None, gt=0, le=10000)
+    wiring_current_limit_a: Decimal | None = Field(
+        max_digits=13, decimal_places=6, default=None, gt=0, le=10000
+    )
 
 
 class BreakerResponse(StrictSchema):
@@ -57,8 +65,8 @@ class BreakerResponse(StrictSchema):
 
 
 class LedPowerSupplyRequest(StrictSchema):
-    length_m: Decimal = Field(gt=0, le=10000)
-    watts_per_meter: Decimal = Field(gt=0, le=10000)
+    length_m: Decimal = Field(max_digits=13, decimal_places=6, gt=0, le=10000)
+    watts_per_meter: Decimal = Field(max_digits=13, decimal_places=6, gt=0, le=10000)
     reserve_percent: int = Field(default=20, ge=10, le=50)
 
 
@@ -70,11 +78,15 @@ class LedPowerSupplyResponse(StrictSchema):
 
 
 class AutonomyRequest(StrictSchema):
-    load_w: Decimal = Field(gt=0, le=1000000)
-    hours: Decimal = Field(gt=0, le=240)
-    battery_voltage_v: Decimal = Field(gt=0, le=1000)
-    inverter_efficiency: Decimal = Field(default=Decimal("0.85"), gt=0, le=1)
-    discharge_depth: Decimal = Field(default=Decimal("0.80"), gt=0, le=1)
+    load_w: Decimal = Field(max_digits=13, decimal_places=6, gt=0, le=1000000)
+    hours: Decimal = Field(max_digits=13, decimal_places=6, gt=0, le=240)
+    battery_voltage_v: Decimal = Field(max_digits=13, decimal_places=6, gt=0, le=1000)
+    inverter_efficiency: Decimal = Field(
+        max_digits=13, decimal_places=6, default=Decimal("0.85"), gt=0, le=1
+    )
+    discharge_depth: Decimal = Field(
+        max_digits=13, decimal_places=6, default=Decimal("0.80"), gt=0, le=1
+    )
 
 
 class AutonomyResponse(StrictSchema):

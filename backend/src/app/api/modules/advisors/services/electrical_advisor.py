@@ -1,5 +1,6 @@
-from decimal import ROUND_UP, Decimal
+from decimal import ROUND_UP, Decimal, InvalidOperation
 
+from app.api.common.exceptions import UnprocessableError
 from app.api.modules.advisors.enums import ConductorMaterial, LoadType
 from app.api.modules.advisors.schema import (
     AutonomyRequest,
@@ -222,4 +223,10 @@ class ElectricalAdvisorService:
 
     @staticmethod
     def _round(value: Decimal) -> Decimal:
-        return value.quantize(Decimal("0.01"), rounding=ROUND_UP)
+        try:
+            return value.quantize(Decimal("0.01"), rounding=ROUND_UP)
+        except InvalidOperation as exc:
+            raise UnprocessableError(
+                "Calculation exceeds the supported numeric range",
+                code="advisor_result_out_of_range",
+            ) from exc

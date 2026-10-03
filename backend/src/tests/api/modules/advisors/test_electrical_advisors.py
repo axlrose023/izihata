@@ -3,6 +3,30 @@ from httpx import AsyncClient
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "efficiency, expected_code",
+    [("1e-29", "validation_error"), ("0.000001", "advisor_result_out_of_range")],
+)
+async def test_autonomy_numeric_boundaries_return_domain_errors(
+    client, efficiency, expected_code
+):
+    response = await client.post(
+        "/api/v1/advisors/autonomy",
+        json={
+            "load_w": "1000000",
+            "hours": "240",
+            "battery_voltage_v": "0.000001",
+            "inverter_efficiency": efficiency,
+            "discharge_depth": "0.000001",
+        },
+    )
+    assert response.status_code == 422
+    assert response.json()["code"] == expected_code
+
+
+
+
+@pytest.mark.asyncio
 class TestElectricalAdvisors:
     async def test_combined_load_coordinates_cable_capacity_and_poles(
         self, client: AsyncClient
