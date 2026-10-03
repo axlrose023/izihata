@@ -790,18 +790,18 @@ h2 {
   gap: 32px;
 }
 .logo {
-  --logo-mark-size: 40px;
+  --logo-mark-width: 52px;
   --logo-wordmark-width: 116px;
 
   display: inline-flex;
   align-items: center;
-  gap: 9px;
+  gap: 8px;
   flex: 0 0 auto;
   white-space: nowrap;
 }
 .logo__mark {
-  width: var(--logo-mark-size);
-  height: var(--logo-mark-size);
+  width: var(--logo-mark-width);
+  height: auto;
   display: block;
   flex: 0 0 auto;
   object-fit: contain;
@@ -814,6 +814,7 @@ h2 {
 }
 .header-search {
   position: relative;
+  min-width: 0;
   height: 44px;
   flex: 1;
   display: flex;
@@ -3607,7 +3608,7 @@ h2 {
   gap: 20px;
 }
 .site-header[data-variant="tool"] .logo {
-  --logo-mark-size: 32px;
+  --logo-mark-width: 44px;
   --logo-wordmark-width: 94px;
 }
 .tool-header__title {
@@ -6271,10 +6272,6 @@ h2 {
   textarea {
     font-size: 16px;
   }
-  .header-main .logo {
-    --logo-mark-size: 30px;
-    --logo-wordmark-width: 86px;
-  }
   .header-search button {
     padding-inline: 14px;
   }
@@ -6829,7 +6826,7 @@ h1 {
 
 .site-header[data-variant="catalog"] .logo,
 .site-header[data-variant="product"] .logo {
-  --logo-mark-size: 32px;
+  --logo-mark-width: 44px;
   --logo-wordmark-width: 94px;
 }
 
@@ -7252,7 +7249,7 @@ h1 {
 }
 
 .checkout-header .logo {
-  --logo-mark-size: 32px;
+  --logo-mark-width: 44px;
   --logo-wordmark-width: 94px;
 }
 
@@ -7593,8 +7590,8 @@ h1 {
 
   .header-main .logo,
   .site-header[data-variant] .logo {
-    --logo-mark-size: 30px;
-    --logo-wordmark-width: 86px;
+    --logo-mark-width: 44px;
+    --logo-wordmark-width: 100px;
   }
 
   .header-search {
@@ -7604,6 +7601,7 @@ h1 {
   .mobile-search-button {
     width: 44px;
     height: 44px;
+    flex: 0 0 auto;
     display: grid;
     place-items: center;
     margin-left: auto;
@@ -7611,6 +7609,7 @@ h1 {
   }
 
   .header-actions {
+    flex: 0 0 auto;
     margin-left: 0;
   }
 
@@ -7631,6 +7630,7 @@ h1 {
   .header-cart {
     width: 44px;
     min-height: 44px;
+    flex: 0 0 auto;
   }
 
   .site-header[data-variant="product"] .menu-button {
@@ -7862,6 +7862,14 @@ h1 {
   .success-next-steps li:last-child {
     padding-bottom: 0;
     border-bottom: 0;
+  }
+}
+
+@media (max-width: 359px) {
+  .header-main .logo,
+  .site-header[data-variant] .logo {
+    --logo-mark-width: 40px;
+    --logo-wordmark-width: 86px;
   }
 }
 

@@ -396,7 +396,7 @@ for (const overlay of ["menu", "cart"] as const) {
   });
 }
 
-for (const width of [320, 360, 390, 414, 768, 820, 1024]) {
+for (const width of [320, 360, 390, 414, 768, 820, 821, 1024]) {
   test(`storefront fits a ${width}px viewport`, async ({ page, request }) => {
     await page.setViewportSize({ width, height: 844 });
     const products = await request.get(
