@@ -1,5 +1,8 @@
 import { useEffect } from "react";
 
+let lockCount = 0;
+let restoreBody: (() => void) | undefined;
+
 /**
  * Freezes the page behind an overlay.
  *
@@ -9,16 +12,26 @@ import { useEffect } from "react";
 export function useBodyScrollLock(locked: boolean): void {
   useEffect(() => {
     if (!locked) return;
-    const { body } = document;
-    const previousOverflow = body.style.overflow;
-    const previousPadding = body.style.paddingRight;
-    // Replace the scrollbar with padding so the layout does not jump.
-    const scrollbar = window.innerWidth - document.documentElement.clientWidth;
-    body.style.overflow = "hidden";
-    if (scrollbar > 0) body.style.paddingRight = `${scrollbar}px`;
+    if (lockCount++ === 0) {
+      const { body } = document;
+      const previousOverflow = body.style.overflow;
+      const previousPadding = body.style.paddingRight;
+      const scrollbar =
+        window.innerWidth - document.documentElement.clientWidth;
+      const padding =
+        Number.parseFloat(getComputedStyle(body).paddingRight) || 0;
+      body.style.overflow = "hidden";
+      if (scrollbar > 0) body.style.paddingRight = `${padding + scrollbar}px`;
+      restoreBody = () => {
+        body.style.overflow = previousOverflow;
+        body.style.paddingRight = previousPadding;
+      };
+    }
     return () => {
-      body.style.overflow = previousOverflow;
-      body.style.paddingRight = previousPadding;
+      if (--lockCount === 0) {
+        restoreBody?.();
+        restoreBody = undefined;
+      }
     };
   }, [locked]);
 }

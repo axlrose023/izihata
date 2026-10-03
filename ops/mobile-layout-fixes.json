@@ -25,10 +25,21 @@
     {
       "id": "M02",
       "title": "Keep catalog position and overlay geometry during async loading",
-      "status": "pending",
+      "status": "verified_local",
       "before": [
         "Sort changed scrollY 400 to 0",
         "Menu lazy fallback changed header height 56→77→56px"
+      ],
+      "changes": [
+        "Catalog sort, density and filter updates preserve scroll; refresh indicator occupies a permanent toolbar slot",
+        "One fixed dismissible overlay loader for lazy cart/menu replaces in-flow paragraphs",
+        "Shared reference-counted body lock supports overlapping overlays and restores original padding/overflow",
+        "Native modal uses the same lock; mobile filter sheet fits the current viewport"
+      ],
+      "checks": [
+        "149 frontend tests, TypeScript, formatting, lint and production build passed",
+        "10 browser tests passed including delayed menu/cart imports, Escape cancellation, unchanged header height, stable scroll and card top during/after delayed catalog refresh",
+        "Both overlapping-lock release orders and StrictMode are covered"
       ]
     },
     {

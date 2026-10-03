@@ -15,7 +15,7 @@ it("does not load the closed basket and unmounts it when closed", async () => {
   render(<LazyCartDrawer />);
   expect(imported).not.toHaveBeenCalled();
   act(() => useCartStore.getState().open());
-  expect(await screen.findByRole("dialog")).toBeInTheDocument();
+  expect(await screen.findByText("Кошик")).toBeInTheDocument();
   act(() => useCartStore.getState().close());
   expect(screen.queryByRole("dialog")).toBeNull();
   expect(imported).toHaveBeenCalledTimes(1);

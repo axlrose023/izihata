@@ -1,5 +1,6 @@
 import { X } from "lucide-react";
 import { useEffect, useRef } from "react";
+import { useBodyScrollLock } from "@/shared/lib/use-body-scroll-lock";
 
 export function Modal({
   open,
@@ -15,6 +16,7 @@ export function Modal({
   children: React.ReactNode;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
+  useBodyScrollLock(open);
 
   useEffect(() => {
     const dialog = dialogRef.current;

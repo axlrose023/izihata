@@ -97,7 +97,7 @@ export function CatalogFilters({
     const next = new URLSearchParams(searchParams);
     mutate(next);
     next.delete("page");
-    setSearchParams(next, { replace: true });
+    setSearchParams(next, { replace: true, preventScrollReset: true });
   };
   const setValues = (values: Record<string, string>) =>
     update((params) => {
@@ -152,7 +152,9 @@ export function CatalogFilters({
           <Filter size={18} />
           <strong>Фільтри</strong>
           {activeCount ? <b className="filters__count">{activeCount}</b> : null}
-          <Link to={action}>Скинути</Link>
+          <Link preventScrollReset to={action}>
+            Скинути
+          </Link>
           <button
             aria-label="Закрити фільтри"
             className="filters__close"
@@ -271,7 +273,11 @@ export function CatalogFilters({
           </button>
         </div>
         <div className="filters__footer">
-          <Link className="filters__footer-reset" to={action}>
+          <Link
+            className="filters__footer-reset"
+            preventScrollReset
+            to={action}
+          >
             Скинути
           </Link>
           <button

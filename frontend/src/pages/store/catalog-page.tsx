@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { Grid2x2, Grid3x3, Search } from "lucide-react";
+import { Grid2x2, Grid3x3, LoaderCircle, Search } from "lucide-react";
 import {
   Form,
   Link,
@@ -203,6 +203,7 @@ export function CatalogPage({
           {visibleSubcategories.map((item) => (
             <Link
               data-active={query.subcategory === item.slug ? "true" : undefined}
+              preventScrollReset
               key={item.id}
               to={catalogHref(pathname, searchParams, {
                 subcategory: query.subcategory === item.slug ? null : item.slug,
@@ -274,7 +275,10 @@ export function CatalogPage({
                   const next = new URLSearchParams(searchParams);
                   next.set("sort", event.target.value);
                   next.delete("page");
-                  setSearchParams(next, { replace: true });
+                  setSearchParams(next, {
+                    replace: true,
+                    preventScrollReset: true,
+                  });
                 }}
                 value={query.sort}
               >
@@ -289,6 +293,7 @@ export function CatalogPage({
               <Link
                 aria-label="Дрібніша сітка"
                 aria-current={view === "grid" ? "true" : undefined}
+                preventScrollReset
                 to={catalogHref(pathname, searchParams, { view: null })}
               >
                 <Grid3x3 size={17} />
@@ -296,18 +301,24 @@ export function CatalogPage({
               <Link
                 aria-label="Більша сітка"
                 aria-current={view === "large" ? "true" : undefined}
+                preventScrollReset
                 to={catalogHref(pathname, searchParams, { view: "large" })}
               >
                 <Grid2x2 size={17} />
               </Link>
             </div>
+            <span className="catalog-refresh" role="status">
+              {productsResult.isFetching ? (
+                <>
+                  <LoaderCircle aria-hidden="true" className="spin" size={16} />
+                  <span className="sr-only">
+                    Оновлюємо товари за обраними умовами…
+                  </span>
+                </>
+              ) : null}
+            </span>
           </div>
           <ActiveFilters resetHref={basePath} />
-          {productsResult.isFetching ? (
-            <p className="inline-note" role="status">
-              Оновлюємо товари за обраними умовами…
-            </p>
-          ) : null}
           {productsResult.isError ? (
             <ErrorNotice
               error={productsResult.error}

@@ -24,6 +24,7 @@ import { useCustomerAuth } from "@/modules/customers/customer-auth-context";
 import { formatMoney, pluralizePositions } from "@/shared/lib/format";
 import { Logo } from "@/shared/ui/logo";
 import { storeInfo } from "@/shared/config/store-info";
+import { OverlayLoadingState } from "@/shared/ui/overlay-loading-state";
 
 const SiteSidebar = lazy(() =>
   import("./site-sidebar").then((module) => ({ default: module.SiteSidebar })),
@@ -146,7 +147,14 @@ export function SiteHeader() {
         </div>
       </div>
       {menuOpen ? (
-        <Suspense fallback={<p role="status">Завантажуємо меню…</p>}>
+        <Suspense
+          fallback={
+            <OverlayLoadingState
+              label="Завантажуємо меню"
+              onClose={() => setMenuOpen(false)}
+            />
+          }
+        >
           <SiteSidebar onClose={() => setMenuOpen(false)} open />
         </Suspense>
       ) : null}

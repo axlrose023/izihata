@@ -50,7 +50,7 @@ export function ActiveFilters({ resetHref }: { resetHref: string }) {
     next.delete(chip.key);
     for (const item of rest) next.append(chip.key, item);
     next.delete("page");
-    setSearchParams(next);
+    setSearchParams(next, { preventScrollReset: true });
   };
 
   return (
@@ -67,7 +67,7 @@ export function ActiveFilters({ resetHref }: { resetHref: string }) {
           <X aria-hidden="true" size={13} />
         </button>
       ))}
-      <Link className="active-filters__reset" to={resetHref}>
+      <Link className="active-filters__reset" preventScrollReset to={resetHref}>
         Скинути все
       </Link>
     </div>

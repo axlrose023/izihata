@@ -2598,6 +2598,13 @@ h2 {
 .catalog-mobile-search {
   display: none;
 }
+.catalog-toolbar > .catalog-refresh {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+  display: grid;
+  place-items: center;
+}
 /* «Показано N з M» зі смугою прогресу (артборд Catalog) */
 .also-bought {
   margin-top: 46px;
@@ -4518,6 +4525,31 @@ h2 {
   margin: 0;
   font-size: 1.6rem;
 }
+.overlay-loading {
+  position: fixed;
+  z-index: 150;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 14px;
+  color: var(--ink);
+  background: rgba(10, 13, 17, 0.55);
+}
+.overlay-loading__panel {
+  width: min(100%, 360px);
+  padding: 20px;
+  border-radius: var(--radius);
+  background: var(--paper);
+}
+.overlay-loading__panel > button {
+  margin-left: auto;
+}
+.overlay-loading__panel > p {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 12px 0 0;
+}
 .form-stack {
   display: grid;
   gap: 14px;
@@ -6022,7 +6054,7 @@ h2 {
     right: 0;
     bottom: 0;
     left: 0;
-    height: 86vh;
+    height: min(86svh, 100dvh);
     display: flex;
     flex-direction: column;
     overflow: hidden;
