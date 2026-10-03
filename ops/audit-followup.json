@@ -73,7 +73,8 @@
       "title": "Quote принимает 11971938967.11 UAH; expected_total и numeric(12,2) заказа эту сумму не принимают",
       "status": "verified_local",
       "checks": [
-        "10 checkout API tests passed: quotes and orders share numeric(12,2) bounds, maximum representable amount accepted, overflowing amount rejected before order creation."
+        "10 checkout API tests passed: quotes and orders share numeric(12,2) bounds, maximum representable amount accepted, overflowing amount rejected before order creation.",
+        "33 combined checkout/catalog tests pass; boundary product removed in finally to keep shared test database isolated."
       ]
     },
     {
