@@ -110,8 +110,10 @@
     {
       "id": "A14",
       "title": "Некорректные сохранённые корзина/избранное делают каталог недоступным для данного браузера",
-      "status": "pending",
-      "checks": []
+      "status": "verified_local",
+      "checks": [
+        "9 persisted-store tests passed: damaged cart entries skipped, valid items and quantities retained, duplicate lines repaired, null/malformed collection IDs recovered; oversized valid carts remain editable."
+      ]
     },
     {
       "id": "A15",

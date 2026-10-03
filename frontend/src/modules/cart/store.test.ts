@@ -35,6 +35,26 @@ const product: Product = {
 describe("cart store", () => {
   beforeEach(() => useCartStore.setState({ lines: [], isOpen: false }));
 
+  it("keeps valid saved lines and repairs duplicates while skipping damaged records", async () => {
+    localStorage.setItem(
+      "izihata-cart-v1",
+      JSON.stringify({
+        state: {
+          lines: [
+            null,
+            { quantity: 1 },
+            { product, quantity: 2 },
+            { product, quantity: 3 },
+            { product: { ...product, price: "NaN" }, quantity: 1 },
+          ],
+        },
+        version: 0,
+      }),
+    );
+    await useCartStore.persist.rehydrate();
+    expect(useCartStore.getState().lines).toEqual([{ product, quantity: 5 }]);
+  });
+
   it("merges duplicate products and opens the cart", () => {
     useCartStore.getState().add(product, 2);
     useCartStore.getState().add(product, 3);

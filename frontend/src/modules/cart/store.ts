@@ -11,6 +11,54 @@ export interface CartLine {
   quantity: number;
 }
 
+function record(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function storedProduct(value: unknown): value is Product {
+  if (!record(value)) return false;
+  const strings = [
+    "id",
+    "sku",
+    "slug",
+    "name",
+    "brand",
+    "price",
+    "sale_unit",
+    "stock_status",
+  ];
+  return (
+    strings.every(
+      (key) => typeof value[key] === "string" && value[key] !== "",
+    ) &&
+    Number.isFinite(Number(value.price)) &&
+    Number(value.price) >= 0 &&
+    record(value.category) &&
+    typeof value.category.slug === "string" &&
+    (value.image_url == null || typeof value.image_url === "string") &&
+    (value.image_variants == null ||
+      (record(value.image_variants) &&
+        Object.values(value.image_variants).every(
+          (url) => typeof url === "string",
+        )))
+  );
+}
+
+function restoreLines(value: unknown): CartLine[] {
+  if (!Array.isArray(value)) return [];
+  const lines = new Map<string, CartLine>();
+  for (const line of value) {
+    if (!record(line) || !storedProduct(line.product)) continue;
+    const quantity = normalizeCartQuantity(Number(line.quantity));
+    const previous = lines.get(line.product.id);
+    lines.set(line.product.id, {
+      product: line.product,
+      quantity: normalizeCartQuantity((previous?.quantity ?? 0) + quantity),
+    });
+  }
+  return [...lines.values()];
+}
+
 interface CartState {
   lines: CartLine[];
   isOpen: boolean;
@@ -102,15 +150,10 @@ export const useCartStore = create<CartState>()(
       partialize: (state) => ({ lines: state.lines }),
       skipHydration: true,
       merge: (persisted, current) => {
-        const saved = persisted as Partial<CartState> | undefined;
+        const saved = record(persisted) ? persisted : undefined;
         return {
           ...current,
-          lines: Array.isArray(saved?.lines)
-            ? saved.lines.map((line) => ({
-                ...line,
-                quantity: normalizeCartQuantity(line.quantity),
-              }))
-            : current.lines,
+          lines: saved ? restoreLines(saved.lines) : current.lines,
         };
       },
     },

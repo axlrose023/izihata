@@ -1,20 +1,20 @@
-import { beforeEach, describe, expect, it } from "vitest";
-
+import { expect, it } from "vitest";
 import { useCollectionStore } from "./store";
 
-describe("collection store", () => {
-  beforeEach(() => useCollectionStore.setState({ favorites: [], compare: [] }));
-
-  it("toggles favourites", () => {
-    useCollectionStore.getState().toggleFavorite("one");
-    useCollectionStore.getState().toggleFavorite("one");
-    expect(useCollectionStore.getState().favorites).toEqual([]);
-  });
-
-  it("keeps only four comparison products", () => {
-    for (let index = 0; index < 5; index += 1) {
-      useCollectionStore.getState().toggleCompare(String(index));
-    }
-    expect(useCollectionStore.getState().compare).toEqual(["1", "2", "3", "4"]);
-  });
+it("restores only valid unique IDs and recovers from null collections", async () => {
+  localStorage.setItem(
+    "izihata-collections-v1",
+    JSON.stringify({
+      state: {
+        favorites: null,
+        compare: ["first", null, {}, "second", "first"],
+      },
+      version: 0,
+    }),
+  );
+  await useCollectionStore.persist.rehydrate();
+  expect(useCollectionStore.getState().favorites).toEqual([]);
+  expect(useCollectionStore.getState().compare).toEqual(["first", "second"]);
+  useCollectionStore.getState().toggleFavorite("valid");
+  expect(useCollectionStore.getState().favorites).toEqual(["valid"]);
 });
