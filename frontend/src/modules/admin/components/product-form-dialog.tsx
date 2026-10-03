@@ -194,10 +194,10 @@ function ProductFormFields({
   const categoryField = register("category_id");
   const relations = useWatch({ control, name: "relations" }) ?? [];
   const imageUrl = useWatch({ control, name: "image_url" });
-  const snapshot = useRef({
+  const [snapshot] = useState(() => ({
     payload: productPayload(initialValues),
     updated_at: product?.updated_at,
-  });
+  }));
   const imageInput = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -237,14 +237,14 @@ function ProductFormFields({
             ([key, value]) =>
               JSON.stringify(value) !==
               JSON.stringify(
-                snapshot.current.payload[key as keyof typeof payload],
+                snapshot.payload[key as keyof typeof payload],
               ),
           ),
         );
         if (Object.keys(changed).length) {
           await updateAdminProductDetails(request, product.id, {
             ...changed,
-            expected_updated_at: snapshot.current.updated_at,
+            expected_updated_at: snapshot.updated_at,
           });
         }
       } else {

@@ -40,7 +40,8 @@
       "title": "Полный PATCH из старого черновика редактора перезаписывает актуальные цену и другие поля",
       "status": "verified_local",
       "checks": [
-        "6 catalog API tests, 3 editor regressions and TypeScript pass: stale revision returns 409 without changing newer price; editor sends only changed fields and keeps its opening revision."
+        "6 catalog API tests, 3 editor regressions and TypeScript pass: stale revision returns 409 without changing newer price; editor sends only changed fields and keeps its opening revision.",
+        "Lint and 34 editor/format tests pass; opening snapshot captured as immutable state."
       ]
     },
     {
