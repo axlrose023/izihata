@@ -666,8 +666,21 @@ class AdminProductListParams(PaginationParams):
         return text or None
 
 
+class AdminProductListItem(StrictSchema):
+    id: UUID
+    sku: str
+    name: str
+    brand: str
+    price: Decimal
+    old_price: Decimal | None
+    stock_status: StockStatus
+    is_active: bool
+
+    model_config = ConfigDict(extra="forbid", from_attributes=True)
+
+
 class AdminProductListResponse(StrictSchema):
-    items: list[AdminProductResponse]
+    items: list[AdminProductListItem]
     total: int
     page: int
     page_size: int

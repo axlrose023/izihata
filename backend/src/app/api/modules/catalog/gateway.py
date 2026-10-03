@@ -6,7 +6,7 @@ from uuid import UUID
 
 from sqlalchemy import Select, and_, case, delete, func, or_, select, tuple_, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload, selectinload
+from sqlalchemy.orm import joinedload, load_only, selectinload
 from sqlalchemy.sql.elements import ColumnElement
 
 from app.api.common.query import literal_contains
@@ -522,9 +522,17 @@ class ProductGateway:
             select(Product)
             .where(*self._admin_conditions(params))
             .options(
-                joinedload(Product.category),
-                joinedload(Product.subcategory),
-                selectinload(Product.attributes),
+                load_only(
+                    Product.id,
+                    Product.sku,
+                    Product.name,
+                    Product.brand,
+                    Product.price,
+                    Product.old_price,
+                    Product.stock_status,
+                    Product.is_active,
+                    raiseload=True,
+                ),
             )
             .order_by(Product.created_at.desc(), Product.id)
             .offset(params.offset)

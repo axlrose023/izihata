@@ -155,6 +155,18 @@ export interface AdminProduct extends Product {
   is_active: boolean;
 }
 
+export type AdminProductListItem = Pick<
+  AdminProduct,
+  | "id"
+  | "sku"
+  | "name"
+  | "brand"
+  | "price"
+  | "old_price"
+  | "stock_status"
+  | "is_active"
+>;
+
 export interface AdminProductDetail extends AdminProduct {
   updated_at: string;
   description: string | null;

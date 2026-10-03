@@ -22,14 +22,15 @@ import {
 } from "@/modules/catalog/api/catalog-queries";
 import { getUserErrorMessage } from "@/shared/api/errors";
 import { prepareImageUpload } from "@/shared/lib/prepare-image-upload";
-import type { AdminProduct, AdminProductDetail } from "@/shared/types/api";
+import type {
+  AdminProductListItem,
+  AdminProductDetail,
+} from "@/shared/types/api";
 import { Modal } from "@/shared/ui/modal";
 
-function productValues(
-  product: AdminProduct | AdminProductDetail | null,
-): ProductFormValues {
+function productValues(product: AdminProductDetail | null): ProductFormValues {
   if (!product) return productFormDefaults;
-  const detail = "relations" in product ? product : null;
+  const detail = product;
   return {
     category_id: product.category.id,
     subcategory_id: product.subcategory?.id ?? "",
@@ -110,7 +111,7 @@ export function ProductFormDialog({
   onClose,
 }: {
   open: boolean;
-  product: AdminProduct | null;
+  product: AdminProductListItem | null;
   onClose: () => void;
 }) {
   const { request } = useAuth();
@@ -151,10 +152,10 @@ export function ProductFormDialog({
 
   return (
     <ProductFormFields
-      initialValues={productValues(detail.data ?? product)}
+      initialValues={productValues(product ? (detail.data ?? null) : null)}
       key={product?.id ?? "new"}
       onClose={onClose}
-      product={detail.data ?? null}
+      product={product ? (detail.data ?? null) : null}
     />
   );
 }

@@ -188,8 +188,10 @@
     {
       "id": "O19",
       "title": "Компактный admin list и SQL projection",
-      "status": "pending",
-      "checks": []
+      "status": "verified_local",
+      "checks": [
+        "14 admin API, SQL projection regression, 4 admin UI regressions, TypeScript and mypy pass. List uses 8 table fields and two product queries, no attributes/category joins; detail remains complete."
+      ]
     },
     {
       "id": "O20",

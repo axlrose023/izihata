@@ -23,6 +23,7 @@ from app.api.modules.catalog.models import (
 )
 from app.api.modules.catalog.schema import (
     AdminProductDetailResponse,
+    AdminProductListItem,
     AdminProductListParams,
     AdminProductListResponse,
     AdminProductResponse,
@@ -50,7 +51,7 @@ class ProductManagementService:
         total = await self._uow.products.count_for_admin(params)
         total_pages = (total + params.page_size - 1) // params.page_size
         return AdminProductListResponse(
-            items=[AdminProductResponse.from_product(p) for p in products],
+            items=[AdminProductListItem.model_validate(p) for p in products],
             total=total,
             page=params.page,
             page_size=params.page_size,

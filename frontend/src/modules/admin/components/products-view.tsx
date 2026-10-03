@@ -20,7 +20,11 @@ import { useAuth } from "@/modules/auth/auth-provider";
 import { buildQuery } from "@/shared/api/query";
 import { getUserErrorMessage } from "@/shared/api/errors";
 import { useDebouncedValue } from "@/shared/lib/use-debounced-value";
-import type { AdminProduct, Paginated, StockStatus } from "@/shared/types/api";
+import type {
+  AdminProductListItem,
+  Paginated,
+  StockStatus,
+} from "@/shared/types/api";
 import { ErrorNotice } from "@/shared/ui/error-notice";
 import { AdminPagination } from "@/shared/ui/admin-pagination";
 import { AdminTableWrap } from "@/shared/ui/admin-table-wrap";
@@ -34,8 +38,8 @@ function ProductRow({
   product,
   onEdit,
 }: {
-  product: AdminProduct;
-  onEdit: (product: AdminProduct) => void;
+  product: AdminProductListItem;
+  onEdit: (product: AdminProductListItem) => void;
 }) {
   const { request } = useAuth();
   const queryClient = useQueryClient();
@@ -183,9 +187,8 @@ function ProductRow({
 export function ProductsView() {
   const [search, setSearch] = useState("");
   const [formOpen, setFormOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<AdminProduct | null>(
-    null,
-  );
+  const [editingProduct, setEditingProduct] =
+    useState<AdminProductListItem | null>(null);
   const [onlyHidden, setOnlyHidden] = useState(false);
   const [page, setPage] = useState(1);
   const { request } = useAuth();
@@ -193,7 +196,7 @@ export function ProductsView() {
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["admin", "products", debouncedSearch, onlyHidden, page],
     queryFn: () =>
-      request<Paginated<AdminProduct>>(
+      request<Paginated<AdminProductListItem>>(
         `/admin/catalog/products${buildQuery({
           page,
           page_size: 100,
