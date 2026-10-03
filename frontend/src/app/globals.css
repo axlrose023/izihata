@@ -1012,12 +1012,9 @@ h2 {
   color: var(--accent);
   border: 0;
   border-radius: var(--radius);
-  background: var(--navy);
+  background: transparent;
   font-size: 0.76rem;
   font-weight: 800;
-}
-.menu-button:hover {
-  background: var(--ink-panel);
 }
 .header-actions__account {
   width: auto;

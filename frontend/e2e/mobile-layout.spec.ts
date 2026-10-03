@@ -356,6 +356,35 @@ test("catalog refresh keeps scroll position and card geometry", async ({
   expect(await page.evaluate(() => window.scrollY)).toBe(scroll);
 });
 
+test("mobile menu icon aligns with the logo without a separate background", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const menu = page.getByRole("button", { name: "Відкрити меню" });
+  const icon = menu.locator("svg");
+  const mark = page.locator(".header-main .logo__mark");
+  for (const width of [320, 390, 768, 820]) {
+    await page.setViewportSize({ width, height: 844 });
+    await expect(menu).toBeVisible();
+    await menu.hover();
+    expect(
+      await menu.evaluate(
+        (element) => getComputedStyle(element).backgroundColor,
+      ),
+    ).toBe("rgba(0, 0, 0, 0)");
+    const buttonBox = (await menu.boundingBox())!;
+    const iconBox = (await icon.boundingBox())!;
+    const markBox = (await mark.boundingBox())!;
+    expect(buttonBox.width).toBeGreaterThanOrEqual(44);
+    expect(buttonBox.height).toBeGreaterThanOrEqual(44);
+    expect(iconBox.y + iconBox.height / 2).toBeCloseTo(
+      markBox.y + markBox.height / 2,
+      0,
+    );
+    await expectDocumentFits(page);
+  }
+});
+
 test("mobile menu opens with the network offline without moving the header", async ({
   page,
   context,
