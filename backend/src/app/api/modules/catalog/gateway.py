@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
 from sqlalchemy.sql.elements import ColumnElement
 
+from app.api.common.query import literal_contains
 from app.api.modules.catalog.enums import (
     ProductAttributeSource,
     ProductBadge,
@@ -358,6 +359,15 @@ class ProductGateway:
             )
         return conditions
 
+    @staticmethod
+    def _search_condition(search: str) -> ColumnElement[bool]:
+        return or_(
+            *(
+                literal_contains(column, search)
+                for column in (Product.name, Product.brand, Product.sku)
+            )
+        )
+
     def _conditions(
         self,
         params: ProductListParams,
@@ -372,14 +382,7 @@ class ProductGateway:
         if params.product_ids:
             conditions.append(Product.id.in_(params.product_ids))
         if params.search:
-            pattern = f"%{params.search.strip()}%"
-            conditions.append(
-                or_(
-                    Product.name.ilike(pattern),
-                    Product.brand.ilike(pattern),
-                    Product.sku.ilike(pattern),
-                )
-            )
+            conditions.append(self._search_condition(params.search))
         if params.category:
             conditions.append(Product.category.has(Category.slug == params.category))
         if params.section:
@@ -424,14 +427,7 @@ class ProductGateway:
         if params.is_active is not None:
             conditions.append(Product.is_active.is_(params.is_active))
         if params.search:
-            pattern = f"%{params.search.strip()}%"
-            conditions.append(
-                or_(
-                    Product.name.ilike(pattern),
-                    Product.brand.ilike(pattern),
-                    Product.sku.ilike(pattern),
-                )
-            )
+            conditions.append(self._search_condition(params.search))
         return conditions
 
     def _ordered(
@@ -626,7 +622,7 @@ class ProductGateway:
             conditions = self._spec_filter_conditions(params, include_facet_key=True)
             conditions.extend(await self._filterable_attribute_conditions(params))
         if params.facet_search:
-            conditions.append(column.ilike(f"%{params.facet_search}%"))
+            conditions.append(literal_contains(column, params.facet_search))
         stmt = (
             select(column, count)
             .join(Product, Product.id == ProductAttribute.product_id)

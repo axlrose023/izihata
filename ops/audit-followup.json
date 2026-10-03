@@ -150,8 +150,10 @@
     {
       "id": "A19",
       "title": "Поиск воспринимает проценты и подчёркивания пользователя как шаблон SQL LIKE",
-      "status": "pending",
-      "checks": []
+      "status": "verified_local",
+      "checks": [
+        "Literal search, catalog facets/products and activity API tests passed; mypy passes. One escaped contains helper serves public/admin/facet/contact searches; duplicated product search expression removed."
+      ]
     },
     {
       "id": "O15",

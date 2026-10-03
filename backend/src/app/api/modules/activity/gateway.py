@@ -5,6 +5,7 @@ from uuid import UUID
 from sqlalchemy import Select, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.common.query import literal_contains
 from app.api.modules.activity.models import SiteVisitor
 from app.api.modules.activity.schema import VisitorListParams
 
@@ -70,11 +71,10 @@ class VisitorGateway:
         if params.with_contacts:
             stmt = stmt.where(SiteVisitor.phone.is_not(None))
         if params.search:
-            pattern = f"%{params.search}%"
             stmt = stmt.where(
                 or_(
-                    SiteVisitor.phone.ilike(pattern),
-                    SiteVisitor.name.ilike(pattern),
+                    literal_contains(SiteVisitor.phone, params.search),
+                    literal_contains(SiteVisitor.name, params.search),
                 )
             )
         return stmt
