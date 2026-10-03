@@ -126,8 +126,10 @@
     {
       "id": "A16",
       "title": "Отклонённая B2B-заявка отображает сообщение об ожидающей проверке",
-      "status": "pending",
-      "checks": []
+      "status": "verified_local",
+      "checks": [
+        "Account UI regression passed: rejected company shows rejected instructions, pending message absent; deferred B2B resubmission/payment workflows not added."
+      ]
     },
     {
       "id": "A17",
