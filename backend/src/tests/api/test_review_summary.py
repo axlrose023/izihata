@@ -1,26 +1,12 @@
-from uuid import uuid4
-
 import pytest
 
 
 @pytest.mark.asyncio
 async def test_review_publication_and_hiding_match_summary(
-    client, authenticated_user, product
+    client, authenticated_user, temporary_product
 ):
     headers = {"Authorization": f"Bearer {authenticated_user['access_token']}"}
-    created = await client.post(
-        "/api/v1/admin/catalog/products",
-        headers=headers,
-        json={
-            "category_id": str(product.category_id),
-            "sku": "review-" + uuid4().hex,
-            "name": "Review summary product",
-            "brand": product.brand,
-            "price": "100.00",
-        },
-    )
-    assert created.status_code == 201, created.text
-    path = "/api/v1/catalog/products/" + created.json()["slug"]
+    path = "/api/v1/catalog/products/" + temporary_product["slug"]
     review = await client.post(
         path + "/reviews",
         json={

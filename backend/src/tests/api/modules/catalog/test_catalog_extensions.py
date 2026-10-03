@@ -1,4 +1,4 @@
-from uuid import UUID, uuid4
+from uuid import UUID
 
 import pytest
 from httpx import AsyncClient
@@ -17,22 +17,10 @@ from app.database.uow import UnitOfWork
 @pytest.mark.asyncio
 class TestCatalogExtensions:
     async def test_stale_product_revision_does_not_overwrite_new_price(
-        self, client, authenticated_user, product
+        self, client, authenticated_user, temporary_product
     ):
         headers = {"Authorization": f"Bearer {authenticated_user['access_token']}"}
-        created = await client.post(
-            "/api/v1/admin/catalog/products",
-            headers=headers,
-            json={
-                "category_id": str(product.category_id),
-                "sku": "revision-" + uuid4().hex,
-                "name": "Revision audit product",
-                "brand": product.brand,
-                "price": "100.00",
-            },
-        )
-        assert created.status_code == 201, created.text
-        path = f"/api/v1/admin/catalog/products/{created.json()['id']}"
+        path = f"/api/v1/admin/catalog/products/{temporary_product['id']}"
         snapshot = (await client.get(path, headers=headers)).json()
         from decimal import Decimal
 
