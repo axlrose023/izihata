@@ -183,7 +183,7 @@ export function CatalogPage({
       <nav aria-label="Навігаційний ланцюжок" className="breadcrumbs">
         <Link to="/">Головна</Link>
         <span>/</span>
-        <Link to="/catalog">Каталог</Link>
+        <Link to="/catalog/categories">Каталог</Link>
         {activeCategory ? (
           <>
             <span>/</span>

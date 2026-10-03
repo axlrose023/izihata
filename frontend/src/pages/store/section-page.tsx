@@ -50,7 +50,7 @@ export function SectionPage() {
       <nav aria-label="Навігаційний ланцюжок" className="container breadcrumbs">
         <Link to="/">Головна</Link>
         <span>/</span>
-        <Link to="/catalog">Каталог</Link>
+        <Link to="/catalog/categories">Каталог</Link>
         <span>/</span>
         <span>{section.name}</span>
       </nav>

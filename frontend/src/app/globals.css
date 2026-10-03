@@ -2207,6 +2207,7 @@ h2 {
 
 /* Catalog */
 .catalog-page,
+.catalog-directory-page,
 .product-page,
 .collection-page,
 .checkout-page {
@@ -2231,6 +2232,17 @@ h2 {
 }
 .catalog-title p {
   color: var(--ink-soft);
+}
+.catalog-directory-page .catalog-title {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 20px;
+}
+.catalog-directory-page__products-link {
+  flex: 0 0 auto;
+  color: var(--blue);
+  font-weight: 760;
 }
 .catalog-layout {
   display: grid;
@@ -7126,6 +7138,7 @@ h1 {
 }
 
 .catalog-page,
+.catalog-directory-page,
 .product-page,
 .collection-page,
 .checkout-page {
@@ -7705,6 +7718,7 @@ h1 {
   }
 
   .catalog-page,
+  .catalog-directory-page,
   .product-page,
   .checkout-page {
     padding-block: 14px 32px;
@@ -7718,6 +7732,14 @@ h1 {
 
   .catalog-title {
     padding: 0 0 14px;
+  }
+
+  .catalog-directory-page .catalog-title {
+    align-items: flex-start;
+  }
+
+  .catalog-directory-page__products-link {
+    display: none;
   }
 
   .catalog-title h1,

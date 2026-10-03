@@ -21,6 +21,28 @@ test("font configuration prevents late replacement of painted text", async ({
   expect(new URL(href!).searchParams.get("display")).toBe("optional");
 });
 
+test("catalog breadcrumbs open the category directory", async ({
+  page,
+  request,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const products = await request.get(
+    "/api/v1/catalog/products?page_size=1&include_facets=false",
+  );
+  const slug = (await products.json()).items[0].slug as string;
+  await page.goto(`/products/${slug}`);
+  await page
+    .locator(".breadcrumbs")
+    .getByRole("link", { name: "Каталог", exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/catalog\/categories$/);
+  await expect(
+    page.getByRole("heading", { name: "Каталог товарів", exact: true }),
+  ).toBeVisible();
+  await expect(page.locator(".category-card").first()).toBeVisible();
+  await expectDocumentFits(page);
+});
+
 for (const width of [320, 390, 768]) {
   test(`populated basket, collections and checkout fit at ${width}px`, async ({
     page,
@@ -329,6 +351,7 @@ for (const width of [320, 360, 390, 414, 768, 820, 1024]) {
     for (const path of [
       "/",
       "/catalog",
+      "/catalog/categories",
       `/products/${product.slug}`,
       "/brands",
       `/brands/${brands[0].slug}`,
