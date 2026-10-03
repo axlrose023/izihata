@@ -94,8 +94,10 @@
     {
       "id": "A12",
       "title": "После публикации отзыва агрегированные рейтинг и количество отзывов отстают от фактических данных",
-      "status": "pending",
-      "checks": []
+      "status": "verified_local",
+      "checks": [
+        "7 moderation/catalog API tests passed: publish, hide and republish consistently update rating/count and paginated review total with autoflush disabled; product lock retained."
+      ]
     },
     {
       "id": "A13",

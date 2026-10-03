@@ -930,6 +930,7 @@ class ProductGateway:
         ).scalar_one_or_none()
         if product is None:
             return
+        await self._session.flush()
         summary = await self._session.execute(
             select(func.count(ProductReview.id), func.avg(ProductReview.rating)).where(
                 ProductReview.product_id == product_id,
