@@ -230,6 +230,15 @@
       "checks": [
         "2 customer session tests pass including deliberately delayed cleanup; only lower session versions can be removed."
       ]
+    },
+    {
+      "id": "O22",
+      "title": "Приоритет Brotli в существующем сжатии Traefik",
+      "status": "verified_local",
+      "checks": [
+        "Remote Compose config validation passes; current production serves identical JS with gzip 111329 bytes, Brotli 100782 bytes, zstd 111796 bytes. Brotli preferred; gzip/zstd fallback retained."
+      ],
+      "reference": "https://doc.traefik.io/traefik/reference/routing-configuration/http/middlewares/compress/"
     }
   ],
   "excluded": [
