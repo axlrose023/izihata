@@ -1,17 +1,15 @@
 import io
 
 import pytest
+from PIL import Image
 from httpx import AsyncClient
 from sqlalchemy import select
 
 from app.api.modules.catalog.models import Brand
 
-PNG_BYTES = bytes.fromhex(
-    "89504e470d0a1a0a0000000d494844520000000100000001080600000"
-    "01f15c4890000000a49444154789c6360000002000100ffff03000006"
-    "0005570cf5000000004945"
-    "4e44ae426082"
-)
+_png = io.BytesIO()
+Image.new("RGBA", (1, 1), (255, 255, 255, 0)).save(_png, format="PNG")
+PNG_BYTES = _png.getvalue()
 
 
 @pytest.mark.asyncio

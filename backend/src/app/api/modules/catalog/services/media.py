@@ -1,7 +1,12 @@
+import asyncio
 import hashlib
+import io
+import os
+import tempfile
 from pathlib import Path
 
 from fastapi import UploadFile
+from PIL import Image
 
 from app.api.common.exceptions import UnprocessableError
 
@@ -10,6 +15,7 @@ MEDIA_URL_PREFIX = "/api/v1/media"
 # here is small. The cap is generous enough for a client that could not decode
 # the file and had to send the original.
 MAX_UPLOAD_BYTES = 8 * 1024 * 1024
+MAX_IMAGE_PIXELS = 20_000_000
 # SVG is deliberately excluded: it is served from our own origin and can carry
 # scripts, so it would be a stored-XSS vector.
 ALLOWED_TYPES = {
@@ -43,10 +49,38 @@ class MediaStorageService:
         if not payload:
             raise UnprocessableError("Image is empty", code="media_empty")
 
+        return await asyncio.to_thread(self._store_payload, payload)
+
+    def _store_payload(self, payload: bytes) -> str:
+        try:
+            with Image.open(io.BytesIO(payload)) as image:
+                extension = {"PNG": ".png", "JPEG": ".jpg", "WEBP": ".webp"}.get(
+                    image.format or ""
+                )
+                if extension is None or image.width * image.height > MAX_IMAGE_PIXELS:
+                    raise ValueError("Unsupported image format or dimensions")
+                image.verify()
+            with Image.open(io.BytesIO(payload)) as image:
+                image.load()
+        except (OSError, SyntaxError, ValueError, Image.DecompressionBombError) as exc:
+            raise UnprocessableError(
+                "Invalid image or image exceeds 20 million pixels",
+                code="invalid_media_image",
+            ) from exc
+
         # Content addressing keeps re-uploads idempotent and names unguessable.
         name = f"{hashlib.sha256(payload).hexdigest()[:32]}{extension}"
         self._media_root.mkdir(parents=True, exist_ok=True)
         destination = self._media_root / name
         if not destination.exists():
-            destination.write_bytes(payload)
+            with tempfile.NamedTemporaryFile(
+                dir=self._media_root, delete=False
+            ) as temporary:
+                temporary_path = Path(temporary.name)
+                try:
+                    temporary.write(payload)
+                    temporary.close()
+                    os.replace(temporary_path, destination)
+                finally:
+                    temporary_path.unlink(missing_ok=True)
         return f"{MEDIA_URL_PREFIX}/{name}"

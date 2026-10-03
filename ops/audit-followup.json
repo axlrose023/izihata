@@ -54,8 +54,10 @@
     {
       "id": "A07",
       "title": "MediaStorageService принимает повреждённые байты по заявленному MIME image/jpeg",
-      "status": "pending",
-      "checks": []
+      "status": "verified_local",
+      "checks": [
+        "14 media/brand tests passed: actual decoding and pixel limits checked, corrupt files rejected before writing; encoding supplies extension; work runs in thread and writes atomically."
+      ]
     },
     {
       "id": "A08",
