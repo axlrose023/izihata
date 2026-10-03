@@ -142,8 +142,10 @@
     {
       "id": "A18",
       "title": "Некорректный вложенный ответ справочника доставки не нормализуется и даёт HTTP 500",
-      "status": "pending",
-      "checks": []
+      "status": "verified_local",
+      "checks": [
+        "11 delivery client/API tests passed: null/string/object Addresses become ServiceUnavailableError; valid city/point responses preserved."
+      ]
     },
     {
       "id": "A19",

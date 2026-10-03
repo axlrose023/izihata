@@ -41,6 +41,11 @@ class NovaPoshtaClient:
             properties={"CityName": search, "Limit": "12", "Page": "1"},
         )
         addresses = data[0].get("Addresses", []) if data else []
+        if not isinstance(addresses, list):
+            raise ServiceUnavailableError(
+                "Delivery address directory is temporarily unavailable",
+                code="delivery_provider_unavailable",
+            )
         return [
             NovaPoshtaCity(
                 ref=str(item["DeliveryCity"]),

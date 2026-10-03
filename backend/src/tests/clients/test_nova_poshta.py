@@ -83,6 +83,9 @@ async def test_maps_delivery_point_response():
     [
         ({"success": False, "data": [], "errors": ["rejected"]}, 200),
         ({"success": True, "data": {}}, 200),
+        ({"success": True, "data": [{"Addresses": None}]}, 200),
+        ({"success": True, "data": [{"Addresses": "invalid"}]}, 200),
+        ({"success": True, "data": [{"Addresses": {}}]}, 200),
         ({"success": False}, 502),
     ],
 )
