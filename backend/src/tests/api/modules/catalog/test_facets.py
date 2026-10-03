@@ -4,7 +4,7 @@ from httpx import AsyncClient
 
 @pytest.mark.asyncio
 async def test_basic_facets_match_legacy_response_without_specs(client: AsyncClient):
-    params = {"category": "lowvoltage", "brand": "IEK"}
+    params = {"category": "lowvoltage", "brand": "IEK", "include_facets": True}
     legacy = (await client.get("/api/v1/catalog/products", params=params)).json()[
         "facets"
     ]
@@ -15,7 +15,9 @@ async def test_basic_facets_match_legacy_response_without_specs(client: AsyncCli
 
 @pytest.mark.asyncio
 async def test_spec_keys_and_values_are_paginated(client: AsyncClient):
-    legacy = (await client.get("/api/v1/catalog/products")).json()["facets"]["specs"]
+    legacy = (
+        await client.get("/api/v1/catalog/products", params={"include_facets": True})
+    ).json()["facets"]["specs"]
     keys = []
     page = 1
     while True:
@@ -39,7 +41,11 @@ async def test_spec_keys_and_values_are_paginated(client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_values_ignore_own_selection_and_search_on_server(client: AsyncClient):
-    params = [("category", "lowvoltage"), ("spec", "Полюси:1P")]
+    params = [
+        ("category", "lowvoltage"),
+        ("spec", "Полюси:1P"),
+        ("include_facets", "true"),
+    ]
     legacy = (await client.get("/api/v1/catalog/products", params=params)).json()[
         "facets"
     ]["specs"]["Полюси"]
