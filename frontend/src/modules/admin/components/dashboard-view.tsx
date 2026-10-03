@@ -33,8 +33,8 @@ export function DashboardView() {
 
   const cards = [
     {
-      label: "Виторг за 7 днів",
-      value: formatMoney(data.revenue_last_7_days),
+      label: "Сума замовлень за 7 днів",
+      value: formatMoney(data.orders_total_last_7_days),
       icon: Banknote,
     },
     {

@@ -314,7 +314,7 @@ export interface AdminLead extends Lead {
 }
 
 export interface Dashboard {
-  revenue_last_7_days: string;
+  orders_total_last_7_days: string;
   orders_today: number;
   average_order_total: string;
   active_products: number;

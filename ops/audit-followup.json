@@ -86,8 +86,10 @@
     {
       "id": "A11",
       "title": "Виторг за 7 дней суммирует неоплаченные заказы, кроме отменённых",
-      "status": "pending",
-      "checks": []
+      "status": "verified_local",
+      "checks": [
+        "51 admin API tests passed; dashboard now exposes orders_total_last_7_days and labels the value as order sum, without introducing deferred payment accounting."
+      ]
     },
     {
       "id": "A12",

@@ -14,7 +14,7 @@ from app.api.modules.orders.models import Order
 
 @dataclass(frozen=True, slots=True)
 class DashboardStats:
-    revenue_last_7_days: Decimal
+    orders_total_last_7_days: Decimal
     orders_today: int
     average_order_total: Decimal
     active_products: int
@@ -30,7 +30,7 @@ class DashboardGateway:
         today: datetime,
         week_ago: datetime,
     ) -> DashboardStats:
-        revenue = (
+        orders_total = (
             select(func.coalesce(func.sum(Order.total), 0))
             .where(
                 Order.created_at >= week_ago,
@@ -61,7 +61,7 @@ class DashboardGateway:
         row = (
             await self._session.execute(
                 select(
-                    revenue.label("revenue_last_7_days"),
+                    orders_total.label("orders_total_last_7_days"),
                     orders_today.label("orders_today"),
                     average_total.label("average_order_total"),
                     active_products.label("active_products"),
@@ -70,7 +70,7 @@ class DashboardGateway:
             )
         ).one()
         return DashboardStats(
-            revenue_last_7_days=Decimal(row.revenue_last_7_days),
+            orders_total_last_7_days=Decimal(row.orders_total_last_7_days),
             orders_today=int(row.orders_today),
             average_order_total=Decimal(row.average_order_total),
             active_products=int(row.active_products),

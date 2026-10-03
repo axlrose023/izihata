@@ -21,7 +21,7 @@ class DashboardService:
             week_ago=week_ago,
         )
         return DashboardResponse(
-            revenue_last_7_days=round_money(stats.revenue_last_7_days),
+            orders_total_last_7_days=round_money(stats.orders_total_last_7_days),
             orders_today=stats.orders_today,
             average_order_total=round_money(stats.average_order_total),
             active_products=stats.active_products,
