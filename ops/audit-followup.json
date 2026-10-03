@@ -102,8 +102,10 @@
     {
       "id": "A13",
       "title": "PATCH принимает null в обязательных полях и заканчивается HTTP 500",
-      "status": "pending",
-      "checks": []
+      "status": "verified_local",
+      "checks": [
+        "25 PATCH/custom-board API tests passed: explicit null rejected for required product, brand, section and portfolio fields; empty PATCH rejected and nullable clearing retained using one shared validator."
+      ]
     },
     {
       "id": "A14",

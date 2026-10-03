@@ -5,7 +5,7 @@ from uuid import UUID
 
 from pydantic import ConfigDict, Field, field_validator, model_validator
 
-from app.api.common.schema import PaginationParams, StrictSchema
+from app.api.common.schema import PaginationParams, StrictSchema, validate_update
 from app.api.common.utils import normalize_optional_text, normalize_text
 from app.api.modules.catalog.enums import (
     AttributeValueType,
@@ -156,8 +156,7 @@ class UpdateBrandRequest(StrictSchema):
 
     @model_validator(mode="after")
     def require_update(self) -> "UpdateBrandRequest":
-        if not self.model_fields_set:
-            raise ValueError("At least one field must be provided")
+        validate_update(self, ("name", "position", "is_active"))
         return self
 
 
@@ -728,8 +727,7 @@ class UpdateCatalogSectionRequest(StrictSchema):
 
     @model_validator(mode="after")
     def require_update(self) -> "UpdateCatalogSectionRequest":
-        if not self.model_fields_set:
-            raise ValueError("At least one field must be provided")
+        validate_update(self, ("name", "position", "is_active"))
         return self
 
 
@@ -1004,22 +1002,27 @@ class UpdateProductRequest(StrictSchema):
 
     @model_validator(mode="after")
     def require_update(self) -> "UpdateProductRequest":
-        if not (self.model_fields_set - {"expected_updated_at"}):
-            raise ValueError("At least one field must be provided")
-        required_fields = {
-            "category_id": self.category_id,
-            "sku": self.sku,
-            "name": self.name,
-            "brand": self.brand,
-            "price": self.price,
-            "stock_status": self.stock_status,
-            "stock_quantity": self.stock_quantity,
-            "sale_unit": self.sale_unit,
-            "specs": self.specs,
-        }
-        for field, value in required_fields.items():
-            if field in self.model_fields_set and value is None:
-                raise ValueError(f"{field} cannot be null")
+        validate_update(
+            self,
+            (
+                "category_id",
+                "sku",
+                "name",
+                "brand",
+                "price",
+                "stock_status",
+                "stock_quantity",
+                "sale_unit",
+                "specs",
+                "is_popular",
+                "is_active",
+                "media",
+                "documents",
+                "relations",
+                "expected_updated_at",
+            ),
+            ignored=("expected_updated_at",),
+        )
         if (
             self.price is not None
             and self.old_price is not None

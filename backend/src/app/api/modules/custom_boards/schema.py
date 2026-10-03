@@ -2,9 +2,9 @@ from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
 
-from pydantic import ConfigDict, Field, field_validator
+from pydantic import ConfigDict, Field, field_validator, model_validator
 
-from app.api.common.schema import PaginationParams, StrictSchema
+from app.api.common.schema import PaginationParams, StrictSchema, validate_update
 from app.api.common.utils import (
     normalize_email,
     normalize_optional_text,
@@ -165,3 +165,10 @@ class UpdatePortfolioItemRequest(StrictSchema):
     @classmethod
     def validate_image_url(cls, value: object | None) -> str | None:
         return normalize_resource_url(value)
+
+    @model_validator(mode="after")
+    def require_update(self) -> "UpdatePortfolioItemRequest":
+        validate_update(
+            self, ("title", "description", "image_url", "position", "is_active")
+        )
+        return self

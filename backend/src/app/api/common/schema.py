@@ -1,8 +1,20 @@
+from collections.abc import Collection
+
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.settings import get_config
 
 config = get_config()
+
+
+def validate_update(
+    model: BaseModel, non_nullable: Collection[str], *, ignored: Collection[str] = ()
+) -> None:
+    if not model.model_fields_set.difference(ignored):
+        raise ValueError("At least one field must be provided")
+    for name in model.model_fields_set.intersection(non_nullable):
+        if getattr(model, name) is None:
+            raise ValueError(f"{name} cannot be null")
 
 
 class StrictSchema(BaseModel):
