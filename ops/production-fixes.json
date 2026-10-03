@@ -398,12 +398,14 @@
       "id": "O12",
       "priority": "P2",
       "title": "Генератор безусловно заменяет сжатое фото исходным файлом в его родном размере",
-      "status": "validated",
+      "status": "verified",
       "checks": [
         "Native-size candidate is used only when smaller; original files/URLs, aspect ratio, transparency, animation and no-upscale rules preserved. v3 reuses v2 resized files only when content digest matches.",
         "362 backend tests passed, including 11 variant regressions; Ruff passed. ACKO 288x800 original JPEGs 100243/183892/102733 bytes become WebP 23354/23368/24116 bytes (76.5–87.3% smaller).",
         "Production probe upgraded 12 sources in one second with no failures; initial catalog image transfer 501129 to 105916 bytes. Full conversion paused after ~1000 sources to remove redundant encoding; updater now encodes only native size when previous derivative content digests match.",
-        "13 image regressions and 364 total backend tests passed after skipping redundant resized encoding. 100 live CDN derivatives returned 200; source SHA256, width, ratio, no-upscale and alpha checks passed, every copy smaller. Sample bytes 8444119 to 2038946. Native ACKO original/WebP marking visually compared and readable."
+        "13 image regressions and 364 total backend tests passed after skipping redundant resized encoding. 100 live CDN derivatives returned 200; source SHA256, width, ratio, no-upscale and alpha checks passed, every copy smaller. Sample bytes 8444119 to 2038946. Native ACKO original/WebP marking visually compared and readable.",
+        "Full production conversion completed: 44188 generated, 1009 reused, 0 failed, 2 animated originals skipped in 1740 seconds. Both original GIFs retained; completed conversion container removed and normal VACUUM ANALYZE run.",
+        "All 22617 primary image metadata and 45197 static media records are webp-v3. Original catalog fingerprints unchanged across 23736 products, 408361 attributes and 45199 media records."
       ]
     },
     {
@@ -422,11 +424,12 @@
       "id": "O14",
       "priority": "P2",
       "title": "Таблица админки загружает редактор товара и библиотеки формы при закрытом окне",
-      "status": "validated",
+      "status": "verified",
       "checks": [
         "Existing ProductFormDialog loaded through React lazy only while open; shared Modal supplies accessible loading/close state. Draft unmount behavior retained.",
         "126 frontend tests, build and lint passed; 65 desktop/mobile browser scenarios passed with 3 viewport skips, including actual create/edit/upload and preserved details.",
-        "Authenticated product list: script bodies 533512 to 402463 bytes. Form/schema modules absent while closed, load on opening; editor opens and reopens without browser errors."
+        "Authenticated product list: script bodies 533512 to 402463 bytes. Form/schema modules absent while closed, load on opening; editor opens and reopens without browser errors.",
+        "Actual production assets with isolated local QA API: closed editor imports no form/schema modules (403013 raw script bytes captured); opening and reopening load production form/schema chunks with HTTP 200 and no page errors. Real production services and public catalog remain healthy."
       ]
     }
   ],
@@ -474,9 +477,292 @@
         "All six services healthy; fresh/previous frontend chunks, lazy reviews, gallery rollback probe, full media coverage and original catalog fingerprints checked.",
         "220 bounded production requests across 1/5/10/20 concurrency all HTTP 200 with validated bodies; final p95 at 20 concurrency 433.68 ms."
       ]
+    },
+    {
+      "release": "42f1533",
+      "date": "2026-10-03",
+      "checks": [
+        "All six production services healthy; six desktop/mobile home, catalog and gallery scenarios passed. Initial mobile image requests reduced without omitting images on scroll."
+      ]
+    },
+    {
+      "release": "8242dd5",
+      "date": "2026-10-03",
+      "checks": [
+        "Production native-size conversion probe passed for 12 sources; original image fallback checked in actual public catalog."
+      ]
+    },
+    {
+      "release": "6330d31",
+      "date": "2026-10-03",
+      "checks": [
+        "Full native-size conversion completed with zero failures; digest-matched v2 thumbnails reused, original catalog row fingerprints unchanged."
+      ]
+    },
+    {
+      "release": "825f54b",
+      "date": "2026-10-03",
+      "checks": [
+        "Actual production brand list has no catalog modules; individual admin pages and shared frame passed full browser suite. All services healthy."
+      ]
+    },
+    {
+      "release": "4f46dd6",
+      "date": "2026-10-03",
+      "checks": [
+        "Product editor imports deferred until opened; production assets verified with isolated QA API. All six services healthy; final 220 production requests returned validated HTTP 200 responses."
+      ]
     }
   ],
   "final_verification": {
+    "checked_at_utc": "2026-10-03T00:44:34.306314+00:00",
+    "code_release": "4f46dd6",
+    "verified_items": 42,
+    "tests": {
+      "backend_passed": 364,
+      "frontend_passed": 126,
+      "browser_passed": 65,
+      "browser_viewport_skipped": 3,
+      "frontend_lint_typecheck_build": "passed",
+      "backend_ruff": "passed",
+      "postgres_redis_prior_passed": 12,
+      "postgres_redis_prior_verification_at_utc": "2026-10-02T23:46:09.828578+00:00"
+    },
+    "production_load": {
+      "created_at": "2026-10-03T00:41:45.047359+00:00",
+      "scope": "Bounded concurrent HTTP requests; no orders, accounts or delivery lookups",
+      "total_requests": 220,
+      "orders_created": 0,
+      "passed": true,
+      "stages": [
+        {
+          "concurrency": 1,
+          "completed": 55,
+          "p50_ms": 17.5,
+          "p95_ms": 59.9,
+          "max_ms": 66.38,
+          "statuses": {
+            "200": 55
+          },
+          "errors": []
+        },
+        {
+          "concurrency": 5,
+          "completed": 55,
+          "p50_ms": 30.07,
+          "p95_ms": 337.57,
+          "max_ms": 396.51,
+          "statuses": {
+            "200": 55
+          },
+          "errors": []
+        },
+        {
+          "concurrency": 10,
+          "completed": 55,
+          "p50_ms": 62.05,
+          "p95_ms": 305.69,
+          "max_ms": 466.9,
+          "statuses": {
+            "200": 55
+          },
+          "errors": []
+        },
+        {
+          "concurrency": 20,
+          "completed": 55,
+          "p50_ms": 159.74,
+          "p95_ms": 334.7,
+          "max_ms": 456.91,
+          "statuses": {
+            "200": 55
+          },
+          "errors": []
+        }
+      ]
+    },
+    "catalog_integrity": {
+      "original_rows_unchanged": true,
+      "products": 23736,
+      "attributes": 408361,
+      "media": 45199,
+      "product_data": "df70341527fa9c985d27b46e8bd30828",
+      "attribute_data": "d9d597503ed0ffa9f2882454a58008c3",
+      "media_data": "b965779dab3c37b68be343ad913148fc"
+    },
+    "image_coverage": {
+      "generator": "webp-v3",
+      "product_images": 22617,
+      "product_variants": 22617,
+      "gallery_images": 45199,
+      "gallery_variants": 45197,
+      "originals_without_variants": [
+        "https://izihata-product-media.b-cdn.net/products/enext/p0660023/4.gif",
+        "https://izihata-product-media.b-cdn.net/products/enext/p0660401/3.gif"
+      ],
+      "conversion": {
+        "total": 45199,
+        "generated": 44188,
+        "reused": 1009,
+        "failed": 0,
+        "skipped": 2,
+        "elapsed_seconds": 1740
+      },
+      "live_cdn_sample": {
+        "checked": 100,
+        "all_http_200": true,
+        "source_content_hash_matches": true,
+        "width_ratio_no_upscale_transparency": true,
+        "all_derivatives_smaller": true,
+        "original_bytes": 8444119,
+        "variant_bytes": 2038946
+      }
+    },
+    "backup": {
+      "new_snapshot": "daily-20261003T004323Z",
+      "checksums": "database.dump and media.tar.gz passed SHA256 checks; pg_restore list and tar member list validated",
+      "restored_snapshot": "daily-20261002T224822Z",
+      "restore": "passed in isolated server container",
+      "restore_is_from_prior_verification": true,
+      "storage": "server only"
+    },
+    "cold_mobile_browser": {
+      "measurement": "Single comparable cold mobile capture per route; image bytes include HTTP overhead. Content timings vary; no claim of universal latency improvement.",
+      "routes": [
+        {
+          "scenario": "home",
+          "path": "/",
+          "conditions": "CPU 4x, 1.6Mbps, RTT150ms, cold cache",
+          "content_before_ms": 2250,
+          "content_after_ms": 2460,
+          "image_requests_before": 3,
+          "image_requests_after": 1,
+          "image_bytes_before": 203592,
+          "image_bytes_after": 36914,
+          "page_errors": []
+        },
+        {
+          "scenario": "catalog",
+          "path": "/catalog",
+          "conditions": "CPU 4x, 1.6Mbps, RTT150ms, cold cache",
+          "content_before_ms": 2537,
+          "content_after_ms": 2260,
+          "image_requests_before": 12,
+          "image_requests_after": 6,
+          "image_bytes_before": 501129,
+          "image_bytes_after": 105903,
+          "page_errors": []
+        },
+        {
+          "scenario": "product",
+          "path": "/products/i0600006",
+          "conditions": "CPU 4x, 1.6Mbps, RTT150ms, cold cache",
+          "content_before_ms": 2155,
+          "content_after_ms": 2335,
+          "image_requests_before": 6,
+          "image_requests_after": 6,
+          "image_bytes_before": 75447,
+          "image_bytes_after": 13987,
+          "page_errors": []
+        },
+        {
+          "scenario": "section",
+          "path": "/sections/home-repair",
+          "conditions": "CPU 4x, 1.6Mbps, RTT150ms, cold cache",
+          "content_before_ms": 2107,
+          "content_after_ms": 2071,
+          "image_requests_before": 1,
+          "image_requests_after": 1,
+          "image_bytes_before": 36914,
+          "image_bytes_after": 36914,
+          "page_errors": []
+        },
+        {
+          "scenario": "brand",
+          "path": "/brands/hager",
+          "conditions": "CPU 4x, 1.6Mbps, RTT150ms, cold cache",
+          "content_before_ms": 2338,
+          "content_after_ms": 2450,
+          "image_requests_before": 12,
+          "image_requests_after": 6,
+          "image_bytes_before": 86717,
+          "image_bytes_after": 32552,
+          "page_errors": []
+        },
+        {
+          "scenario": "checkout_empty",
+          "path": "/checkout",
+          "conditions": "CPU 4x, 1.6Mbps, RTT150ms, cold cache",
+          "content_before_ms": 2276,
+          "content_after_ms": 2076,
+          "image_requests_before": 0,
+          "image_requests_after": 0,
+          "image_bytes_before": 0,
+          "image_bytes_after": 0,
+          "page_errors": []
+        }
+      ],
+      "catalog_first_four_images_completed_before_ms": 5062,
+      "catalog_first_four_images_completed_after_ms": 3267
+    },
+    "route_bundles": {
+      "measurement": "Browser script response body bytes before HTTP compression; authenticated admin checks used isolated local QA API and actual production assets.",
+      "public_brand_list_before_bytes": 416321,
+      "public_brand_list_after_bytes": 382888,
+      "admin_overview_before_bytes": 548462,
+      "admin_overview_after_bytes": 389667,
+      "admin_products_editor_closed_before_bytes": 533512,
+      "admin_products_editor_closed_after_bytes": 402463,
+      "admin_products_production_assets_closed_bytes": 403013,
+      "editor_form_and_schema_deferred": true,
+      "editor_opens_and_reopens": true,
+      "page_errors": []
+    },
+    "production_cache": {
+      "categories_cold": {
+        "ms": 126.983,
+        "sql_queries": 3
+      },
+      "categories_cached": {
+        "ms": 1.698,
+        "sql_queries": 0
+      },
+      "sections_cold": {
+        "ms": 21.115,
+        "sql_queries": 4
+      },
+      "sections_cached": {
+        "ms": 1.01,
+        "sql_queries": 0
+      },
+      "facets_cold": {
+        "ms": 46.54,
+        "sql_queries": 4
+      },
+      "facets_cached": {
+        "ms": 0.924,
+        "sql_queries": 0
+      }
+    },
+    "production_health": {
+      "healthy_services": [
+        "app",
+        "frontend",
+        "db",
+        "cache",
+        "tasks",
+        "scheduler"
+      ],
+      "public_catalog": "ok",
+      "backup": "recent",
+      "existing_dead_notification_events": 2
+    },
+    "deferred_by_user": [
+      "Manager notification channel; two existing dead notification events remain."
+    ],
+    "cleanup": "Owned local audit servers/databases and completed production conversion containers removed; user files and unrelated running services preserved."
+  },
+  "previous_verification": {
     "checked_at_utc": "2026-10-02T23:46:09.828578+00:00",
     "code_release": "a1bd6a2",
     "verified_items": 38,
