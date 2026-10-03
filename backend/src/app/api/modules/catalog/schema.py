@@ -634,6 +634,7 @@ class AdminProductResponse(ProductResponse):
 
 
 class AdminProductDetailResponse(AdminProductResponse):
+    updated_at: datetime
     description: str | None
     relations: list[AdminProductRelationResponse]
 
@@ -646,6 +647,7 @@ class AdminProductDetailResponse(AdminProductResponse):
         summary = AdminProductResponse.from_product(product)
         return cls(
             **summary.model_dump(),
+            updated_at=product.updated_at,
             description=product.description,
             relations=[
                 AdminProductRelationResponse.from_relation(relation, target)
@@ -935,6 +937,7 @@ class CreateProductRequest(StrictSchema):
 
 
 class UpdateProductRequest(StrictSchema):
+    expected_updated_at: datetime | None = None
     category_id: UUID | None = None
     subcategory_id: UUID | None = None
     sku: str | None = Field(default=None, min_length=1, max_length=64)
@@ -1001,7 +1004,7 @@ class UpdateProductRequest(StrictSchema):
 
     @model_validator(mode="after")
     def require_update(self) -> "UpdateProductRequest":
-        if not self.model_fields_set:
+        if not (self.model_fields_set - {"expected_updated_at"}):
             raise ValueError("At least one field must be provided")
         required_fields = {
             "category_id": self.category_id,

@@ -66,6 +66,44 @@ function productValues(
   };
 }
 
+function productPayload(values: ProductFormValues) {
+  return {
+    category_id: values.category_id,
+    subcategory_id: values.subcategory_id || null,
+    sku: values.sku.trim(),
+    name: values.name.trim(),
+    brand: values.brand.trim(),
+    brand_country: values.brand_country.trim() || null,
+    production_country: values.production_country.trim() || null,
+    short_description: values.short_description.trim() || null,
+    description: values.description.trim() || null,
+    image_url: values.image_url.trim() || null,
+    price: values.price,
+    old_price: values.old_price || null,
+    badge: values.badge || null,
+    is_popular: values.is_popular,
+    is_active: values.is_active,
+    stock_status: values.stock_status,
+    stock_quantity: Number(values.stock_quantity),
+    availability_days: values.availability_days
+      ? Number(values.availability_days)
+      : null,
+    sale_unit: values.sale_unit,
+    wholesale_price: values.wholesale_price || null,
+    wholesale_min_quantity: values.wholesale_min_quantity
+      ? Number(values.wholesale_min_quantity)
+      : null,
+    specs: Object.fromEntries(
+      values.specs.map(({ key, value }) => [key.trim(), value.trim()]),
+    ),
+    relations: values.relations.map(({ product_id, kind }, index) => ({
+      product_id,
+      kind,
+      position: index,
+    })),
+  };
+}
+
 export function ProductFormDialog({
   open,
   product,
@@ -116,7 +154,7 @@ export function ProductFormDialog({
       initialValues={productValues(detail.data ?? product)}
       key={product?.id ?? "new"}
       onClose={onClose}
-      product={product}
+      product={detail.data ?? null}
     />
   );
 }
@@ -127,7 +165,7 @@ function ProductFormFields({
   onClose,
 }: {
   initialValues: ProductFormValues;
-  product: AdminProduct | null;
+  product: AdminProductDetail | null;
   onClose: () => void;
 }) {
   const { request } = useAuth();
@@ -156,6 +194,10 @@ function ProductFormFields({
   const categoryField = register("category_id");
   const relations = useWatch({ control, name: "relations" }) ?? [];
   const imageUrl = useWatch({ control, name: "image_url" });
+  const snapshot = useRef({
+    payload: productPayload(initialValues),
+    updated_at: product?.updated_at,
+  });
   const imageInput = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -188,43 +230,23 @@ function ProductFormFields({
 
   const submit = handleSubmit(async (values) => {
     try {
-      const payload = {
-        category_id: values.category_id,
-        subcategory_id: values.subcategory_id || null,
-        sku: values.sku.trim(),
-        name: values.name.trim(),
-        brand: values.brand.trim(),
-        brand_country: values.brand_country.trim() || null,
-        production_country: values.production_country.trim() || null,
-        short_description: values.short_description.trim() || null,
-        description: values.description.trim() || null,
-        image_url: values.image_url.trim() || null,
-        price: values.price,
-        old_price: values.old_price || null,
-        badge: values.badge || null,
-        is_popular: values.is_popular,
-        is_active: values.is_active,
-        stock_status: values.stock_status,
-        stock_quantity: Number(values.stock_quantity),
-        availability_days: values.availability_days
-          ? Number(values.availability_days)
-          : null,
-        sale_unit: values.sale_unit,
-        wholesale_price: values.wholesale_price || null,
-        wholesale_min_quantity: values.wholesale_min_quantity
-          ? Number(values.wholesale_min_quantity)
-          : null,
-        specs: Object.fromEntries(
-          values.specs.map(({ key, value }) => [key.trim(), value.trim()]),
-        ),
-        relations: values.relations.map(({ product_id, kind }, index) => ({
-          product_id,
-          kind,
-          position: index,
-        })),
-      };
+      const payload = productPayload(values);
       if (product) {
-        await updateAdminProductDetails(request, product.id, payload);
+        const changed = Object.fromEntries(
+          Object.entries(payload).filter(
+            ([key, value]) =>
+              JSON.stringify(value) !==
+              JSON.stringify(
+                snapshot.current.payload[key as keyof typeof payload],
+              ),
+          ),
+        );
+        if (Object.keys(changed).length) {
+          await updateAdminProductDetails(request, product.id, {
+            ...changed,
+            expected_updated_at: snapshot.current.updated_at,
+          });
+        }
       } else {
         await createAdminProduct(request, payload);
       }

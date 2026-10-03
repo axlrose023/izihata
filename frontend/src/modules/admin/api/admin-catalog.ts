@@ -58,7 +58,7 @@ export function createAdminProduct(
 export function updateAdminProductDetails(
   request: AdminRequest,
   productId: string,
-  payload: CreateProductPayload,
+  payload: Partial<CreateProductPayload> & { expected_updated_at?: string },
 ): Promise<Product> {
   return request(`/admin/catalog/products/${productId}`, {
     method: "PATCH",

@@ -90,6 +90,7 @@ const product: AdminProduct = {
   is_active: true,
 };
 const detail: AdminProductDetail = {
+  updated_at: "2026-10-03T10:00:00Z",
   ...product,
   name: "Full name",
   is_popular: true,
@@ -171,9 +172,7 @@ it("waits for full details before editing and keeps hidden fields on save", asyn
       availability_days: null,
       wholesale_price: null,
       wholesale_min_quantity: null,
-      is_popular: true,
-      is_active: false,
-      relations: [{ product_id: "related-1", kind: "related", position: 0 }],
+      expected_updated_at: detail.updated_at,
     },
   );
 });
@@ -222,9 +221,30 @@ it("keeps unsaved edits when a background detail refresh fails or succeeds", asy
   expect(vi.mocked(updateAdminProductDetails).mock.calls[0]?.[2]).toMatchObject(
     {
       name: "Unsaved name",
-      is_popular: true,
-      is_active: false,
-      relations: [{ product_id: "related-1", kind: "related", position: 0 }],
+      expected_updated_at: detail.updated_at,
     },
   );
+});
+
+it("sends only edited fields and the original revision", async () => {
+  vi.mocked(fetchAdminProduct).mockResolvedValue(detail);
+  vi.mocked(updateAdminProductDetails).mockResolvedValue(product);
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  queryClient.setQueryData(catalogKeys.categories(), [category]);
+  render(
+    <QueryClientProvider client={queryClient}>
+      <ProductFormDialog onClose={vi.fn()} open product={product} />
+    </QueryClientProvider>,
+  );
+  fireEvent.change(await screen.findByLabelText("Назва"), {
+    target: { value: "Only changed name" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Зберегти товар" }));
+  await waitFor(() => expect(updateAdminProductDetails).toHaveBeenCalled());
+  expect(vi.mocked(updateAdminProductDetails).mock.calls[0]?.[2]).toEqual({
+    name: "Only changed name",
+    expected_updated_at: detail.updated_at,
+  });
 });

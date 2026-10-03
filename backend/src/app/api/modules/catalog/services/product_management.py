@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from decimal import Decimal, InvalidOperation
 from uuid import UUID
 
@@ -315,7 +316,24 @@ class ProductManagementService:
             raise NotFoundError("Product not found")
 
         previous_stock_status = product.stock_status
+        if request.expected_updated_at is not None:
+            current = (
+                product.updated_at.replace(tzinfo=UTC)
+                if product.updated_at.tzinfo is None
+                else product.updated_at
+            )
+            expected = (
+                request.expected_updated_at.replace(tzinfo=UTC)
+                if request.expected_updated_at.tzinfo is None
+                else request.expected_updated_at
+            )
+            if current != expected:
+                raise ConflictError(
+                    "Product changed since the editor was opened",
+                    code="product_changed",
+                )
         data = request.model_dump(exclude_unset=True)
+        data.pop("expected_updated_at", None)
         category_id = data.pop("category_id", product.category_id)
         subcategory_id = data.pop("subcategory_id", product.subcategory_id)
         category_changed = category_id != product.category_id
@@ -389,6 +407,7 @@ class ProductManagementService:
             if documents is not None:
                 await self._replace_documents(product, documents)
             await ensure_brand(self._uow, product.brand)
+            product.updated_at = datetime.now(UTC)
             await self._uow.products.update(product)
             if relations is not None:
                 await self._replace_relations(product.id, relations)

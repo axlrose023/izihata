@@ -156,6 +156,7 @@ export interface AdminProduct extends Product {
 }
 
 export interface AdminProductDetail extends AdminProduct {
+  updated_at: string;
   description: string | null;
   relations: AdminProductRelation[];
 }

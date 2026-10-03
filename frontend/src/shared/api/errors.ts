@@ -72,6 +72,7 @@ const localizedMessages: Record<string, string> = {
   not_found: "Запитувані дані не знайдено.",
   category_not_found: "Обрану категорію більше не знайдено. Оновіть форму.",
   product_identity_exists: "Товар із таким SKU вже існує.",
+  product_changed: "Товар уже змінено. Закрийте редактор і відкрийте його знову, щоб перевірити актуальні дані.",
   product_sku_exists: "Товар із таким SKU вже існує.",
   product_slug_exists: "Товар із такою адресою вже існує. Змініть SKU.",
   products_unavailable:

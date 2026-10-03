@@ -1,4 +1,4 @@
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import pytest
 from httpx import AsyncClient
@@ -16,6 +16,54 @@ from app.database.uow import UnitOfWork
 
 @pytest.mark.asyncio
 class TestCatalogExtensions:
+    async def test_stale_product_revision_does_not_overwrite_new_price(
+        self, client, authenticated_user, product
+    ):
+        headers = {"Authorization": f"Bearer {authenticated_user['access_token']}"}
+        created = await client.post(
+            "/api/v1/admin/catalog/products",
+            headers=headers,
+            json={
+                "category_id": str(product.category_id),
+                "sku": "revision-" + uuid4().hex,
+                "name": "Revision audit product",
+                "brand": product.brand,
+                "price": "100.00",
+            },
+        )
+        assert created.status_code == 201, created.text
+        path = f"/api/v1/admin/catalog/products/{created.json()['id']}"
+        snapshot = (await client.get(path, headers=headers)).json()
+        from decimal import Decimal
+
+        new_price = str(Decimal(snapshot["price"]) + 1)
+        first = await client.patch(
+            path,
+            headers=headers,
+            json={"price": new_price, "expected_updated_at": snapshot["updated_at"]},
+        )
+        assert first.status_code == 200, first.text
+        stale = await client.patch(
+            path,
+            headers=headers,
+            json={
+                "name": "Stale edit",
+                "price": snapshot["price"],
+                "expected_updated_at": snapshot["updated_at"],
+            },
+        )
+        assert stale.status_code == 409
+        assert stale.json()["code"] == "product_changed"
+        current = (await client.get(path, headers=headers)).json()
+        assert current["price"] == new_price
+        partial = await client.patch(
+            path,
+            headers=headers,
+            json={"name": "Current edit", "expected_updated_at": current["updated_at"]},
+        )
+        assert partial.status_code == 200
+        assert partial.json()["price"] == new_price
+
     async def test_sitemap_uses_the_registered_product_route(
         self,
         client: AsyncClient,
