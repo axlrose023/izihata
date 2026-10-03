@@ -135,7 +135,9 @@ async def test_curated_keys_respect_categories_and_unconfigured_category_fallbac
     assert {item.value for item in socket_keys.items} == {CURRENT, "Колір"}
     future_keys = await service.get_spec_facets(SpecFacetParams(category="future"))
     assert [item.value for item in future_keys.items] == [EXTRA]
-    legacy = await service.get_products(ProductListParams(category="lowvoltage"))
+    legacy = await service.get_products(
+        ProductListParams(category="lowvoltage", include_facets=True)
+    )
     assert set(legacy.facets.specs) == {CURRENT}
     assert legacy.total == 2
     assert EXTRA in legacy.items[0].specs and CODE in legacy.items[0].specs

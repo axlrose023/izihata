@@ -166,8 +166,10 @@
     {
       "id": "O16",
       "title": "Компактный стандартный список каталога",
-      "status": "pending",
-      "checks": []
+      "status": "verified_local",
+      "checks": [
+        "33 API/category-filter tests pass: standard list has empty metadata; include_facets=true retains legacy full facets; current frontend already opts out."
+      ]
     },
     {
       "id": "O17",

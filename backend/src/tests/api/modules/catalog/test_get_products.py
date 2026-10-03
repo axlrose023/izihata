@@ -10,7 +10,7 @@ class TestGetProducts:
     endpoint = "/api/v1/catalog/products"
 
     async def test_returns_paginated_products_and_facets(self, client: AsyncClient):
-        response = await client.get(self.endpoint)
+        response = await client.get(self.endpoint, params={"include_facets": True})
 
         assert response.status_code == 200, response.text
         body = response.json()
@@ -21,6 +21,14 @@ class TestGetProducts:
         assert body["facets"]["brands"]
         assert body["facets"]["specs"]
         assert "reviews" not in body["items"][0]
+
+    async def test_default_list_omits_expensive_facets(self, client: AsyncClient):
+        response = await client.get(self.endpoint)
+        assert response.status_code == 200
+        body = response.json()
+        assert body["items"]
+        assert body["facets"]["specs"] == {}
+        assert body["facets"]["brands"] == []
 
     async def test_filters_by_category_brand_stock_and_spec(
         self,
