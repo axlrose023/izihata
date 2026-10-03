@@ -411,6 +411,8 @@
   box-sizing: border-box;
 }
 html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
   /* Document scrolling stays instant: a smooth default animated the scroll
      reset on every route change, so a new page visibly slid up from wherever
      the previous one was. The back-to-top button asks for smooth itself. */
@@ -2677,6 +2679,7 @@ h2 {
 }
 .product-detail__meta {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 15px;
   color: var(--ink-soft);
@@ -2686,6 +2689,7 @@ h2 {
 }
 .product-detail__price {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   gap: 15px;
   margin-block: 28px;
@@ -3010,6 +3014,11 @@ h2 {
 .specification-list dd {
   margin: 0;
   font-weight: 720;
+}
+.specification-list dt,
+.specification-list dd {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .related-products {
   margin-top: 75px;
@@ -7611,6 +7620,29 @@ h1 {
     display: none;
   }
 
+  .popular-products .section-heading {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .home-rail-tabs {
+    width: 100%;
+    min-width: 0;
+    margin-left: 0;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+  }
+
+  .home-rail-tabs button {
+    flex: 0 0 auto;
+    min-height: 44px;
+  }
+
+  #root :is(input, select, textarea) {
+    font-size: 16px;
+  }
+
   .home-entry-points {
     grid-template-columns: 1fr;
     padding-block: 24px 36px;
@@ -8510,6 +8542,9 @@ h1 {
   .load-advisor__pick-list > footer .button {
     width: 100%;
   }
+}
+
+@media (max-width: 1050px) {
   .board-builder {
     grid-template-columns: 1fr;
     min-height: auto;

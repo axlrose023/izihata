@@ -1,0 +1,52 @@
+{
+  "started": "2026-10-03",
+  "baseline": "c6aeac8",
+  "author": "axlrose023 <sloboda282@gmail.com>",
+  "items": [
+    {
+      "id": "M01",
+      "title": "Responsive overflow, clipped tablet builder and form sizing",
+      "status": "verified_local",
+      "before": [
+        "Home document 463–473px wide at 320–414px viewport; tabs overflow",
+        "Builder right panels extend to 1038px at 820–1024px and are clipped"
+      ],
+      "changes": [
+        "Mobile home tabs contained in their own scroll rail below heading",
+        "Builder uses one column through 1050px; existing small-screen rules moved instead of duplicated",
+        "Product metadata/prices can wrap; specification values break long tokens",
+        "Mobile form controls use at least 16px and text scaling is predictable"
+      ],
+      "checks": [
+        "7 browser tests passed: 10 routes at 320,360,390,414,768,820,1024px; right builder panels fit; forms >=16px",
+        "Full frontend check passed: 146 tests, formatting, ESLint, TypeScript and production build"
+      ]
+    },
+    {
+      "id": "M02",
+      "title": "Keep catalog position and overlay geometry during async loading",
+      "status": "pending",
+      "before": [
+        "Sort changed scrollY 400 to 0",
+        "Menu lazy fallback changed header height 56→77→56px"
+      ]
+    },
+    {
+      "id": "M03",
+      "title": "Reserve the home product rail and prevent autonomous touch scrolling",
+      "status": "pending",
+      "before": [
+        "Lazy rail inserts about 238px while scrolling; measured shift 0.0901"
+      ]
+    },
+    {
+      "id": "M04",
+      "title": "Avoid late font replacement and inconsistent public boot presentation",
+      "status": "pending",
+      "before": [
+        "Slow mobile catalog has 0.1057 layout shift from late text reflow in public fallback"
+      ]
+    }
+  ],
+  "production_verification": []
+}
