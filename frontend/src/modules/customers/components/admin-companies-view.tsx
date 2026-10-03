@@ -3,7 +3,7 @@ import { useState } from "react";
 
 import { useAuth } from "@/modules/auth/auth-provider";
 import { getUserErrorMessage } from "@/shared/api/errors";
-import { formatDate } from "@/shared/lib/format";
+import { formatDate, formatPercent } from "@/shared/lib/format";
 import type {
   AdminCompany,
   CompanyStatus,
@@ -116,9 +116,7 @@ export function AdminCompaniesView() {
                 <td>
                   <StatusBadge status={company.status} />
                 </td>
-                <td>
-                  {(Number(company.cumulative_discount_rate) * 100).toFixed(0)}%
-                </td>
+                <td>{formatPercent(company.cumulative_discount_rate)}</td>
                 <td>{formatDate(company.created_at)}</td>
                 <td>
                   <CompanyReview company={company} />

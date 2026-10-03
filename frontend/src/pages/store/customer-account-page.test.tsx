@@ -61,3 +61,15 @@ it("shows the actual rejected company decision", () => {
     ),
   ).toBeNull();
 });
+
+it("shows the fractional business discount accurately", () => {
+  state.status = "approved";
+  render(
+    <MemoryRouter>
+      <CustomerAccountPage />
+    </MemoryRouter>,
+  );
+  expect(screen.getByText(/Накопичувальна знижка:/).textContent).toContain(
+    "1,5",
+  );
+});

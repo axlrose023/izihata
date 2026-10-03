@@ -134,8 +134,10 @@
     {
       "id": "A17",
       "title": "Дробная бизнес-скидка показывается с округлением до другого процента",
-      "status": "pending",
-      "checks": []
+      "status": "verified_local",
+      "checks": [
+        "3 percentage/account UI tests passed: 1.5% and 0.01% retain exact supported precision; shared formatter used by account and admin companies."
+      ]
     },
     {
       "id": "A18",

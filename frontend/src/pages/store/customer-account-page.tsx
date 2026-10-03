@@ -10,7 +10,7 @@ import {
 import { CustomerCompanyForm } from "@/modules/customers/components/customer-company-form";
 import { useCustomerAuth } from "@/modules/customers/customer-auth-context";
 import { getUserErrorMessage } from "@/shared/api/errors";
-import { formatDate, formatMoney } from "@/shared/lib/format";
+import { formatDate, formatMoney, formatPercent } from "@/shared/lib/format";
 import { useDocumentTitle } from "@/shared/lib/use-document-title";
 import { ErrorNotice } from "@/shared/ui/error-notice";
 import { AdminPagination } from "@/shared/ui/admin-pagination";
@@ -159,7 +159,7 @@ export function CustomerAccountPage() {
               {company.status === "approved" ? (
                 <p>
                   Накопичувальна знижка:{" "}
-                  {(Number(company.cumulative_discount_rate) * 100).toFixed(0)}%
+                  {formatPercent(company.cumulative_discount_rate)}
                   {company.manager_name
                     ? ` · менеджер: ${company.manager_name}`
                     : ""}

@@ -69,3 +69,11 @@ const saleUnitLabels = {
 export function saleUnitLabel(unit: keyof typeof saleUnitLabels): string {
   return saleUnitLabels[unit] ?? "шт";
 }
+const percentFormatter = new Intl.NumberFormat("uk-UA", {
+  style: "percent",
+  maximumFractionDigits: 2,
+});
+
+export function formatPercent(value: string | number): string {
+  return percentFormatter.format(Number(value));
+}
