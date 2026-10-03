@@ -1,6 +1,6 @@
 import { Outlet, ScrollRestoration } from "react-router-dom";
 
-import { CartDrawer } from "@/modules/cart/components/cart-drawer";
+import { LazyCartDrawer } from "@/modules/cart/components/lazy-cart-drawer";
 import { StoreHydrator } from "@/shared/ui/store-hydrator";
 
 import { ActivityTracker } from "./activity-tracker";
@@ -20,7 +20,7 @@ export function StoreShell() {
         <Outlet />
       </main>
       <SiteFooter />
-      <CartDrawer />
+      <LazyCartDrawer />
       <SupportButton />
       <ScrollToTop />
     </>

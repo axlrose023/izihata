@@ -182,8 +182,10 @@
     {
       "id": "O18",
       "title": "Отложить закрытые оверлеи",
-      "status": "pending",
-      "checks": []
+      "status": "verified_local",
+      "checks": [
+        "Two lazy loading/search regressions pass; TypeScript/lint pass. Cart, sidebar and suggestion content load only on opening; unfocused search sends no requests."
+      ]
     },
     {
       "id": "O19",

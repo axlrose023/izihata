@@ -13,10 +13,8 @@ import {
   ShoppingCart,
   UserRound,
 } from "lucide-react";
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-
-import { SiteSidebar } from "./site-sidebar";
 
 import { cartCount, useCartStore } from "@/modules/cart/store";
 import { ProductSearch } from "@/modules/catalog/components/product-search";
@@ -26,6 +24,10 @@ import { useCustomerAuth } from "@/modules/customers/customer-auth-context";
 import { formatMoney, pluralizePositions } from "@/shared/lib/format";
 import { Logo } from "@/shared/ui/logo";
 import { storeInfo } from "@/shared/config/store-info";
+
+const SiteSidebar = lazy(() =>
+  import("./site-sidebar").then((module) => ({ default: module.SiteSidebar })),
+);
 
 export function SiteHeader() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -143,7 +145,11 @@ export function SiteHeader() {
           </button>
         </div>
       </div>
-      <SiteSidebar onClose={() => setMenuOpen(false)} open={menuOpen} />
+      {menuOpen ? (
+        <Suspense fallback={<p role="status">Завантажуємо меню…</p>}>
+          <SiteSidebar onClose={() => setMenuOpen(false)} open />
+        </Suspense>
+      ) : null}
       <nav className="catalog-nav">
         <div className="container catalog-nav__inner">
           <Link className="catalog-nav__primary" to="/catalog">

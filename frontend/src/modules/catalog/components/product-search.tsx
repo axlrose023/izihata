@@ -1,30 +1,17 @@
-import { useQuery } from "@tanstack/react-query";
 import { Search } from "lucide-react";
-import { useState } from "react";
-import { Form, Link } from "react-router-dom";
+import { lazy, Suspense, useState } from "react";
+import { Form } from "react-router-dom";
 
-import { productsQuery } from "@/modules/catalog/api/catalog-queries";
-import { getUserErrorMessage } from "@/shared/api/errors";
-import { formatMoney } from "@/shared/lib/format";
-import { useDebouncedValue } from "@/shared/lib/use-debounced-value";
-
-import { ProductVisual } from "./product-visual";
+const ProductSearchSuggestions = lazy(() =>
+  import("./product-search-suggestions").then((module) => ({
+    default: module.ProductSearchSuggestions,
+  })),
+);
 
 export function ProductSearch() {
   const [query, setQuery] = useState("");
   const [focused, setFocused] = useState(false);
   const normalized = query.trim();
-  const debounced = useDebouncedValue(normalized, 250);
-  const result = useQuery({
-    ...productsQuery({
-      search: debounced,
-      page_size: 5,
-      sort: "popular",
-      include_facets: false,
-    }),
-    enabled: debounced.length >= 2,
-  });
-  const suggestions = result.data?.items ?? [];
   const open = focused && normalized.length >= 2;
 
   return (
@@ -43,7 +30,7 @@ export function ProductSearch() {
       <input
         aria-autocomplete="list"
         aria-controls="product-search-suggestions"
-        aria-expanded={open && suggestions.length > 0}
+        aria-expanded={open}
         aria-label="Пошук товарів"
         role="combobox"
         autoComplete="off"
@@ -56,44 +43,19 @@ export function ProductSearch() {
       <button type="submit">Знайти</button>
       {open ? (
         <div className="search-suggestions" id="product-search-suggestions">
-          {result.isPending && debounced.length >= 2 ? (
-            <span className="search-suggestions__status">Шукаємо…</span>
-          ) : null}
-          {result.isError ? (
-            <span className="search-suggestions__status" role="alert">
-              {getUserErrorMessage(result.error, "Пошук тимчасово недоступний")}
-            </span>
-          ) : null}
-          {!result.isPending && !result.isError && suggestions.length === 0 ? (
-            <span className="search-suggestions__status">
-              Нічого не знайдено
-            </span>
-          ) : null}
-          {suggestions.map((product) => (
-            <Link
-              key={product.id}
-              onClick={() => {
+          <Suspense
+            fallback={
+              <span className="search-suggestions__status">Шукаємо…</span>
+            }
+          >
+            <ProductSearchSuggestions
+              query={normalized}
+              onSelect={() => {
                 setQuery("");
                 setFocused(false);
               }}
-              to={`/products/${product.slug}`}
-            >
-              <span className="search-suggestions__visual">
-                <ProductVisual
-                  imageSizes="80px"
-                  iconSize={24}
-                  product={product}
-                />
-              </span>
-              <span>
-                <strong>{product.name}</strong>
-                <small>
-                  {product.brand} · {product.sku}
-                </small>
-              </span>
-              <b>{formatMoney(product.price)}</b>
-            </Link>
-          ))}
+            />
+          </Suspense>
         </div>
       ) : null}
     </Form>
