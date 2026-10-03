@@ -17,6 +17,7 @@ from starlette.staticfiles import StaticFiles
 
 from app.api import register_routers
 from app.api.common.error_handlers import register_error_handlers
+from app.api.common.request_body import RequestBodyLimitMiddleware
 from app.api.modules.catalog.services.media import MEDIA_URL_PREFIX
 from app.database.engine import engine
 from app.ioc import get_async_container
@@ -76,6 +77,7 @@ def get_production_app() -> FastAPI:
         allow_headers=["*"],
     )
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=config.api.allowed_hosts)
+    app.add_middleware(RequestBodyLimitMiddleware)
 
     api_router = APIRouter(prefix=config.api.prefix)
     register_routers(api_router)

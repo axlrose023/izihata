@@ -55,7 +55,15 @@ async def validation_error_handler(
         raise exc
     return JSONResponse(
         status_code=422,
-        content={"code": "validation_error", "detail": jsonable_encoder(exc.errors())},
+        content={
+            "code": "validation_error",
+            "detail": jsonable_encoder(
+                [
+                    {key: error[key] for key in ("loc", "msg", "type") if key in error}
+                    for error in exc.errors()
+                ]
+            ),
+        },
     )
 
 

@@ -145,7 +145,7 @@ class TestMediaUpload:
     async def test_rejects_an_oversized_image(
         self, client: AsyncClient, authenticated_user
     ):
-        oversized = io.BytesIO(b"\x89PNG\r\n\x1a\n" + b"0" * (9 * 1024 * 1024))
+        oversized = io.BytesIO(b"\x89PNG\r\n\x1a\n" + b"0" * (8 * 1024 * 1024 + 1))
 
         response = await client.post(
             self.endpoint,

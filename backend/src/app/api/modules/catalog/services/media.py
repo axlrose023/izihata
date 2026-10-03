@@ -9,13 +9,12 @@ from fastapi import UploadFile
 from PIL import Image
 
 from app.api.common.exceptions import UnprocessableError
+from app.api.common.limits import MAX_IMAGE_PIXELS, MAX_UPLOAD_BYTES
 
 MEDIA_URL_PREFIX = "/api/v1/media"
 # The browser downscales pictures before sending them, so anything arriving
 # here is small. The cap is generous enough for a client that could not decode
 # the file and had to send the original.
-MAX_UPLOAD_BYTES = 8 * 1024 * 1024
-MAX_IMAGE_PIXELS = 20_000_000
 # SVG is deliberately excluded: it is served from our own origin and can carry
 # scripts, so it would be a stored-XSS vector.
 ALLOWED_TYPES = {

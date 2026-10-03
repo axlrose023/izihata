@@ -14,6 +14,7 @@ from PIL import Image, ImageOps
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
+from app.api.common.limits import MAX_IMAGE_PIXELS
 from app.api.modules.catalog.models import Product, ProductMedia
 from app.clients.bunny_storage import (
     BunnyS3Config,
@@ -31,7 +32,7 @@ def encode_variants(
     content: bytes, *, widths: tuple[int, ...] = WIDTHS
 ) -> dict[int, bytes]:
     with Image.open(io.BytesIO(content)) as original:
-        if original.width * original.height > 20_000_000:
+        if original.width * original.height > MAX_IMAGE_PIXELS:
             raise ValueError("Image exceeds 20 million pixels")
         if getattr(original, "is_animated", False):
             return {}

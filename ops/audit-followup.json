@@ -78,8 +78,10 @@
     {
       "id": "A10",
       "title": "Большой JSON разбирается до ограничения тела запроса и возвращается в поле input ошибки 422",
-      "status": "pending",
-      "checks": []
+      "status": "verified_local",
+      "checks": [
+        "21 API tests passed: declared/chunked oversized bodies return 413 before parsing; 1MB invalid input is not echoed; valid multipart uploads and registration preserved. JSON cap 4MiB allows existing UTF-8 specs/gallery contract."
+      ]
     },
     {
       "id": "A11",
