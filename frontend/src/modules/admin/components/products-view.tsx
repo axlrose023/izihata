@@ -13,10 +13,9 @@ import {
   Plus,
   Search,
 } from "lucide-react";
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 
 import { updateAdminProduct } from "@/modules/admin/api/admin-catalog";
-import { ProductFormDialog } from "@/modules/admin/components/product-form-dialog";
 import { useAuth } from "@/modules/auth/auth-provider";
 import { buildQuery } from "@/shared/api/query";
 import { getUserErrorMessage } from "@/shared/api/errors";
@@ -25,6 +24,11 @@ import type { AdminProduct, Paginated, StockStatus } from "@/shared/types/api";
 import { ErrorNotice } from "@/shared/ui/error-notice";
 import { AdminPagination } from "@/shared/ui/admin-pagination";
 import { AdminTableWrap } from "@/shared/ui/admin-table-wrap";
+import { Modal } from "@/shared/ui/modal";
+
+const ProductFormDialog = lazy(async () => ({
+  default: (await import("./product-form-dialog")).ProductFormDialog,
+}));
 
 function ProductRow({
   product,
@@ -282,11 +286,25 @@ export function ProductsView() {
           totalPages={data.total_pages}
         />
       ) : null}
-      <ProductFormDialog
-        onClose={() => setFormOpen(false)}
-        open={formOpen}
-        product={editingProduct}
-      />
+      {formOpen ? (
+        <Suspense
+          fallback={
+            <Modal
+              open
+              onClose={() => setFormOpen(false)}
+              title={editingProduct ? "Редагувати товар" : "Додати товар"}
+            >
+              <p role="status">Завантажуємо редактор товару…</p>
+            </Modal>
+          }
+        >
+          <ProductFormDialog
+            onClose={() => setFormOpen(false)}
+            open
+            product={editingProduct}
+          />
+        </Suspense>
+      ) : null}
     </>
   );
 }

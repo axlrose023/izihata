@@ -402,18 +402,31 @@
       "checks": [
         "Native-size candidate is used only when smaller; original files/URLs, aspect ratio, transparency, animation and no-upscale rules preserved. v3 reuses v2 resized files only when content digest matches.",
         "362 backend tests passed, including 11 variant regressions; Ruff passed. ACKO 288x800 original JPEGs 100243/183892/102733 bytes become WebP 23354/23368/24116 bytes (76.5–87.3% smaller).",
-        "Production probe upgraded 12 sources in one second with no failures; initial catalog image transfer 501129 to 105916 bytes. Full conversion paused after ~1000 sources to remove redundant encoding; updater now encodes only native size when previous derivative content digests match."
+        "Production probe upgraded 12 sources in one second with no failures; initial catalog image transfer 501129 to 105916 bytes. Full conversion paused after ~1000 sources to remove redundant encoding; updater now encodes only native size when previous derivative content digests match.",
+        "13 image regressions and 364 total backend tests passed after skipping redundant resized encoding. 100 live CDN derivatives returned 200; source SHA256, width, ratio, no-upscale and alpha checks passed, every copy smaller. Sample bytes 8444119 to 2038946. Native ACKO original/WebP marking visually compared and readable."
       ]
     },
     {
       "id": "O13",
       "priority": "P2",
       "title": "Маршруты загружают код соседних страниц: каталог в списке брендов и все разделы в обзоре админки",
-      "status": "validated",
+      "status": "verified",
       "checks": [
         "Individual admin routes share a single AdminPage frame; brand detail moved into its own module, admin auth/layout loaded only on matching routes. No API/business rules changed.",
         "125 frontend tests, build, lint passed; full desktop/mobile browser suite 65 passed with 3 viewport-specific skips.",
-        "Browser module bodies: public brands 416321 to 382888 bytes; authenticated admin overview reload 548462 to 389667 bytes. Catalog modules absent on brand list, form/schema modules absent on admin overview."
+        "Browser module bodies: public brands 416321 to 382888 bytes; authenticated admin overview reload 548462 to 389667 bytes. Catalog modules absent on brand list, form/schema modules absent on admin overview.",
+        "Production after 825f54b: brand list loads 8 script modules/382888 raw bytes instead of 14/416321; no catalog modules. Desktop/mobile home/catalog/gallery checks passed, all services healthy."
+      ]
+    },
+    {
+      "id": "O14",
+      "priority": "P2",
+      "title": "Таблица админки загружает редактор товара и библиотеки формы при закрытом окне",
+      "status": "validated",
+      "checks": [
+        "Existing ProductFormDialog loaded through React lazy only while open; shared Modal supplies accessible loading/close state. Draft unmount behavior retained.",
+        "126 frontend tests, build and lint passed; 65 desktop/mobile browser scenarios passed with 3 viewport skips, including actual create/edit/upload and preserved details.",
+        "Authenticated product list: script bodies 533512 to 402463 bytes. Form/schema modules absent while closed, load on opening; editor opens and reopens without browser errors."
       ]
     }
   ],
