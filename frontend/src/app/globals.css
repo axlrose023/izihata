@@ -1256,6 +1256,15 @@ h2 {
 .section {
   padding-block: 82px;
 }
+#catalog {
+  padding-bottom: 32px;
+}
+.home-category-directory {
+  padding-block: 32px;
+}
+.home-category-directory + .popular-products {
+  padding-top: 32px;
+}
 /* Табы добірок у заголовку блока (артборд Main) */
 .home-rail-tabs {
   display: flex;
@@ -6310,6 +6319,15 @@ h2 {
   }
   .section {
     padding-block: 55px;
+  }
+  #catalog {
+    padding-bottom: 24px;
+  }
+  .home-category-directory {
+    padding-block: 24px;
+  }
+  .home-category-directory + .popular-products {
+    padding-top: 24px;
   }
   .section-heading {
     align-items: flex-start;

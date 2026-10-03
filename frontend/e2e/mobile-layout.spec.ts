@@ -67,6 +67,23 @@ test("home shows the collapsible category directory before catalog products", as
   await page.goto("/");
   const directory = page.locator(".home-category-directory");
   await expect(directory.locator(".category-card").first()).toBeVisible();
+  for (const [selector, property] of [
+    ["#catalog", "paddingBottom"],
+    [".home-category-directory", "paddingTop"],
+    [".home-category-directory", "paddingBottom"],
+    [".popular-products", "paddingTop"],
+  ] as const) {
+    await expect
+      .poll(() =>
+        page
+          .locator(selector)
+          .evaluate(
+            (element, name) => getComputedStyle(element)[name],
+            property,
+          ),
+      )
+      .toBe("24px");
+  }
   await expect(directory.locator(".category-card")).toHaveCount(
     Math.min(categories.length, 6),
   );

@@ -295,7 +295,7 @@ function ProductContent({ product }: { product: ProductDetail }) {
                 </li>
                 <li>
                   <LeadAction
-                    label="Уточнити тариф і строк доставки"
+                    label="Уточнити тариф і терміни доставки"
                     type="callback"
                   />
                 </li>
@@ -370,11 +370,11 @@ function getAvailabilityText(
     return `Замовте до ${product.availability.dispatch_cutoff_hour}:00 — відправимо сьогодні`;
   }
   if (product.availability.lead_time_days) {
-    return `Орієнтовний строк: ${product.availability.lead_time_days} дн.`;
+    return `Орієнтовний термін: ${product.availability.lead_time_days} дн.`;
   }
   return product.stock_status === "in_stock"
     ? "Готовий до відвантаження"
-    : "Уточніть строк у менеджера";
+    : "Уточніть терміни у менеджера";
 }
 
 function saleUnitLabel(unit: import("@/shared/types/api").SaleUnit): string {

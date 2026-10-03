@@ -32,7 +32,7 @@ export function HomePage() {
             <h1>Все для щита, кабелю й освітлення</h1>
             <p>
               Знаходьте товари за характеристиками й брендом. Актуальну
-              наявність і строк відправлення узгоджує менеджер.
+              наявність і терміни відправлення узгоджує менеджер.
             </p>
             <div className="hero__actions">
               <Link className="button button--primary" to="/#catalog">
@@ -45,7 +45,7 @@ export function HomePage() {
             <dl className="hero__metrics">
               <div>
                 <dt>Відправлення</dt>
-                <dd>строк узгоджуємо під час замовлення</dd>
+                <dd>терміни узгоджуємо під час замовлення</dd>
               </div>
               <div>
                 <dt>{brands.length}</dt>
