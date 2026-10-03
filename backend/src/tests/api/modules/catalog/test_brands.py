@@ -1,8 +1,8 @@
 import io
 
 import pytest
-from PIL import Image
 from httpx import AsyncClient
+from PIL import Image
 from sqlalchemy import select
 
 from app.api.modules.catalog.models import Brand
