@@ -12,6 +12,7 @@ from app.api.common.utils import (
     normalize_text,
 )
 from app.api.modules.checkout.schema import QuoteRequest
+from app.api.modules.checkout.utils import MAX_MONEY
 from app.api.modules.orders.enums import (
     DeliveryMethod,
     OrderStatus,
@@ -50,7 +51,7 @@ class CompanyRequest(StrictSchema):
 
 class CreateOrderRequest(QuoteRequest):
     expected_total: Decimal | None = Field(
-        default=None, ge=0, max_digits=12, decimal_places=2
+        default=None, ge=0, le=MAX_MONEY, max_digits=12, decimal_places=2
     )
     customer_name: str = Field(min_length=2, max_length=120)
     email: str | None = Field(default=None, min_length=3, max_length=254)

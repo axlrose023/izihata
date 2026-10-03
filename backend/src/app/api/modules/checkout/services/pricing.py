@@ -13,7 +13,7 @@ from app.api.modules.checkout.schema import (
     QuoteRequest,
     QuoteResponse,
 )
-from app.api.modules.checkout.utils import round_money
+from app.api.modules.checkout.utils import MAX_MONEY, round_money
 from app.api.modules.customers.enums import CompanyStatus
 from app.database.uow import UnitOfWork
 
@@ -68,6 +68,7 @@ class PricingService:
                 context,
             )
             line_total = round_money(unit_price * item.quantity)
+            self._validate_money(line_total)
             quote_items.append(
                 QuoteItemResponse(
                     product_id=product.id,
@@ -82,6 +83,7 @@ class PricingService:
             )
 
         subtotal = round_money(sum((item.total for item in quote_items), Decimal(0)))
+        self._validate_money(subtotal)
         promotion = None
         discount = Decimal("0.00")
         if request.promo_code:
@@ -119,6 +121,13 @@ class PricingService:
             company_verified=True,
             cumulative_discount_rate=company.cumulative_discount_rate,
         )
+
+    @staticmethod
+    def _validate_money(amount: Decimal) -> None:
+        if amount > MAX_MONEY:
+            raise UnprocessableError(
+                "Order amount exceeds the supported range", code="order_total_too_large"
+            )
 
     @staticmethod
     def _resolve_unit_price(
