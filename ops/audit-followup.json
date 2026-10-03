@@ -10,7 +10,8 @@
       "checks": [
         "2 frontend regression tests passed: failed account switch clears bearer and previous customer queries are removed.",
         "146 frontend tests, types/lint/build pass; cold-tab regression verifies logout precedes failed login and subsequent refresh cannot resurrect the unrestored old cookie."
-      ]
+      ],
+      "released_in": "9b09180"
     },
     {
       "id": "A02",
@@ -18,7 +19,8 @@
       "status": "verified_local",
       "checks": [
         "4 session/customer regressions passed, including HTTP and network logout errors, retry and revocation before switching accounts; customer/admin UI displays errors."
-      ]
+      ],
+      "released_in": "9b09180"
     },
     {
       "id": "A03",
@@ -26,7 +28,8 @@
       "status": "verified_local",
       "checks": [
         "7 customer API tests and UTF-8 frontend regression passed: 40 Cyrillic characters yield 422; 36 register and log in; no password truncation."
-      ]
+      ],
+      "released_in": "9b09180"
     },
     {
       "id": "A04",
@@ -34,7 +37,8 @@
       "status": "verified_local",
       "checks": [
         "mypy passes for all 209 source files; ruff passes; 44 targeted public-page, advisor, activity and image-variant tests pass. Repeated query parameters retain first-value browser semantics."
-      ]
+      ],
+      "released_in": "9b09180"
     },
     {
       "id": "A05",
@@ -43,7 +47,8 @@
       "checks": [
         "6 catalog API tests, 3 editor regressions and TypeScript pass: stale revision returns 409 without changing newer price; editor sends only changed fields and keeps its opening revision.",
         "Lint and 34 editor/format tests pass; opening snapshot captured as immutable state."
-      ]
+      ],
+      "released_in": "9b09180"
     },
     {
       "id": "A06",
@@ -51,7 +56,8 @@
       "status": "verified_local",
       "checks": [
         "2 image preparation regressions passed: WebP preserves alpha; PNG fallback retains its real MIME/extension; downscaling and bitmap cleanup verified."
-      ]
+      ],
+      "released_in": "9b09180"
     },
     {
       "id": "A07",
@@ -59,7 +65,8 @@
       "status": "verified_local",
       "checks": [
         "14 media/brand tests passed: actual decoding and pixel limits checked, corrupt files rejected before writing; encoding supplies extension; work runs in thread and writes atomically."
-      ]
+      ],
+      "released_in": "9b09180"
     },
     {
       "id": "A08",
@@ -67,7 +74,8 @@
       "status": "verified_local",
       "checks": [
         "12 advisor API tests and ruff passed: excess precision rejected; unrepresentable results return 422; normal reference values unchanged."
-      ]
+      ],
+      "released_in": "9b09180"
     },
     {
       "id": "A09",
@@ -76,7 +84,8 @@
       "checks": [
         "10 checkout API tests passed: quotes and orders share numeric(12,2) bounds, maximum representable amount accepted, overflowing amount rejected before order creation.",
         "33 combined checkout/catalog tests pass; boundary product removed in finally to keep shared test database isolated."
-      ]
+      ],
+      "released_in": "9b09180"
     },
     {
       "id": "A10",
@@ -84,7 +93,8 @@
       "status": "verified_local",
       "checks": [
         "21 API tests passed: declared/chunked oversized bodies return 413 before parsing; 1MB invalid input is not echoed; valid multipart uploads and registration preserved. JSON cap 4MiB allows existing UTF-8 specs/gallery contract."
-      ]
+      ],
+      "released_in": "9b09180"
     },
     {
       "id": "A11",
@@ -92,7 +102,8 @@
       "status": "verified_local",
       "checks": [
         "51 admin API tests passed; dashboard now exposes orders_total_last_7_days and labels the value as order sum, without introducing deferred payment accounting."
-      ]
+      ],
+      "released_in": "9b09180"
     },
     {
       "id": "A12",
@@ -100,7 +111,8 @@
       "status": "verified_local",
       "checks": [
         "7 moderation/catalog API tests passed: publish, hide and republish consistently update rating/count and paginated review total with autoflush disabled; product lock retained."
-      ]
+      ],
+      "released_in": "9b09180"
     },
     {
       "id": "A13",
@@ -108,7 +120,8 @@
       "status": "verified_local",
       "checks": [
         "25 PATCH/custom-board API tests passed: explicit null rejected for required product, brand, section and portfolio fields; empty PATCH rejected and nullable clearing retained using one shared validator."
-      ]
+      ],
+      "released_in": "9b09180"
     },
     {
       "id": "A14",
@@ -116,7 +129,8 @@
       "status": "verified_local",
       "checks": [
         "9 persisted-store tests passed: damaged cart entries skipped, valid items and quantities retained, duplicate lines repaired, null/malformed collection IDs recovered; oversized valid carts remain editable."
-      ]
+      ],
+      "released_in": "9b09180"
     },
     {
       "id": "A15",
@@ -125,7 +139,8 @@
       "checks": [
         "6 customer API tests passed: revoked bearer gets 401 on quote/order, absent bearer still permits guest quote.",
         "11 checkout UI tests pass: no guest quote while session restore is unresolved/unavailable, retry offered, expired-session notice retained after guest recalculation, basket preserved."
-      ]
+      ],
+      "released_in": "9b09180"
     },
     {
       "id": "A16",
@@ -133,7 +148,8 @@
       "status": "verified_local",
       "checks": [
         "Account UI regression passed: rejected company shows rejected instructions, pending message absent; deferred B2B resubmission/payment workflows not added."
-      ]
+      ],
+      "released_in": "9b09180"
     },
     {
       "id": "A17",
@@ -141,7 +157,8 @@
       "status": "verified_local",
       "checks": [
         "3 percentage/account UI tests passed: 1.5% and 0.01% retain exact supported precision; shared formatter used by account and admin companies."
-      ]
+      ],
+      "released_in": "9b09180"
     },
     {
       "id": "A18",
@@ -149,7 +166,8 @@
       "status": "verified_local",
       "checks": [
         "11 delivery client/API tests passed: null/string/object Addresses become ServiceUnavailableError; valid city/point responses preserved."
-      ]
+      ],
+      "released_in": "9b09180"
     },
     {
       "id": "A19",
@@ -157,7 +175,8 @@
       "status": "verified_local",
       "checks": [
         "Literal search, catalog facets/products and activity API tests passed; mypy passes. One escaped contains helper serves public/admin/facet/contact searches; duplicated product search expression removed."
-      ]
+      ],
+      "released_in": "9b09180"
     },
     {
       "id": "O15",
@@ -165,7 +184,8 @@
       "status": "verified_local",
       "checks": [
         "7 checkout regressions pass: selecting city/point sends no extra label search or invalidation request; editing resumes correct searches."
-      ]
+      ],
+      "released_in": "9b09180"
     },
     {
       "id": "O16",
@@ -173,7 +193,8 @@
       "status": "verified_local",
       "checks": [
         "33 API/category-filter tests pass: standard list has empty metadata; include_facets=true retains legacy full facets; current frontend already opts out."
-      ]
+      ],
+      "released_in": "9b09180"
     },
     {
       "id": "O17",
@@ -182,7 +203,8 @@
       "checks": [
         "24 public HTML/preload tests and 400 backend tests pass; built map contains 13 route modules and every hashed dependency exists; catalog excludes unrelated pages/overlays. Responsive preload matches current image candidates.",
         "401 backend tests, mypy, frontend build/lint pass; built bootstrap retains high priority; preload hints de-duplicate entry dependencies and use lower priority. Paired slow-device experiment showed lower card/photo time."
-      ]
+      ],
+      "released_in": "9b09180"
     },
     {
       "id": "O18",
@@ -190,7 +212,8 @@
       "status": "verified_local",
       "checks": [
         "Two lazy loading/search regressions pass; TypeScript/lint pass. Cart, sidebar and suggestion content load only on opening; unfocused search sends no requests."
-      ]
+      ],
+      "released_in": "9b09180"
     },
     {
       "id": "O19",
@@ -198,7 +221,8 @@
       "status": "verified_local",
       "checks": [
         "14 admin API, SQL projection regression, 4 admin UI regressions, TypeScript and mypy pass. List uses 8 table fields and two product queries, no attributes/category joins; detail remains complete."
-      ]
+      ],
+      "released_in": "9b09180"
     },
     {
       "id": "O20",
@@ -206,7 +230,8 @@
       "status": "verified_local",
       "checks": [
         "13 cache/catalog tests pass: sitemap XML reused until TTL or shared catalog invalidation; origin scoped and Redis outage fallback retained."
-      ]
+      ],
+      "released_in": "9b09180"
     },
     {
       "id": "O21",
@@ -214,7 +239,8 @@
       "status": "verified_local",
       "checks": [
         "22 relation/catalog/public HTML tests and mypy pass. One ranked query plus one shared primary-attribute load replaces per-kind queries; limits, ordering and inactive exclusion retained."
-      ]
+      ],
+      "released_in": "9b09180"
     },
     {
       "id": "A20",
@@ -222,7 +248,8 @@
       "status": "verified_local",
       "checks": [
         "16 money/cart/checkout regressions passed: kopecks preserved, whole prices remain compact, invalid values still use fallback."
-      ]
+      ],
+      "released_in": "9b09180"
     },
     {
       "id": "A21",
@@ -230,7 +257,8 @@
       "status": "verified_local",
       "checks": [
         "2 customer session tests pass including deliberately delayed cleanup; only lower session versions can be removed."
-      ]
+      ],
+      "released_in": "9b09180"
     },
     {
       "id": "O22",
@@ -239,7 +267,8 @@
       "checks": [
         "Remote Compose config validation passes; current production serves identical JS with gzip 111329 bytes, Brotli 100782 bytes, zstd 111796 bytes. Brotli preferred; gzip/zstd fallback retained."
       ],
-      "reference": "https://doc.traefik.io/traefik/reference/routing-configuration/http/middlewares/compress/"
+      "reference": "https://doc.traefik.io/traefik/reference/routing-configuration/http/middlewares/compress/",
+      "released_in": "9b09180"
     }
   ],
   "excluded": [
@@ -365,6 +394,196 @@
         }
       ],
       "diagnosis": "Photos loaded before React; card timing did not consistently improve. Continued diagnosis showed bootstrap bandwidth competition. Paired browser experiment favored high main priority and low preparatory preloads."
+    },
+    {
+      "release": "2fdd57d",
+      "services": "all six healthy",
+      "compression": [
+        {
+          "requested": "gzip, deflate, br, zstd",
+          "received": "br",
+          "wire_bytes": 100782,
+          "status": 200
+        },
+        {
+          "requested": "gzip",
+          "received": "gzip",
+          "wire_bytes": 111329,
+          "status": 200
+        },
+        {
+          "requested": "",
+          "received": null,
+          "wire_bytes": 341685,
+          "status": 200
+        }
+      ],
+      "checks": "Brotli negotiation, gzip fallback and unencoded response verified; high bootstrap and low preparatory priorities present in generated HTML."
+    },
+    {
+      "release": "9b09180",
+      "services": "all six healthy; recent backup; existing dead outbox events remain 2",
+      "public_api_checks": [
+        {
+          "check": "compact catalog",
+          "status": 200,
+          "products": 23736,
+          "bytes": 29343,
+          "ms": 212
+        },
+        {
+          "check": "literal %%",
+          "status": 200,
+          "total": 0
+        },
+        {
+          "check": "invalid checkout session",
+          "status": 401
+        },
+        {
+          "check": "UTF8 password limit and redaction",
+          "status": 422
+        },
+        {
+          "check": "sitemap 1",
+          "bytes": 1854581,
+          "ms": 331
+        },
+        {
+          "check": "sitemap 2",
+          "bytes": 1854581,
+          "ms": 103
+        },
+        {
+          "check": "sitemap 3",
+          "bytes": 1854581,
+          "ms": 79
+        }
+      ],
+      "catalog_invariants_match_baseline": true,
+      "catalog": [
+        {
+          "products": 23736,
+          "active": 23736,
+          "active_zero_price": 0,
+          "active_missing_primary_photo": 1119,
+          "blank_name_or_sku": 0,
+          "nonzero_stock_quantity": 0,
+          "wholesale_price_above_retail": 0
+        },
+        {
+          "PREORDER": 23736
+        },
+        {
+          "case_insensitive_duplicate_skus": 0
+        }
+      ],
+      "mobile_conditions": {
+        "cpu_slowdown": 4,
+        "latency_ms": 150,
+        "download_bytes_per_second": 200000,
+        "viewport": "390x844",
+        "cache": "disabled; two fresh browser contexts; no concurrent local test/build workload"
+      },
+      "mobile_before": [
+        {
+          "html_ms": 368,
+          "cards_ms": 2516,
+          "first_photo_ms": 3082,
+          "cls": 0.0907,
+          "initial_product_api_requests": 0
+        },
+        {
+          "html_ms": 335,
+          "cards_ms": 2098,
+          "first_photo_ms": 2585,
+          "cls": 0.1057,
+          "initial_product_api_requests": 0
+        }
+      ],
+      "mobile_after": [
+        {
+          "html_ms": 368,
+          "cards_ms": 2426,
+          "first_photo_ms": 2464,
+          "cls": 0.0907,
+          "initial_product_api_requests": 0
+        },
+        {
+          "html_ms": 320,
+          "cards_ms": 2003,
+          "first_photo_ms": 2044,
+          "cls": 0.0065,
+          "initial_product_api_requests": 0
+        }
+      ],
+      "no_duplicate_preloaded_photos": true,
+      "overlays": {
+        "initial_closed_chunks": 0,
+        "opened_chunks": [
+          "https://izihata.com.ua/assets/site-sidebar-BGy71qwm.js",
+          "https://izihata.com.ua/assets/cart-drawer-CWF4w1Zd.js",
+          "https://izihata.com.ua/assets/product-search-suggestions-CT-5tZ78.js"
+        ],
+        "page_errors": [],
+        "body_scroll_restored": true
+      },
+      "cold_account_login": {
+        "old_cookie_revoked": true,
+        "profile_never_requested": true,
+        "calls": [
+          "/api/v1/customer-auth/logout",
+          "/api/v1/customer-auth/login",
+          "/api/v1/customer-auth/refresh"
+        ],
+        "production_writes": false
+      },
+      "damaged_storage": [
+        {
+          "cards": 12,
+          "errors": []
+        },
+        {
+          "cards": 12,
+          "errors": []
+        }
+      ],
+      "image_preparation": {
+        "input_type": "image/png",
+        "output_type": "image/webp",
+        "original_corner_rgba": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "converted_corner_rgba": [
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "scope": "Session/B2B browser probes use mocked APIs; no test orders or production account/moderation writes."
     }
-  ]
+  ],
+  "completion": {
+    "status": "complete_in_requested_scope",
+    "fixes": 21,
+    "optimizations": 8,
+    "backend_tests_passed": 401,
+    "frontend_tests_passed": 146,
+    "checks": [
+      "ruff check",
+      "ruff format --check",
+      "mypy: 212 source files",
+      "prettier --check",
+      "eslint",
+      "TypeScript",
+      "Vite production build",
+      "four production deployments with checks"
+    ],
+    "author": "axlrose023 <sloboda282@gmail.com>",
+    "limitations": "Excluded launch workflows remain deferred. Mobile timing is two controlled Chromium samples, not a long load test or cross-browser certification."
+  }
 }
