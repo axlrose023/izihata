@@ -389,43 +389,125 @@ test("mobile menu opens with the network offline without moving the header", asy
   }
 });
 
-for (const overlay of ["cart"] as const) {
-  test(`cold ${overlay} overlay does not resize the header and can be cancelled`, async ({
-    page,
-  }) => {
-    await page.setViewportSize({ width: 390, height: 844 });
-    let release!: () => void;
-    const pending = new Promise<void>((done) => {
-      release = done;
+test("mobile search opens offline without navigation or a layout shift", async ({
+  page,
+  context,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  const header = page.locator(".site-header");
+  await expect(header).toBeVisible();
+  const before = await header.boundingBox();
+  const originalUrl = page.url();
+  await context.setOffline(true);
+  try {
+    const searchButton = page.getByRole("button", {
+      name: "Відкрити пошук товарів",
     });
-    const module =
-      /(?:\/assets\/cart-drawer-[^/]+\.js|\/src\/modules\/cart\/components\/cart-drawer\.tsx)(?:\?|$)/;
-    await page.route(module, async (route) => {
-      await pending;
-      await route.continue();
-    });
-    await page.goto("/catalog");
-    const header = page.locator(".site-header");
-    await expect(header).toBeVisible();
-    const before = await header.boundingBox();
-    try {
-      await page
-        .getByRole("button", {
-          name: "Кошик: 0",
-          exact: true,
-        })
-        .click();
-      await expect(page.locator(".overlay-loading")).toBeVisible();
-      expect((await header.boundingBox())!.height).toBe(before!.height);
-      await expectDocumentFits(page);
-      await page.keyboard.press("Escape");
-      await expect(page.locator(".overlay-loading")).toHaveCount(0);
-      expect(await page.evaluate(() => document.body.style.overflow)).toBe("");
-    } finally {
-      release();
-    }
+    await searchButton.click();
+    const input = page.getByRole("combobox", { name: "Пошук товарів" });
+    await expect(input).toBeVisible();
+    await expect(input).toBeFocused();
+    expect(page.url()).toBe(originalUrl);
+    expect((await header.boundingBox())!.height).toBe(before!.height);
+    await expectDocumentFits(page);
+    await page.keyboard.press("Escape");
+    await expect(input).toBeHidden();
+    await expect(searchButton).toBeFocused();
+    await searchButton.click();
+    await page.locator(".hero h1").click();
+    await expect(input).toBeHidden();
+  } finally {
+    await context.setOffline(false);
+  }
+});
+
+test("cold cart overlay does not resize the header and can be cancelled", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  let release!: () => void;
+  const pending = new Promise<void>((done) => {
+    release = done;
   });
-}
+  const module =
+    /(?:\/assets\/cart-drawer-[^/]+\.js|\/src\/modules\/cart\/components\/cart-drawer\.tsx)(?:\?|$)/;
+  await page.route(module, async (route) => {
+    await pending;
+    await route.continue();
+  });
+  await page.goto("/catalog");
+  const header = page.locator(".site-header");
+  await expect(header).toBeVisible();
+  const before = await header.boundingBox();
+  try {
+    await page
+      .getByRole("button", {
+        name: "Кошик: 0",
+        exact: true,
+      })
+      .click();
+    await expect(page.locator(".overlay-loading")).toBeVisible();
+    expect((await header.boundingBox())!.height).toBe(before!.height);
+    await expectDocumentFits(page);
+    await page.keyboard.press("Escape");
+    await expect(page.locator(".overlay-loading")).toHaveCount(0);
+    expect(await page.evaluate(() => document.body.style.overflow)).toBe("");
+  } finally {
+    release();
+  }
+});
+
+test("header search previews products and submits the query on desktop and mobile", async ({
+  page,
+  request,
+}) => {
+  const response = await request.get(
+    "/api/v1/catalog/products?page_size=1&include_facets=false",
+  );
+  expect(response.ok()).toBe(true);
+  const product = (await response.json()).items[0] as {
+    sku: string;
+    slug: string;
+    name: string;
+  };
+  await page.goto("/");
+  const input = page.getByRole("combobox", { name: "Пошук товарів" });
+  if ((page.viewportSize()?.width ?? 1000) <= 820) {
+    await page.getByRole("button", { name: "Відкрити пошук товарів" }).click();
+  }
+  await input.fill(product.sku);
+  const suggestion = page.locator(".search-suggestions").getByRole("link", {
+    name: new RegExp(product.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")),
+  });
+  await expect(suggestion).toBeVisible();
+  await suggestion.click();
+  await expect(page).toHaveURL(
+    (url) => url.pathname === `/products/${product.slug}`,
+  );
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    product.name,
+  );
+
+  await page.goto("/");
+  if ((page.viewportSize()?.width ?? 1000) <= 820) {
+    await page.getByRole("button", { name: "Відкрити пошук товарів" }).click();
+  }
+  await input.fill(product.sku);
+  await input.press("Enter");
+  await expect(page).toHaveURL(
+    (url) =>
+      url.pathname === "/catalog" &&
+      url.searchParams.get("search") === product.sku,
+  );
+  await expect(
+    page
+      .locator(".product-card__name")
+      .filter({ hasText: product.name })
+      .first(),
+  ).toBeVisible();
+  await expectDocumentFits(page);
+});
 
 for (const width of [320, 360, 390, 414, 768, 820, 821, 1024]) {
   test(`storefront fits a ${width}px viewport`, async ({ page, request }) => {

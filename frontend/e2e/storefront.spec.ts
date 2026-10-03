@@ -32,8 +32,10 @@ test("public routes render and product navigation works", async ({ page }) => {
       response.status() === 200,
   );
   if ((page.viewportSize()?.width ?? 1000) <= 820) {
-    await page.getByRole("link", { name: "Відкрити пошук товарів" }).click();
-    await page.getByLabel("Пошук у каталозі").fill("AX-10014");
+    await page.getByRole("button", { name: "Відкрити пошук товарів" }).click();
+    await page
+      .getByRole("combobox", { name: "Пошук товарів" })
+      .fill("AX-10014");
     await page.getByRole("button", { name: "Знайти" }).click();
   } else {
     await page
@@ -428,8 +430,8 @@ test("mobile storefront keeps search, navigation and filters accessible", async 
     page.getByRole("button", { name: "Відкрити меню" }),
   ).toBeVisible();
   await expect(
-    page.getByRole("link", { name: "Пошук товарів" }),
-  ).toHaveAttribute("href", "/catalog");
+    page.getByRole("button", { name: "Відкрити пошук товарів" }),
+  ).toHaveAttribute("aria-expanded", "false");
   const mobileNavigation = page.getByRole("navigation", {
     name: "Мобільна навігація",
   });

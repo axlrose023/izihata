@@ -9,7 +9,6 @@ import {
   MessageCircle,
   PanelsTopLeft,
   Phone,
-  Search,
   ShoppingCart,
   UserRound,
 } from "lucide-react";
@@ -71,14 +70,7 @@ export function SiteHeader() {
           <span>Меню</span>
         </button>
         <Logo inverse />
-        <Link
-          aria-label="Відкрити пошук товарів"
-          className="mobile-search-button"
-          to="/catalog"
-        >
-          <Search size={20} />
-        </Link>
-        <ProductSearch />
+        <ProductSearch key={pathname} />
         <div className="header-actions">
           <Link
             aria-label={
