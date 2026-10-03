@@ -5,6 +5,7 @@ from uuid import UUID
 from pydantic import ConfigDict, Field, field_validator, model_validator
 
 from app.api.common.schema import PaginationParams, StrictSchema
+from app.api.common.security import validate_password_length
 from app.api.common.utils import (
     normalize_email,
     normalize_optional_text,
@@ -20,6 +21,11 @@ class CustomerRegistrationRequest(StrictSchema):
     email: str = Field(min_length=3, max_length=254)
     password: str = Field(min_length=8, max_length=72)
     phone: str | None = Field(default=None, max_length=24)
+
+    @field_validator("password")
+    @classmethod
+    def validate_password(cls, value: str) -> str:
+        return validate_password_length(value)
 
     @field_validator("full_name", mode="before")
     @classmethod

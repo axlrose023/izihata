@@ -22,8 +22,10 @@
     {
       "id": "A03",
       "title": "Регистрация с 40 кириллическими символами пароля возвращает HTTP 500: bcrypt ограничен 72 байтами",
-      "status": "pending",
-      "checks": []
+      "status": "verified_local",
+      "checks": [
+        "7 customer API tests and UTF-8 frontend regression passed: 40 Cyrillic characters yield 422; 36 register and log in; no password truncation."
+      ]
     },
     {
       "id": "A04",

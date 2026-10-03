@@ -18,6 +18,20 @@ def customer_payload(**overrides):
 
 @pytest.mark.asyncio
 class TestCustomersB2B:
+    async def test_unicode_password_byte_limit(self, client):
+        rejected = await client.post(
+            "/api/v1/customer-auth/register", json=customer_payload(password="Ж" * 40)
+        )
+        assert rejected.status_code == 422
+        payload = customer_payload(password="Ж" * 36)
+        registered = await client.post("/api/v1/customer-auth/register", json=payload)
+        assert registered.status_code == 201, registered.text
+        login = await client.post(
+            "/api/v1/customer-auth/login",
+            json={"email": payload["email"], "password": payload["password"]},
+        )
+        assert login.status_code == 200
+
     async def test_registers_customer_and_exposes_isolated_profile(
         self,
         client: AsyncClient,

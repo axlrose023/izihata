@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import { useCustomerAuth } from "@/modules/customers/customer-auth-context";
 import { getUserErrorMessage } from "@/shared/api/errors";
+import { fitsPasswordBytes } from "@/shared/lib/password";
 
 const loginSchema = z.object({
   email: z.string().trim().email("Вкажіть коректний email").max(254),
@@ -18,7 +19,11 @@ const registerSchema = loginSchema.extend({
   password: z
     .string()
     .min(8, "Пароль має містити щонайменше 8 символів")
-    .max(72),
+    .max(72)
+    .refine(
+      fitsPasswordBytes,
+      "Пароль завеликий: до 72 байтів UTF-8, для кирилиці — до 36 символів",
+    ),
 });
 
 type LoginValues = z.infer<typeof loginSchema>;

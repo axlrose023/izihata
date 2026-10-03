@@ -3,9 +3,17 @@ from datetime import UTC, datetime
 
 import bcrypt
 
+MAX_PASSWORD_BYTES = 72
+
+
+def validate_password_length(password: str) -> str:
+    if len(password.encode("utf-8")) > MAX_PASSWORD_BYTES:
+        raise ValueError("Password must not exceed 72 UTF-8 bytes")
+    return password
+
 
 async def hash_password(password: str) -> str:
-    encoded = password.encode("utf-8")
+    encoded = validate_password_length(password).encode("utf-8")
     return (
         await asyncio.to_thread(bcrypt.hashpw, encoded, bcrypt.gensalt(rounds=12))
     ).decode()
