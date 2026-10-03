@@ -94,6 +94,21 @@
         "19 mobile checks passed in Chromium and WebKit, including populated checkout at 320, 390 and 768px",
         "Full frontend check passed: 153 tests, Prettier, ESLint, TypeScript and production build"
       ]
+    },
+    {
+      "id": "M06",
+      "title": "Keep product-rail tabs readable at narrow desktop and tablet widths",
+      "status": "verified_local",
+      "before": [
+        "The first rail tab could shrink and wrap its label at tablet widths"
+      ],
+      "changes": [
+        "Rail-tab labels keep their intrinsic width and never wrap; phones retain a contained horizontal tab rail"
+      ],
+      "checks": [
+        "19 mobile checks passed in Chromium and WebKit across 20 public routes and widths 320–1024px",
+        "Visual check at 810, 821 and 1024px confirmed one-line labels and no page overflow"
+      ]
     }
   ],
   "production_verification": []

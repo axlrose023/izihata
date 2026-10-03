@@ -6960,12 +6960,14 @@ h1 {
 }
 
 .home-rail-tabs button {
+  flex: 0 0 auto;
   min-height: 30px;
   padding: 0 14px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: #fff;
   font-size: 12.5px;
+  white-space: nowrap;
 }
 
 .home-rail-tabs button[aria-selected="true"] {

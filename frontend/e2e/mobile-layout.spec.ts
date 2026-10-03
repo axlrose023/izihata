@@ -274,22 +274,46 @@ for (const width of [320, 360, 390, 414, 768, 820, 1024]) {
       "/api/v1/catalog/products?page_size=1&include_facets=false",
     );
     expect(products.ok()).toBe(true);
-    const product = (await products.json()).items[0] as { slug: string };
+    const product = (await products.json()).items[0] as {
+      slug: string;
+      category: { slug: string };
+    };
+    const [brandsResponse, sectionsResponse] = await Promise.all([
+      request.get("/api/v1/catalog/brands"),
+      request.get("/api/v1/catalog/sections"),
+    ]);
+    expect(brandsResponse.ok()).toBe(true);
+    expect(sectionsResponse.ok()).toBe(true);
+    const brands = (await brandsResponse.json()) as Array<{ slug: string }>;
+    const sections = (await sectionsResponse.json()) as Array<{ slug: string }>;
 
     for (const path of [
       "/",
       "/catalog",
       `/products/${product.slug}`,
       "/brands",
+      `/brands/${brands[0].slug}`,
+      `/catalog/${product.category.slug}`,
+      "/catalog/sale",
+      "/catalog/new",
+      `/sections/${sections[0].slug}`,
       "/account/login",
+      "/account/login?mode=register",
+      "/account",
       "/favorites",
       "/compare",
       "/checkout",
       "/advisors",
       "/custom-boards",
       "/admin/login",
+      "/not-a-real-page",
     ]) {
       await page.goto(path);
+      if (path !== "/admin/login") {
+        await expect(page.locator(".site-header")).toBeVisible();
+      } else {
+        await expect(page.getByLabel("Логін")).toBeVisible();
+      }
       await expect(
         page.getByRole("heading", { level: 1 }).first(),
       ).toBeVisible();
@@ -297,6 +321,13 @@ for (const width of [320, 360, 390, 414, 768, 820, 1024]) {
 
       if (path === "/") {
         const tabs = page.getByRole("tablist");
+        for (const tab of await tabs.getByRole("tab").all()) {
+          expect(
+            await tab.evaluate(
+              (element) => element.scrollHeight <= element.clientHeight + 1,
+            ),
+          ).toBe(true);
+        }
         await tabs
           .getByRole("tab", { name: "Акції", exact: true })
           .evaluate((element) => element.scrollIntoView({ block: "nearest" }));
