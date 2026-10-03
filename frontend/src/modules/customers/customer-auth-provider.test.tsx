@@ -3,7 +3,14 @@ import {
   QueryClientProvider,
   useQuery,
 } from "@tanstack/react-query";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 
 import { setCustomerAccessToken } from "@/shared/api/client";
@@ -42,11 +49,12 @@ function AccountProbe() {
 }
 
 afterEach(() => {
+  cleanup();
   setCustomerAccessToken(null);
   vi.unstubAllGlobals();
 });
 
-it("loads the new account after logout and removes the old profile", async () => {
+function mockCustomerRequests() {
   const seenTokens: string[] = [];
   vi.stubGlobal(
     "fetch",
@@ -79,6 +87,11 @@ it("loads the new account after logout and removes the old profile", async () =>
       throw new Error(`Unexpected request: ${url}`);
     }),
   );
+  return seenTokens;
+}
+
+it("loads the new account after logout and removes the old profile", async () => {
+  const seenTokens = mockCustomerRequests();
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
@@ -112,4 +125,35 @@ it("loads the new account after logout and removes the old profile", async () =>
             ?.full_name === "User A",
       ),
   ).toBe(false);
+});
+
+it("delayed cleanup from an older session cannot remove the new account", async () => {
+  mockCustomerRequests();
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  const cancellations: Array<() => void> = [];
+  vi.spyOn(queryClient, "cancelQueries").mockImplementation(
+    () => new Promise<void>((resolve) => cancellations.push(resolve)),
+  );
+  render(
+    <QueryClientProvider client={queryClient}>
+      <CustomerAuthProvider>
+        <AccountProbe />
+      </CustomerAuthProvider>
+    </QueryClientProvider>,
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Login A" }));
+  await screen.findByText("User A");
+  fireEvent.click(screen.getByRole("button", { name: "Logout" }));
+  await waitFor(() => expect(screen.queryByText("User A")).toBeNull());
+  fireEvent.click(screen.getByRole("button", { name: "Login B" }));
+  await screen.findByText("User B");
+  await act(async () => {
+    cancellations.forEach((resolve) => resolve());
+  });
+  const profiles = queryClient.getQueriesData<{ full_name: string }>({
+    queryKey: ["customer", "profile"],
+  });
+  expect(profiles.map(([, data]) => data?.full_name)).toEqual(["User B"]);
 });

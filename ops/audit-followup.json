@@ -218,6 +218,14 @@
       "checks": [
         "16 money/cart/checkout regressions passed: kopecks preserved, whole prices remain compact, invalid values still use fallback."
       ]
+    },
+    {
+      "id": "A21",
+      "title": "Поздняя очистка кеша прежней сессии может удалить данные нового аккаунта",
+      "status": "verified_local",
+      "checks": [
+        "2 customer session tests pass including deliberately delayed cleanup; only lower session versions can be removed."
+      ]
     }
   ],
   "excluded": [
@@ -228,5 +236,65 @@
     "Длительная нагрузочная проверка и Safari/Firefox",
     "Сверка поставщиков/наличия/фото"
   ],
-  "production_verification": []
+  "production_verification": [
+    {
+      "release": "188a7a5",
+      "checks": [
+        {
+          "check": "compact catalog",
+          "status": 200,
+          "products": 23736,
+          "bytes": 29343,
+          "ms": 254
+        },
+        {
+          "check": "literal %%",
+          "status": 200,
+          "total": 0
+        },
+        {
+          "check": "invalid checkout session",
+          "status": 401
+        },
+        {
+          "check": "UTF8 password limit and redaction",
+          "status": 422
+        },
+        {
+          "check": "sitemap 1",
+          "bytes": 1854581,
+          "ms": 435
+        },
+        {
+          "check": "sitemap 2",
+          "bytes": 1854581,
+          "ms": 128
+        },
+        {
+          "check": "sitemap 3",
+          "bytes": 1854581,
+          "ms": 156
+        }
+      ],
+      "services": "all six healthy; recent server backup; existing dead outbox count 2",
+      "catalog": [
+        {
+          "products": 23736,
+          "active": 23736,
+          "active_zero_price": 0,
+          "active_missing_primary_photo": 1119,
+          "blank_name_or_sku": 0,
+          "nonzero_stock_quantity": 0,
+          "wholesale_price_above_retail": 0
+        },
+        {
+          "PREORDER": 23736
+        },
+        {
+          "case_insensitive_duplicate_skus": 0
+        }
+      ],
+      "browser": "Released assets: rejected B2B text correct, 1.5% retained; transparent PNG becomes WebP with alpha 0. B2B API mocked, no production write."
+    }
+  ]
 }

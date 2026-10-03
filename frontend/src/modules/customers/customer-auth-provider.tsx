@@ -24,10 +24,15 @@ export function CustomerAuthProvider({
 
       const nextVersion = ++sessionVersionRef.current;
       setSessionVersion(nextVersion);
-      const isPreviousSession = (query: { queryKey: readonly unknown[] }) =>
-        (query.queryKey[0] === customerKeys.all[0] &&
-          query.queryKey[2] !== nextVersion) ||
-        (query.queryKey[0] === "quote" && query.queryKey[1] !== nextVersion);
+      const isPreviousSession = (query: { queryKey: readonly unknown[] }) => {
+        const version =
+          query.queryKey[0] === customerKeys.all[0]
+            ? query.queryKey[2]
+            : query.queryKey[0] === "quote"
+              ? query.queryKey[1]
+              : undefined;
+        return typeof version === "number" && version < nextVersion;
+      };
       void queryClient.cancelQueries({ predicate: isPreviousSession }).then(
         () => queryClient.removeQueries({ predicate: isPreviousSession }),
         () => queryClient.removeQueries({ predicate: isPreviousSession }),
