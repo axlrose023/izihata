@@ -1380,12 +1380,12 @@ h2 {
   height: 44px;
   flex: 0 0 auto;
   color: var(--accent);
-  border-color: var(--navy);
-  background: var(--navy);
+  border-color: var(--line);
+  background: #fff;
 }
 .site-sidebar__head .icon-button:hover {
-  border-color: var(--ink-panel);
-  background: var(--ink-panel);
+  border-color: var(--accent);
+  background: var(--surface-accent);
 }
 .site-sidebar__auth {
   display: flex;
