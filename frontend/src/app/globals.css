@@ -811,6 +811,7 @@ h2 {
   height: auto;
   display: block;
   flex: 0 0 auto;
+  transform: translateY(10%);
 }
 .header-search {
   position: relative;
@@ -1005,17 +1006,18 @@ h2 {
   min-height: 43px;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   padding: 0 15px;
-  color: var(--accent-ink);
+  color: var(--accent);
   border: 0;
   border-radius: var(--radius);
-  background: var(--accent);
+  background: var(--navy);
   font-size: 0.76rem;
   font-weight: 800;
 }
 .menu-button:hover {
-  background: var(--accent-hover);
+  background: var(--ink-panel);
 }
 .header-actions__account {
   width: auto;
