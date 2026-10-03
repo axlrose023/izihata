@@ -14,8 +14,10 @@
     {
       "id": "A02",
       "title": "Logout игнорирует HTTP/network ошибку, действующая cookie может восстановить сессию",
-      "status": "pending",
-      "checks": []
+      "status": "verified_local",
+      "checks": [
+        "4 session/customer regressions passed, including HTTP and network logout errors, retry and revocation before switching accounts; customer/admin UI displays errors."
+      ]
     },
     {
       "id": "A03",

@@ -10,7 +10,7 @@ import {
   Activity,
   Tags,
 } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   Link,
   Outlet,
@@ -20,6 +20,7 @@ import {
 } from "react-router-dom";
 
 import { useAuth } from "@/modules/auth/auth-provider";
+import { getUserErrorMessage } from "@/shared/api/errors";
 import { ErrorNotice } from "@/shared/ui/error-notice";
 import { Logo } from "@/shared/ui/logo";
 
@@ -37,6 +38,8 @@ const navigation = [
 
 export function AdminShell() {
   const { status, logout } = useAuth();
+  const [logoutError, setLogoutError] = useState<string | null>(null);
+  const [signingOut, setSigningOut] = useState(false);
   const navigate = useNavigate();
   const { pathname } = useLocation();
 
@@ -76,14 +79,29 @@ export function AdminShell() {
         <div className="admin-sidebar__bottom">
           <Link to="/">← До магазину</Link>
           <button
+            disabled={signingOut}
             onClick={async () => {
-              await logout();
-              navigate("/admin/login", { replace: true });
+              setSigningOut(true);
+              setLogoutError(null);
+              try {
+                await logout();
+                navigate("/admin/login", { replace: true });
+              } catch (error) {
+                setLogoutError(
+                  getUserErrorMessage(
+                    error,
+                    "Не вдалося вийти. Спробуйте ще раз.",
+                  ),
+                );
+              } finally {
+                setSigningOut(false);
+              }
             }}
             type="button"
           >
             <LogOut size={17} /> Вийти
           </button>
+          {logoutError ? <small role="alert">{logoutError}</small> : null}
         </div>
       </aside>
       <main className="admin-main">

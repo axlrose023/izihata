@@ -74,9 +74,20 @@ export function useRefreshableSession(
     if (refreshOnMount) void refresh();
   }, [refresh, refreshOnMount]);
 
+  const logout = useCallback(async (): Promise<void> => {
+    await refreshRef.current;
+    sessionRevisionRef.current += 1;
+    const response = await sessionRequest("/logout", { method: "POST" });
+    if (!response.ok) throw await toApiError(response);
+    updateToken(null);
+    setStatus("guest");
+  }, [sessionRequest, updateToken]);
+
   const authenticate = useCallback(
     async (path: "/login" | "/register", payload: object): Promise<void> => {
       await refreshRef.current;
+      // Finish revoking the previous cookie before switching accounts.
+      if (tokenRef.current) await logout();
       sessionRevisionRef.current += 1;
       try {
         const response = await apiFetch(`${prefix}${path}`, {
@@ -91,19 +102,12 @@ export function useRefreshableSession(
         throw error;
       }
     },
-    [prefix, updateToken],
+    [logout, prefix, updateToken],
   );
   const login = useCallback(
     (payload: object) => authenticate("/login", payload),
     [authenticate],
   );
-
-  const logout = useCallback(async (): Promise<void> => {
-    sessionRevisionRef.current += 1;
-    updateToken(null);
-    setStatus("guest");
-    await sessionRequest("/logout", { method: "POST" }).catch(() => undefined);
-  }, [sessionRequest, updateToken]);
 
   const request = useCallback(
     async <T>(path: string, init: RequestInit = {}): Promise<T> => {

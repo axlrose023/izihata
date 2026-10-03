@@ -9,6 +9,7 @@ import {
 } from "@/modules/customers/api/customer-queries";
 import { CustomerCompanyForm } from "@/modules/customers/components/customer-company-form";
 import { useCustomerAuth } from "@/modules/customers/customer-auth-context";
+import { getUserErrorMessage } from "@/shared/api/errors";
 import { formatDate, formatMoney } from "@/shared/lib/format";
 import { useDocumentTitle } from "@/shared/lib/use-document-title";
 import { ErrorNotice } from "@/shared/ui/error-notice";
@@ -19,6 +20,8 @@ export function CustomerAccountPage() {
   const { logout, restore, status, request, sessionVersion } =
     useCustomerAuth();
   const [ordersPage, setOrdersPage] = useState(1);
+  const [logoutError, setLogoutError] = useState<string | null>(null);
+  const [signingOut, setSigningOut] = useState(false);
   const navigate = useNavigate();
   const [profileResult, ordersResult] = useQueries({
     queries: [
@@ -96,8 +99,18 @@ export function CustomerAccountPage() {
   const profile = profileResult.data;
   const company = profile.company;
   const signOut = async () => {
-    await logout();
-    navigate("/", { replace: true });
+    setSigningOut(true);
+    setLogoutError(null);
+    try {
+      await logout();
+      navigate("/", { replace: true });
+    } catch (error) {
+      setLogoutError(
+        getUserErrorMessage(error, "Не вдалося вийти. Спробуйте ще раз."),
+      );
+    } finally {
+      setSigningOut(false);
+    }
   };
 
   return (
@@ -113,12 +126,18 @@ export function CustomerAccountPage() {
         </div>
         <button
           className="button button--outline"
+          disabled={signingOut}
           onClick={() => void signOut()}
           type="button"
         >
           <LogOut size={17} /> Вийти
         </button>
       </header>
+      {logoutError ? (
+        <p className="form-error" role="alert">
+          {logoutError}
+        </p>
+      ) : null}
       <div className="customer-account-grid">
         <section className="customer-account-card">
           <UserRound aria-hidden="true" />
