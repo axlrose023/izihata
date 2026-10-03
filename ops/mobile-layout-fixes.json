@@ -83,9 +83,16 @@
     {
       "id": "M05",
       "title": "Constrain checkout intrinsic widths in WebKit on narrow phones",
-      "status": "pending",
+      "status": "verified_local",
       "before": [
         "WebKit checkout form 337.89px wide in a 320px viewport; document 352px wide"
+      ],
+      "changes": [
+        "Checkout grid and form explicitly allow their track to shrink, so WebKit does not expand the page from intrinsic form width"
+      ],
+      "checks": [
+        "19 mobile checks passed in Chromium and WebKit, including populated checkout at 320, 390 and 768px",
+        "Full frontend check passed: 153 tests, Prettier, ESLint, TypeScript and production build"
       ]
     }
   ],

@@ -63,6 +63,11 @@ for (const width of [320, 390, 768]) {
     );
     await page.getByLabel("Ім’я та прізвище").fill("Перевірка верстки");
     await expectDocumentFits(page);
+    expect(
+      await page
+        .locator(".checkout-form")
+        .evaluate((el) => el.scrollWidth <= el.clientWidth + 1),
+    ).toBe(true);
     await expect(page.locator(".order-totals")).toBeVisible();
     // No order is submitted: only a price quote is requested.
     await page.getByLabel("Промокод", { exact: true }).focus();
