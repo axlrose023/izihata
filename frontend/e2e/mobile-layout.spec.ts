@@ -29,7 +29,9 @@ test("catalog breadcrumbs open the category directory", async ({
   const products = await request.get(
     "/api/v1/catalog/products?page_size=1&include_facets=false",
   );
+  const categoriesResponse = await request.get("/api/v1/catalog/categories");
   const slug = (await products.json()).items[0].slug as string;
+  const categories = (await categoriesResponse.json()) as Array<unknown>;
   await page.goto(`/products/${slug}`);
   await page
     .locator(".breadcrumbs")
@@ -40,6 +42,18 @@ test("catalog breadcrumbs open the category directory", async ({
     page.getByRole("heading", { name: "Каталог товарів", exact: true }),
   ).toBeVisible();
   await expect(page.locator(".category-card").first()).toBeVisible();
+  await expect(page.locator(".category-card")).toHaveCount(
+    Math.min(categories.length, 6),
+  );
+  if (categories.length > 6) {
+    const showAll = page.locator(".show-all-button");
+    await expect(showAll).toHaveText(
+      `Показати всі напрями (${categories.length})`,
+    );
+    await showAll.click();
+    await expect(page.locator(".category-card")).toHaveCount(categories.length);
+    await expect(showAll).toHaveText("Згорнути");
+  }
   await expectDocumentFits(page);
 });
 
