@@ -24,8 +24,6 @@ async def test_autonomy_numeric_boundaries_return_domain_errors(
     assert response.json()["code"] == expected_code
 
 
-
-
 @pytest.mark.asyncio
 class TestElectricalAdvisors:
     async def test_combined_load_coordinates_cable_capacity_and_poles(

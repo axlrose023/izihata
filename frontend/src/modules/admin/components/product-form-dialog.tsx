@@ -236,9 +236,7 @@ function ProductFormFields({
           Object.entries(payload).filter(
             ([key, value]) =>
               JSON.stringify(value) !==
-              JSON.stringify(
-                snapshot.payload[key as keyof typeof payload],
-              ),
+              JSON.stringify(snapshot.payload[key as keyof typeof payload]),
           ),
         );
         if (Object.keys(changed).length) {

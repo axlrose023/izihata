@@ -36,9 +36,13 @@ export async function prepareImageUpload(file: File): Promise<File> {
     );
     if (!blob) return file;
     const extension = blob.type === "image/webp" ? "webp" : "png";
-    return new File([blob], `${file.name.replace(/\.[^.]+$/, "")}.${extension}`, {
-      type: blob.type,
-    });
+    return new File(
+      [blob],
+      `${file.name.replace(/\.[^.]+$/, "")}.${extension}`,
+      {
+        type: blob.type,
+      },
+    );
   } finally {
     bitmap.close();
   }

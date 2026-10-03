@@ -220,9 +220,9 @@ it("stops directory searches after selection and resumes when edited", async () 
     await screen.findByRole("option", { name: "вул. Хрещатик, 1" }),
   );
   const directoryCalls = () =>
-    vi.mocked(apiClient).mock.calls.filter(([path]) =>
-      path.startsWith("/delivery/"),
-    );
+    vi
+      .mocked(apiClient)
+      .mock.calls.filter(([path]) => path.startsWith("/delivery/"));
   expect(directoryCalls()).toHaveLength(3);
   await act(async () => {
     await client.invalidateQueries({ queryKey: ["delivery"] });
