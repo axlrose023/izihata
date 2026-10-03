@@ -12,7 +12,7 @@ afterEach(() => {
 it.each(["http", "network"])(
   "reports %s logout failure and permits retry",
   async (failure) => {
-    let fail = true;
+    let fail = false;
     vi.stubGlobal(
       "fetch",
       vi.fn(async (url: string) => {
@@ -30,6 +30,8 @@ it.each(["http", "network"])(
       useRefreshableSession("/customer-auth", onTokenChange, false),
     );
     await act(() => result.current.login({ email: "a@example.com" }));
+    onTokenChange.mockClear();
+    fail = true;
     await act(async () => {
       await expect(result.current.logout()).rejects.toThrow();
     });
@@ -67,4 +69,35 @@ it("clears the previous account token after a failed account switch", async () =
   await apiFetch("/checkout/quote");
   const init = fetch.mock.calls.at(-1)![1];
   expect(new Headers(init.headers).has("Authorization")).toBe(false);
+});
+
+it("revokes an unrestored refresh cookie before a failed cold account login", async () => {
+  let oldCookie = true;
+  const fetch = vi.fn(async (url: string) => {
+    if (url.endsWith("/logout")) {
+      oldCookie = false;
+      return new Response(null, { status: 204 });
+    }
+    if (url.endsWith("/refresh") && oldCookie) {
+      return Response.json({ access_token: "old-account" });
+    }
+    return Response.json({ detail: "Invalid credentials" }, { status: 401 });
+  });
+  vi.stubGlobal("fetch", fetch);
+  const { result } = renderHook(() =>
+    useRefreshableSession("/customer-auth", undefined, false),
+  );
+  await act(async () => {
+    await expect(
+      result.current.login({ email: "new@example.com" }),
+    ).rejects.toThrow();
+  });
+  await act(() => result.current.refresh());
+  expect(result.current.status).toBe("guest");
+  expect(oldCookie).toBe(false);
+  expect(fetch.mock.calls.map(([url]) => url)).toEqual([
+    "/api/v1/customer-auth/logout",
+    "/api/v1/customer-auth/login",
+    "/api/v1/customer-auth/refresh",
+  ]);
 });

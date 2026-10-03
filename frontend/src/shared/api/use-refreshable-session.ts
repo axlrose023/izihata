@@ -86,8 +86,9 @@ export function useRefreshableSession(
   const authenticate = useCallback(
     async (path: "/login" | "/register", payload: object): Promise<void> => {
       await refreshRef.current;
-      // Finish revoking the previous cookie before switching accounts.
-      if (tokenRef.current) await logout();
+      // A refresh cookie can exist even before this tab has restored a token.
+      // Confirm its revocation before attempting another account.
+      await logout();
       sessionRevisionRef.current += 1;
       try {
         const response = await apiFetch(`${prefix}${path}`, {
