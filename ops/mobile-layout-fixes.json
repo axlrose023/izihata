@@ -64,10 +64,28 @@
     },
     {
       "id": "M04",
-      "title": "Avoid late font replacement and inconsistent public boot presentation",
-      "status": "pending",
+      "title": "Prevent late font replacement from changing visible text geometry",
+      "status": "verified_local",
       "before": [
         "Slow mobile catalog has 0.1057 layout shift from late text reflow in public fallback"
+      ],
+      "changes": [
+        "Google Fonts use display=optional; slow cold visits retain fallback fonts for this navigation instead of repainting visible text",
+        "Expanded regression checks cover populated collections, basket, checkout, filters, long product values and maximum prices"
+      ],
+      "checks": [
+        "Full frontend check passed: 153 tests, Prettier, ESLint, TypeScript and production build",
+        "19 Chromium mobile browser checks passed across 11 routes and 7 viewport widths",
+        "WebKit passed 18 of 19 checks; the remaining narrow checkout overflow is tracked separately as M05"
+      ],
+      "reference": "https://web.dev/articles/preload-optional-fonts"
+    },
+    {
+      "id": "M05",
+      "title": "Constrain checkout intrinsic widths in WebKit on narrow phones",
+      "status": "pending",
+      "before": [
+        "WebKit checkout form 337.89px wide in a 320px viewport; document 352px wide"
       ]
     }
   ],

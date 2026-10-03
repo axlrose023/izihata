@@ -11,6 +11,111 @@ async function expectDocumentFits(page: Page) {
   expect(await page.evaluate(() => window.scrollX)).toBe(0);
 }
 
+test("font configuration prevents late replacement of painted text", async ({
+  page,
+}) => {
+  await page.goto("/catalog");
+  const href = await page
+    .locator('link[href*="fonts.googleapis.com/css2"]')
+    .getAttribute("href");
+  expect(new URL(href!).searchParams.get("display")).toBe("optional");
+});
+
+for (const width of [320, 390, 768]) {
+  test(`populated basket, collections and checkout fit at ${width}px`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 844 });
+    await page.goto("/catalog");
+    let card = page.locator(".product-card").first();
+    await expect(card).toBeVisible();
+    await card
+      .getByRole("button", { name: "Додати в обране", exact: true })
+      .click();
+    await card
+      .getByRole("button", { name: "Додати до порівняння", exact: true })
+      .click();
+    await page
+      .locator(".product-card")
+      .nth(1)
+      .getByRole("button", { name: "Додати до порівняння", exact: true })
+      .click();
+    await page.goto("/favorites");
+    await expect(page.locator(".product-card").first()).toBeVisible();
+    await expectDocumentFits(page);
+    await page.goto("/compare");
+    await expect(page.locator(".compare-table")).toBeVisible();
+    await expectDocumentFits(page);
+    await page.goto("/catalog");
+    card = page.locator(".product-card").first();
+    await card
+      .getByRole("button", { name: "Додати в кошик", exact: true })
+      .click();
+    const cart = page.getByRole("dialog", { name: "Кошик", exact: true });
+    await expect(cart).toBeVisible();
+    await expectDocumentFits(page);
+    await cart.getByRole("button", { name: "Збільшити кількість" }).click();
+    await cart
+      .getByRole("link", { name: "Оформити замовлення", exact: true })
+      .click();
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+      "Оформлення замовлення",
+    );
+    await page.getByLabel("Ім’я та прізвище").fill("Перевірка верстки");
+    await expectDocumentFits(page);
+    await expect(page.locator(".order-totals")).toBeVisible();
+    // No order is submitted: only a price quote is requested.
+    await page.getByLabel("Промокод", { exact: true }).focus();
+    await expectDocumentFits(page);
+    await page.goto("/catalog");
+    await page.getByRole("button", { name: "Фільтри", exact: true }).click();
+    const filters = page.getByRole("dialog", { name: "Фільтри товарів" });
+    await expect(filters).toBeVisible();
+    expect(
+      await filters
+        .locator(".filters__body")
+        .evaluate((el) => el.scrollWidth <= el.clientWidth + 1),
+    ).toBe(true);
+    await expectDocumentFits(page);
+    await page.keyboard.press("Escape");
+  });
+
+  test(`long product values and maximum monetary amounts fit at ${width}px`, async ({
+    page,
+    request,
+  }) => {
+    await page.setViewportSize({ width, height: 844 });
+    const products = await request.get(
+      "/api/v1/catalog/products?page_size=1&include_facets=false",
+    );
+    const slug = (await products.json()).items[0].slug as string;
+    await page.goto(`/products/${slug}`);
+    await expect(page.locator(".product-detail__price strong")).toBeVisible();
+    await page.evaluate(() => {
+      document.querySelector(".product-detail__price strong")!.textContent =
+        "9 999 999 999,99 грн";
+      document.querySelector(".product-detail h1")!.textContent = "X".repeat(
+        200,
+      );
+      document.querySelector(".specification-list dd")!.textContent =
+        "X".repeat(300);
+    });
+    await expectDocumentFits(page);
+    await page.goto("/catalog");
+    const card = page.locator(".product-card").first();
+    await expect(card).toBeVisible();
+    await card.locator(".price-stack strong").evaluate((el) => {
+      el.firstChild!.textContent = "9 999 999 999,99 грн";
+    });
+    expect(
+      await card
+        .locator(".price-stack")
+        .evaluate((el) => el.scrollWidth <= el.clientWidth + 1),
+    ).toBe(true);
+    await expectDocumentFits(page);
+  });
+}
+
 test("lazy home products do not move the following sections", async ({
   page,
 }) => {
@@ -177,6 +282,7 @@ for (const width of [320, 360, 390, 414, 768, 820, 1024]) {
       "/checkout",
       "/advisors",
       "/custom-boards",
+      "/admin/login",
     ]) {
       await page.goto(path);
       await expect(
