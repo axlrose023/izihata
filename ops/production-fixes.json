@@ -404,6 +404,17 @@
         "362 backend tests passed, including 11 variant regressions; Ruff passed. ACKO 288x800 original JPEGs 100243/183892/102733 bytes become WebP 23354/23368/24116 bytes (76.5–87.3% smaller).",
         "Production probe upgraded 12 sources in one second with no failures; initial catalog image transfer 501129 to 105916 bytes. Full conversion paused after ~1000 sources to remove redundant encoding; updater now encodes only native size when previous derivative content digests match."
       ]
+    },
+    {
+      "id": "O13",
+      "priority": "P2",
+      "title": "Маршруты загружают код соседних страниц: каталог в списке брендов и все разделы в обзоре админки",
+      "status": "validated",
+      "checks": [
+        "Individual admin routes share a single AdminPage frame; brand detail moved into its own module, admin auth/layout loaded only on matching routes. No API/business rules changed.",
+        "125 frontend tests, build, lint passed; full desktop/mobile browser suite 65 passed with 3 viewport-specific skips.",
+        "Browser module bodies: public brands 416321 to 382888 bytes; authenticated admin overview reload 548462 to 389667 bytes. Catalog modules absent on brand list, form/schema modules absent on admin overview."
+      ]
     }
   ],
   "deployments": [

@@ -1,7 +1,5 @@
 import { createBrowserRouter, Link, useRouteError } from "react-router-dom";
 
-import { AdminShell } from "@/modules/admin/components/admin-shell";
-import { AuthBoundary } from "@/modules/auth/components/auth-boundary";
 import { NotFoundPage } from "@/pages/not-found-page";
 import { usePageMeta } from "@/shared/lib/use-page-meta";
 import { PageLoadingState } from "@/shared/ui/page-loading-state";
@@ -55,7 +53,7 @@ export const router = createBrowserRouter([
       {
         path: "brands/:slug",
         lazy: async () => ({
-          Component: (await import("@/pages/store/brand-pages"))
+          Component: (await import("@/pages/store/brand-products-page"))
             .BrandProductsPage,
         }),
       },
@@ -148,7 +146,10 @@ export const router = createBrowserRouter([
     ],
   },
   {
-    element: <AuthBoundary />,
+    lazy: async () => ({
+      Component: (await import("@/modules/auth/components/auth-boundary"))
+        .AuthBoundary,
+    }),
     HydrateFallback: PageLoadingState,
     errorElement: <RouteErrorPage />,
     children: [
@@ -160,69 +161,73 @@ export const router = createBrowserRouter([
       },
       {
         path: "/admin",
-        element: <AdminShell />,
+        lazy: async () => ({
+          Component: (await import("@/modules/admin/components/admin-shell"))
+            .AdminShell,
+        }),
         children: [
           {
             index: true,
             lazy: async () => ({
-              Component: (await import("@/pages/admin/admin-pages"))
+              Component: (await import("@/pages/admin/admin-dashboard-page"))
                 .AdminDashboardPage,
             }),
           },
           {
             path: "products",
             lazy: async () => ({
-              Component: (await import("@/pages/admin/admin-pages"))
+              Component: (await import("@/pages/admin/admin-products-page"))
                 .AdminProductsPage,
             }),
           },
           {
             path: "orders",
             lazy: async () => ({
-              Component: (await import("@/pages/admin/admin-pages"))
+              Component: (await import("@/pages/admin/admin-orders-page"))
                 .AdminOrdersPage,
             }),
           },
           {
             path: "leads",
             lazy: async () => ({
-              Component: (await import("@/pages/admin/admin-pages"))
+              Component: (await import("@/pages/admin/admin-leads-page"))
                 .AdminLeadsPage,
             }),
           },
           {
             path: "reviews",
             lazy: async () => ({
-              Component: (await import("@/pages/admin/admin-pages"))
+              Component: (await import("@/pages/admin/admin-reviews-page"))
                 .AdminReviewsPage,
             }),
           },
           {
             path: "brands",
             lazy: async () => ({
-              Component: (await import("@/pages/admin/admin-pages"))
+              Component: (await import("@/pages/admin/admin-brands-page"))
                 .AdminBrandsPage,
             }),
           },
           {
             path: "activity",
             lazy: async () => ({
-              Component: (await import("@/pages/admin/admin-pages"))
+              Component: (await import("@/pages/admin/admin-activity-page"))
                 .AdminActivityPage,
             }),
           },
           {
             path: "companies",
             lazy: async () => ({
-              Component: (await import("@/pages/admin/admin-pages"))
+              Component: (await import("@/pages/admin/admin-companies-page"))
                 .AdminCompaniesPage,
             }),
           },
           {
             path: "custom-boards",
             lazy: async () => ({
-              Component: (await import("@/pages/admin/admin-pages"))
-                .AdminCustomBoardsPage,
+              Component: (
+                await import("@/pages/admin/admin-custom-boards-page")
+              ).AdminCustomBoardsPage,
             }),
           },
         ],

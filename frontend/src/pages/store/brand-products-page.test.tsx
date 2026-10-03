@@ -4,7 +4,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, expect, it, vi } from "vitest";
 import { fetchBrands } from "@/modules/catalog/api/catalog-api";
 import { ApiError } from "@/shared/api/errors";
-import { BrandProductsPage } from "./brand-pages";
+import { BrandProductsPage } from "./brand-products-page";
 vi.mock("@/modules/catalog/api/catalog-api", () => ({ fetchBrands: vi.fn() }));
 afterEach(cleanup);
 it("distinguishes a failed lookup from a missing brand and allows retry", async () => {
