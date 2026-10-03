@@ -1,7 +1,8 @@
 const moneyFormatter = new Intl.NumberFormat("uk-UA", {
   style: "currency",
   currency: "UAH",
-  maximumFractionDigits: 0,
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 2,
 });
 
 const dateFormatter = new Intl.DateTimeFormat("uk-UA", {

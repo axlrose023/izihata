@@ -194,6 +194,14 @@
       "title": "Объединить запросы связей товара",
       "status": "pending",
       "checks": []
+    },
+    {
+      "id": "A20",
+      "title": "Форматтер цены округляет копейки до гривны",
+      "status": "verified_local",
+      "checks": [
+        "16 money/cart/checkout regressions passed: kopecks preserved, whole prices remain compact, invalid values still use fallback."
+      ]
     }
   ],
   "excluded": [
