@@ -1,0 +1,174 @@
+{
+  "started": "2026-10-03",
+  "baseline": "ccbcd1c",
+  "author": "axlrose023 <sloboda282@gmail.com>",
+  "items": [
+    {
+      "id": "A01",
+      "title": "Ошибка входа в другой аккаунт оставляет bearer прежнего аккаунта при статусе guest",
+      "status": "verified_local",
+      "checks": [
+        "2 frontend regression tests passed: failed account switch clears bearer and previous customer queries are removed."
+      ]
+    },
+    {
+      "id": "A02",
+      "title": "Logout игнорирует HTTP/network ошибку, действующая cookie может восстановить сессию",
+      "status": "pending",
+      "checks": []
+    },
+    {
+      "id": "A03",
+      "title": "Регистрация с 40 кириллическими символами пароля возвращает HTTP 500: bcrypt ограничен 72 байтами",
+      "status": "pending",
+      "checks": []
+    },
+    {
+      "id": "A04",
+      "title": "mypy: 15 ошибок в 7 файлах; эта проверка входит в обязательный CI",
+      "status": "pending",
+      "checks": []
+    },
+    {
+      "id": "A05",
+      "title": "Полный PATCH из старого черновика редактора перезаписывает актуальные цену и другие поля",
+      "status": "pending",
+      "checks": []
+    },
+    {
+      "id": "A06",
+      "title": "Прозрачный PNG в админке становится JPEG с чёрным фоном",
+      "status": "pending",
+      "checks": []
+    },
+    {
+      "id": "A07",
+      "title": "MediaStorageService принимает повреждённые байты по заявленному MIME image/jpeg",
+      "status": "pending",
+      "checks": []
+    },
+    {
+      "id": "A08",
+      "title": "Допустимая схема калькулятора автономности допускает значения, приводящие к Decimal InvalidOperation и HTTP 500",
+      "status": "pending",
+      "checks": []
+    },
+    {
+      "id": "A09",
+      "title": "Quote принимает 11971938967.11 UAH; expected_total и numeric(12,2) заказа эту сумму не принимают",
+      "status": "pending",
+      "checks": []
+    },
+    {
+      "id": "A10",
+      "title": "Большой JSON разбирается до ограничения тела запроса и возвращается в поле input ошибки 422",
+      "status": "pending",
+      "checks": []
+    },
+    {
+      "id": "A11",
+      "title": "Виторг за 7 дней суммирует неоплаченные заказы, кроме отменённых",
+      "status": "pending",
+      "checks": []
+    },
+    {
+      "id": "A12",
+      "title": "После публикации отзыва агрегированные рейтинг и количество отзывов отстают от фактических данных",
+      "status": "pending",
+      "checks": []
+    },
+    {
+      "id": "A13",
+      "title": "PATCH принимает null в обязательных полях и заканчивается HTTP 500",
+      "status": "pending",
+      "checks": []
+    },
+    {
+      "id": "A14",
+      "title": "Некорректные сохранённые корзина/избранное делают каталог недоступным для данного браузера",
+      "status": "pending",
+      "checks": []
+    },
+    {
+      "id": "A15",
+      "title": "Отозванная сессия становится гостевой в checkout без сигнала фронтенду",
+      "status": "pending",
+      "checks": []
+    },
+    {
+      "id": "A16",
+      "title": "Отклонённая B2B-заявка отображает сообщение об ожидающей проверке",
+      "status": "pending",
+      "checks": []
+    },
+    {
+      "id": "A17",
+      "title": "Дробная бизнес-скидка показывается с округлением до другого процента",
+      "status": "pending",
+      "checks": []
+    },
+    {
+      "id": "A18",
+      "title": "Некорректный вложенный ответ справочника доставки не нормализуется и даёт HTTP 500",
+      "status": "pending",
+      "checks": []
+    },
+    {
+      "id": "A19",
+      "title": "Поиск воспринимает проценты и подчёркивания пользователя как шаблон SQL LIKE",
+      "status": "pending",
+      "checks": []
+    },
+    {
+      "id": "O15",
+      "title": "Остановить запросы выбранных адресов доставки",
+      "status": "pending",
+      "checks": []
+    },
+    {
+      "id": "O16",
+      "title": "Компактный стандартный список каталога",
+      "status": "pending",
+      "checks": []
+    },
+    {
+      "id": "O17",
+      "title": "Ранняя загрузка route chunk и фото первого экрана",
+      "status": "pending",
+      "checks": []
+    },
+    {
+      "id": "O18",
+      "title": "Отложить закрытые оверлеи",
+      "status": "pending",
+      "checks": []
+    },
+    {
+      "id": "O19",
+      "title": "Компактный admin list и SQL projection",
+      "status": "pending",
+      "checks": []
+    },
+    {
+      "id": "O20",
+      "title": "Кеш sitemap с invalidation",
+      "status": "pending",
+      "checks": []
+    },
+    {
+      "id": "O21",
+      "title": "Объединить запросы связей товара",
+      "status": "pending",
+      "checks": []
+    }
+  ],
+  "excluded": [
+    "Восстановление и смена пароля",
+    "Дополнение B2B-сценариев и учёта оплаты",
+    "Внешний мониторинг",
+    "Восстановление Bunny",
+    "Длительная нагрузочная проверка и Safari/Firefox",
+    "Сверка поставщиков/наличия/фото"
+  ],
+  "production_verification": []
+}

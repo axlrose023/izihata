@@ -86,6 +86,7 @@ export function useRefreshableSession(
         updateToken(await readToken(response));
         setStatus("authenticated");
       } catch (error) {
+        updateToken(null);
         setStatus("guest");
         throw error;
       }
