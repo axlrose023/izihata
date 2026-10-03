@@ -31,7 +31,8 @@ it("requests suggestions only while the search is open", async () => {
   expect(apiClient).not.toHaveBeenCalled();
   fireEvent.focus(input);
   fireEvent.change(input, { target: { value: "автомат" } });
-  await screen.findByText("Нічого не знайдено");
+  // Cold lazy imports can exceed the default 1s wait during parallel CI checks.
+  await screen.findByText("Нічого не знайдено", {}, { timeout: 3000 });
   expect(apiClient).toHaveBeenCalledTimes(1);
   fireEvent.blur(input, { relatedTarget: null });
   fireEvent.change(input, { target: { value: "кабель" } });

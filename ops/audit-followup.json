@@ -211,7 +211,8 @@
       "title": "Отложить закрытые оверлеи",
       "status": "verified_local",
       "checks": [
-        "Two lazy loading/search regressions pass; TypeScript/lint pass. Cart, sidebar and suggestion content load only on opening; unfocused search sends no requests."
+        "Two lazy loading/search regressions pass; TypeScript/lint pass. Cart, sidebar and suggestion content load only on opening; unfocused search sends no requests.",
+        "Repeated checks exposed a cold lazy-search import exceeding the test-only 1s wait under concurrent backend/frontend runs. Scoped wait extended to 3s without sleeps or weaker assertions; the full concurrent rerun passed 146 frontend and 401 backend tests."
       ],
       "released_in": "9b09180"
     },
@@ -585,5 +586,26 @@
     ],
     "author": "axlrose023 <sloboda282@gmail.com>",
     "limitations": "Excluded launch workflows remain deferred. Mobile timing is two controlled Chromium samples, not a long load test or cross-browser certification."
-  }
+  },
+  "repeat_verification": [
+    {
+      "date": "2026-10-03",
+      "repository_before": "1e0104d",
+      "runtime_release": "9b09180",
+      "checks": [
+        "401 backend tests passed twice; final concurrent run 44.57s",
+        "146 frontend tests, formatting, lint, TypeScript and production build passed; final run concurrent with backend",
+        "mypy: no issues in 212 source files",
+        "ruff check and ruff format --check: passed",
+        "Production health check: all six services healthy, public catalog responds, backup recent",
+        "Production catalog: 23736 products, 12 rows, 29343 bytes",
+        "Production literal %% search: 200 with total 0",
+        "Production quote with invalid bearer: 401",
+        "Catalog HTML: 19 module preloads, 2 adaptive image preloads, bootstrap high priority",
+        "Production sitemap: valid namespace, 1854581 bytes, two samples 455ms and 142ms"
+      ],
+      "change": "Only the lazy-search regression wait budget and this verification record; application runtime and build assets unchanged.",
+      "existing_deferred_state": "Two dead outbox events remain from the previous check; notification channel was deferred by user."
+    }
+  ]
 }
