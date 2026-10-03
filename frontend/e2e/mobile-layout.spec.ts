@@ -57,6 +57,43 @@ test("catalog breadcrumbs open the category directory", async ({
   await expectDocumentFits(page);
 });
 
+test("home shows the collapsible category directory before catalog products", async ({
+  page,
+  request,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const categoriesResponse = await request.get("/api/v1/catalog/categories");
+  const categories = (await categoriesResponse.json()) as Array<unknown>;
+  await page.goto("/");
+  const directory = page.locator(".home-category-directory");
+  await expect(directory.locator(".category-card").first()).toBeVisible();
+  await expect(directory.locator(".category-card")).toHaveCount(
+    Math.min(categories.length, 6),
+  );
+  expect(
+    await directory.evaluate((element) => {
+      const directions = document.querySelector("#catalog");
+      const products = document.querySelector(".popular-products");
+      return Boolean(
+        directions &&
+        products &&
+        directions.compareDocumentPosition(element) &
+          Node.DOCUMENT_POSITION_FOLLOWING &&
+        element.compareDocumentPosition(products) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      );
+    }),
+  ).toBe(true);
+  if (categories.length > 6) {
+    const showAll = directory.locator(".show-all-button");
+    await showAll.click();
+    await expect(directory.locator(".category-card")).toHaveCount(
+      categories.length,
+    );
+  }
+  await expectDocumentFits(page);
+});
+
 for (const width of [320, 390, 768]) {
   test(`populated basket, collections and checkout fit at ${width}px`, async ({
     page,

@@ -1,15 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
-import { type CSSProperties, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { categoriesQuery } from "@/modules/catalog/api/catalog-queries";
-import { pluralizeProducts } from "@/shared/lib/format";
+import { CategoryDirectory } from "@/modules/catalog/components/category-directory";
 import { usePageMeta } from "@/shared/lib/use-page-meta";
-import { CategoryIcon } from "@/shared/ui/category-icon";
 import { ErrorNotice } from "@/shared/ui/error-notice";
 
 export function CatalogDirectoryPage() {
-  const [allCategoriesShown, setAllCategoriesShown] = useState(false);
   const result = useQuery(categoriesQuery());
 
   usePageMeta({
@@ -50,34 +47,7 @@ export function CatalogDirectoryPage() {
             Усі товари →
           </Link>
         </div>
-        <div className="category-grid">
-          {(allCategoriesShown ? result.data : result.data.slice(0, 6)).map(
-            (category) => (
-              <Link
-                className="category-card"
-                key={category.id}
-                style={{ "--accent": category.accent } as CSSProperties}
-                to={`/catalog/${category.slug}`}
-              >
-                <CategoryIcon size={38} slug={category.slug} />
-                <strong>{category.name}</strong>
-                <span>{pluralizeProducts(category.product_count)}</span>
-              </Link>
-            ),
-          )}
-        </div>
-        {result.data.length > 6 ? (
-          <button
-            aria-expanded={allCategoriesShown}
-            className="show-all-button"
-            onClick={() => setAllCategoriesShown((value) => !value)}
-            type="button"
-          >
-            {allCategoriesShown
-              ? "Згорнути"
-              : `Показати всі напрями (${result.data.length})`}
-          </button>
-        ) : null}
+        <CategoryDirectory categories={result.data} />
       </section>
     </div>
   );

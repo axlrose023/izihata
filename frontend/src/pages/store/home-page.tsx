@@ -8,6 +8,7 @@ import {
   categoriesQuery,
   sectionsQuery,
 } from "@/modules/catalog/api/catalog-queries";
+import { CategoryDirectory } from "@/modules/catalog/components/category-directory";
 import { useDocumentTitle } from "@/shared/lib/use-document-title";
 
 export function HomePage() {
@@ -98,6 +99,20 @@ export function HomePage() {
           <Link to="/catalog">Дивитися все →</Link>
         </div>
         <SectionCards loading={sectionsResult.isPending} sections={sections} />
+      </section>
+
+      <section
+        aria-labelledby="home-category-directory-heading"
+        className="section container home-category-directory"
+      >
+        <div className="section-heading">
+          <div>
+            <span className="eyebrow">Усі категорії</span>
+            <h2 id="home-category-directory-heading">Каталог товарів</h2>
+          </div>
+          <Link to="/catalog/categories">Дивитися все →</Link>
+        </div>
+        <CategoryDirectory categories={categories} />
       </section>
 
       <PopularProducts />
