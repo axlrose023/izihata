@@ -46,8 +46,10 @@
     {
       "id": "A06",
       "title": "Прозрачный PNG в админке становится JPEG с чёрным фоном",
-      "status": "pending",
-      "checks": []
+      "status": "verified_local",
+      "checks": [
+        "2 image preparation regressions passed: WebP preserves alpha; PNG fallback retains its real MIME/extension; downscaling and bitmap cleanup verified."
+      ]
     },
     {
       "id": "A07",

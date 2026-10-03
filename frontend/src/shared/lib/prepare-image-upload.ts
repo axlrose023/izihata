@@ -5,7 +5,7 @@ const QUALITY = 0.85;
  * Shrinks a picked image before it is uploaded.
  *
  * Phone photos are several megabytes and often HEIC, which the API rejects.
- * Decoding through the browser and re-encoding to JPEG solves both: the format
+ * Decoding through the browser and re-encoding to WebP solves both: the format
  * becomes one the server accepts, the size drops to a few hundred kilobytes,
  * and the storefront gets an image that is actually sized for a product card.
  *
@@ -32,11 +32,12 @@ export async function prepareImageUpload(file: File): Promise<File> {
     context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
 
     const blob = await new Promise<Blob | null>((resolve) =>
-      canvas.toBlob(resolve, "image/jpeg", QUALITY),
+      canvas.toBlob(resolve, "image/webp", QUALITY),
     );
     if (!blob) return file;
-    return new File([blob], `${file.name.replace(/\.[^.]+$/, "")}.jpg`, {
-      type: "image/jpeg",
+    const extension = blob.type === "image/webp" ? "webp" : "png";
+    return new File([blob], `${file.name.replace(/\.[^.]+$/, "")}.${extension}`, {
+      type: blob.type,
     });
   } finally {
     bitmap.close();
