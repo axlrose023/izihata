@@ -27,7 +27,9 @@ GENERATOR = "webp-v3"
 WIDTHS = (80, 160, 320, 640, 960, 1600)
 
 
-def encode_variants(content: bytes) -> dict[int, bytes]:
+def encode_variants(
+    content: bytes, *, widths: tuple[int, ...] = WIDTHS
+) -> dict[int, bytes]:
     with Image.open(io.BytesIO(content)) as original:
         if original.width * original.height > 20_000_000:
             raise ValueError("Image exceeds 20 million pixels")
@@ -40,7 +42,10 @@ def encode_variants(content: bytes) -> dict[int, bytes]:
             else "RGB"
         )
         result: dict[int, bytes] = {}
-        for width in WIDTHS:
+        requested = (*widths, image.width) if image.width <= WIDTHS[-1] else widths
+        for width in requested:
+            if width in result:
+                continue
             variant = image.copy()
             variant.thumbnail((width, image.height), Image.Resampling.LANCZOS)
             if variant.width in result:
@@ -157,12 +162,33 @@ async def generate_image_variants(
                         if content_type.split(";", 1)[0] == "image/svg+xml":
                             counters["skipped"] += 1
                             continue
+                        digest = hashlib.sha256(content).hexdigest()
+                        previous_sizes = {}
+                        # v2 used the same encoder for resized copies. A matching
+                        # content digest lets us encode only the native size.
+                        if (
+                            metadata
+                            and metadata.get("source") == source
+                            and metadata.get("generator") == "webp-v2"
+                            and metadata.get("sizes")
+                            and any(url != source for url in metadata["sizes"].values())
+                            and all(
+                                url == source
+                                or url
+                                == f"{base_url}/variants/webp-v2/{digest}/{width}.webp"
+                                for width, url in metadata["sizes"].items()
+                            )
+                        ):
+                            previous_sizes = metadata["sizes"]
                         async with encoding_slots:
-                            variants = await asyncio.to_thread(encode_variants, content)
+                            variants = await asyncio.to_thread(
+                                encode_variants,
+                                content,
+                                widths=() if previous_sizes else WIDTHS,
+                            )
                         if not variants:
                             counters["skipped"] += 1
                             continue
-                        digest = hashlib.sha256(content).hexdigest()
 
                         async def upload(
                             width: int,
@@ -170,23 +196,11 @@ async def generate_image_variants(
                             original: bytes,
                             source_url: str,
                             digest_value: str,
-                            previous_metadata: dict | None,
                         ) -> tuple[str, str] | None:
                             if encoded is original:
                                 return str(width), source_url
                             if len(encoded) >= len(original):
                                 return None
-                            # v2 uses the same encoder for smaller sizes. Reuse
-                            # those immutable files when upgrading native sizes.
-                            previous_url = f"{base_url}/variants/webp-v2/{digest_value}/{width}.webp"
-                            if (
-                                previous_metadata
-                                and previous_metadata.get("source") == source_url
-                                and previous_metadata.get("generator") == "webp-v2"
-                                and previous_metadata.get("sizes", {}).get(str(width))
-                                == previous_url
-                            ):
-                                return str(width), previous_url
                             key = f"variants/{GENERATOR}/{digest_value}/{width}.webp"
                             async with upload_slots:
                                 await with_retries(
@@ -198,13 +212,12 @@ async def generate_image_variants(
 
                         uploaded = await asyncio.gather(
                             *(
-                                upload(
-                                    width, encoded, content, source, digest, metadata
-                                )
+                                upload(width, encoded, content, source, digest)
                                 for width, encoded in variants.items()
                             )
                         )
-                        sizes = dict(item for item in uploaded if item is not None)
+                        sizes = dict(previous_sizes)
+                        sizes.update(item for item in uploaded if item is not None)
                         metadata = {
                             "source": source,
                             "generator": GENERATOR,

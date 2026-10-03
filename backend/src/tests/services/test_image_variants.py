@@ -71,6 +71,15 @@ def test_larger_native_sources_keep_the_original_without_encoding_huge_copies():
     assert encode_variants(content)[2000] is content
 
 
+def test_native_only_encoding_keeps_the_same_candidate_as_a_complete_batch():
+    content = image_bytes((288, 400))
+    native = encode_variants(content, widths=())
+    assert list(native) == [288]
+    assert native[288] == encode_variants(content)[288]
+    large = image_bytes((2000, 1000))
+    assert encode_variants(large, widths=()) == {2000: large}
+
+
 def test_an_already_small_native_webp_is_not_replaced_by_a_larger_copy():
     output = io.BytesIO()
     Image.new("RGB", (200, 100), "red").save(output, "WEBP", quality=82, method=4)
@@ -193,8 +202,10 @@ async def test_batch_limits_uploads_and_resumes_complete_metadata(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("matching_digest", [True, False])
 async def test_v2_upgrade_reuses_unchanged_derivatives_and_uploads_native_size(
     monkeypatch,
+    matching_digest,
 ):
     import hashlib
 
@@ -206,7 +217,8 @@ async def test_v2_upgrade_reuses_unchanged_derivatives_and_uploads_native_size(
 
     content = image_bytes((288, 400))
     source = "https://cdn.example/original.png"
-    digest = hashlib.sha256(content).hexdigest()
+    current_digest = hashlib.sha256(content).hexdigest()
+    digest = current_digest if matching_digest else "0" * 64
     metadata = {
         "source": source,
         "generator": "webp-v2",
@@ -216,7 +228,7 @@ async def test_v2_upgrade_reuses_unchanged_derivatives_and_uploads_native_size(
             "288": source,
         },
     }
-    saved, uploads = [], []
+    saved, uploads, encoded_widths = [], [], []
 
     class Rows:
         def __init__(self, values):
@@ -250,8 +262,13 @@ async def test_v2_upgrade_reuses_unchanged_derivatives_and_uploads_native_size(
     async def upload(client, storage, key, encoded, content_type):
         uploads.append(key)
 
+    def encode(content, *, widths):
+        encoded_widths.append(widths)
+        return encode_variants(content, widths=widths)
+
     monkeypatch.setattr(module, "download_image", download)
     monkeypatch.setattr(module, "put_object", upload)
+    monkeypatch.setattr(module, "encode_variants", encode)
     storage = BunnyS3Config(
         "https://storage.example", "zone", "test-only", "https://cdn.example"
     )
@@ -259,8 +276,16 @@ async def test_v2_upgrade_reuses_unchanged_derivatives_and_uploads_native_size(
         Session, storage, progress=lambda value: None
     )
     assert result["generated"] == 1
-    assert uploads == [f"variants/webp-v3/{digest}/288.webp"]
-    assert saved[0]["sizes"]["80"] == metadata["sizes"]["80"]
-    assert saved[0]["sizes"]["160"] == metadata["sizes"]["160"]
+    if matching_digest:
+        assert uploads == [f"variants/webp-v3/{current_digest}/288.webp"]
+        assert saved[0]["sizes"]["80"] == metadata["sizes"]["80"]
+        assert saved[0]["sizes"]["160"] == metadata["sizes"]["160"]
+        assert encoded_widths == [()]
+    else:
+        assert len(uploads) == 3
+        assert all(current_digest in key for key in uploads)
+        assert saved[0]["sizes"]["80"] != metadata["sizes"]["80"]
+        assert saved[0]["sizes"]["160"] != metadata["sizes"]["160"]
+        assert encoded_widths == [module.WIDTHS]
     assert saved[0]["sizes"]["288"] != source
     assert saved[0]["generator"] == "webp-v3"
