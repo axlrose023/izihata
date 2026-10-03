@@ -33,5 +33,6 @@ async def temporary_product(request, client, authenticated_user, product, sessio
     try:
         yield created
     finally:
+        await session.rollback()
         await session.execute(delete(Product).where(Product.id == UUID(created["id"])))
         await session.commit()
