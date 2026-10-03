@@ -30,8 +30,10 @@
     {
       "id": "A04",
       "title": "mypy: 15 ошибок в 7 файлах; эта проверка входит в обязательный CI",
-      "status": "pending",
-      "checks": []
+      "status": "verified_local",
+      "checks": [
+        "mypy passes for all 209 source files; ruff passes; 44 targeted public-page, advisor, activity and image-variant tests pass. Repeated query parameters retain first-value browser semantics."
+      ]
     },
     {
       "id": "A05",

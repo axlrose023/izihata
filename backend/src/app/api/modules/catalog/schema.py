@@ -170,7 +170,14 @@ class ProductAvailabilityResponse(StrictSchema):
 def image_variants_for(source: str | None, metadata: dict | None) -> dict[str, str]:
     if not metadata or metadata.get("source") != source:
         return {}
-    return metadata.get("sizes", {})
+    sizes = metadata.get("sizes", {})
+    if not isinstance(sizes, dict):
+        return {}
+    return {
+        key: value
+        for key, value in sizes.items()
+        if isinstance(key, str) and isinstance(value, str)
+    }
 
 
 class ProductMediaResponse(StrictSchema):

@@ -108,7 +108,7 @@ class PublicPageService:
 
     async def _load(self, path: str, params: QueryParams) -> PublicPage:
         categories = await self._catalog.get_categories()
-        seeds = {
+        seeds: dict[str, object] = {
             "/catalog/categories": [item.model_dump(mode="json") for item in categories]
         }
         parts = path.strip("/").split("/") if path != "/" else []
@@ -209,7 +209,8 @@ class PublicPageService:
                     if category == "sale"
                     else ["new"],
                 )
-            slug = category or (params.getlist("category") or [None])[0]
+            category_values = params.getlist("category")
+            slug = category or (category_values[0] if category_values else None)
             active_category = next(
                 (item for item in categories if item.slug == slug), None
             )
@@ -234,7 +235,7 @@ class PublicPageService:
         badges: list[str] | None = None,
     ) -> PublicPage:
         # Match the existing CatalogPage's public query, using the same API schema.
-        filters = {}
+        filters: dict[str, str | list[str]] = {}
         for key in (
             "search",
             "category",
@@ -281,7 +282,7 @@ class PublicPageService:
 
 
 def product_structured_data(product: ProductDetailResponse) -> dict:
-    data = {
+    data: dict[str, object] = {
         "@context": "https://schema.org",
         "@type": "Product",
         "name": product.name,
@@ -325,13 +326,14 @@ def render_page(template: str, page: PublicPage, canonical: str) -> str:
     )
     template = re.sub(r'<meta\s+name="description"[^>]*>', "", template, flags=re.S)
     metadata = f'<meta name="description" content="{escape(page.description, quote=True)}"><link rel="canonical" href="{escape(canonical, quote=True)}">'
-    for name, value in {
+    open_graph: dict[str, str | None] = {
         "og:title": title,
         "og:description": page.description,
         "og:url": canonical,
         "og:type": "product" if page.structured_data else "website",
         "og:image": page.image,
-    }.items():
+    }
+    for name, value in open_graph.items():
         if value:
             metadata += (
                 f'<meta property="{name}" content="{escape(value, quote=True)}">'

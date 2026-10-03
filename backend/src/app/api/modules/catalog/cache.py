@@ -31,9 +31,11 @@ class PublicCatalogCache:
     ) -> T:
         if not self._enabled:
             return await load()
-        adapter = TypeAdapter(response_type)
+        adapter: TypeAdapter[T] = TypeAdapter(response_type)
         try:
             generation = await self._redis.get(f"{self.namespace}:generation") or "0"
+            if isinstance(generation, bytes):
+                generation = generation.decode("ascii")
             full_key = f"{self.namespace}:{generation}:{hashlib.sha256(key.encode()).hexdigest()}"
             lock = self._locks.setdefault(full_key, asyncio.Lock())
             async with lock:

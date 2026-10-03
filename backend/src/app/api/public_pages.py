@@ -31,7 +31,7 @@ router = APIRouter(route_class=PublicPageRoute)
 )
 async def public_page(
     request: Request, service: FromDishka[PublicPageService], path: str
-):
+) -> HTMLResponse:
     try:
         content, status = await service.page(request.url.path, request.url.query)
     except (ServiceUnavailableError, SQLAlchemyError):

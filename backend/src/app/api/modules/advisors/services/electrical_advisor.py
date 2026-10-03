@@ -176,12 +176,11 @@ class ElectricalAdvisorService:
         # These requests do not specify the electrical compatibility needed to
         # select equipment (for example output voltage or battery technology).
         # An arbitrary item from the power category is not a recommendation.
-        products = []
         return LedPowerSupplyResponse(
             load_w=self._round(load),
             recommended_power_w=self._round(recommended),
             reference_notice=_REFERENCE_NOTICE,
-            products=[ProductResponse.from_product(product) for product in products],
+            products=[],
         )
 
     async def calculate_autonomy(self, request: AutonomyRequest) -> AutonomyResponse:
@@ -195,13 +194,12 @@ class ElectricalAdvisorService:
         # These requests do not specify the electrical compatibility needed to
         # select equipment (for example output voltage or battery technology).
         # An arbitrary item from the power category is not a recommendation.
-        products = []
         return AutonomyResponse(
             required_energy_wh=self._round(energy),
             recommended_battery_capacity_ah=self._round(capacity),
             recommended_inverter_power_w=self._round(inverter_power),
             reference_notice=_REFERENCE_NOTICE,
-            products=[ProductResponse.from_product(product) for product in products],
+            products=[],
         )
 
     @staticmethod

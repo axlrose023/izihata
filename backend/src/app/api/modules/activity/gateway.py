@@ -49,7 +49,7 @@ class VisitorGateway:
     async def increment_contact(
         self, visitor_key: UUID, *, name: str | None, phone: str | None, kind: str
     ) -> None:
-        values = {}
+        values: dict[str, object] = {}
         if name:
             values["name"] = name
         if phone:

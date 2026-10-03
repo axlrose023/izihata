@@ -156,9 +156,13 @@ async def generate_image_variants(
                         counters["reused"] += 1
                         continue
                     if not valid:
-                        content, content_type = await with_retries(
-                            lambda source=source: download_image(client, source)
-                        )
+
+                        async def download_source(
+                            source: str = source,
+                        ) -> tuple[bytes, str]:
+                            return await download_image(client, source)
+
+                        content, content_type = await with_retries(download_source)
                         if content_type.split(";", 1)[0] == "image/svg+xml":
                             counters["skipped"] += 1
                             continue
