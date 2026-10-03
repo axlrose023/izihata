@@ -194,8 +194,10 @@
     {
       "id": "O20",
       "title": "Кеш sitemap с invalidation",
-      "status": "pending",
-      "checks": []
+      "status": "verified_local",
+      "checks": [
+        "13 cache/catalog tests pass: sitemap XML reused until TTL or shared catalog invalidation; origin scoped and Redis outage fallback retained."
+      ]
     },
     {
       "id": "O21",

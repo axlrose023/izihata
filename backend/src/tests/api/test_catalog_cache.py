@@ -112,3 +112,21 @@ async def test_failed_database_write_does_not_invalidate_cache():
     with pytest.raises(RuntimeError):
         await commit_catalog(uow, cache)
     cache.invalidate.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_sitemap_cache_reuses_xml_and_invalidates_with_catalog(uow):
+    from app.api.modules.catalog.services.catalog_query import CatalogQueryService
+
+    cache = PublicCatalogCache(FakeRedis())
+    service = CatalogQueryService(uow, "https://example.com", cache)
+    service._load_sitemap = AsyncMock(wraps=service._load_sitemap)
+    first = await service.get_sitemap()
+    assert "/products/" in first
+    assert await service.get_sitemap() == first
+    service._load_sitemap.assert_awaited_once()
+    await cache.invalidate()
+    assert await service.get_sitemap() == first
+    assert service._load_sitemap.await_count == 2
+    other_origin = CatalogQueryService(uow, "https://other.example.com", cache)
+    assert "https://other.example.com/products/" in await other_origin.get_sitemap()

@@ -43,6 +43,14 @@ class CatalogQueryService:
         self._site_origin = site_origin.rstrip("/")
 
     async def get_sitemap(self) -> str:
+        return await load_cached(
+            self._cache,
+            catalog_cache_key("sitemap", origin=self._site_origin),
+            str,
+            self._load_sitemap,
+        )
+
+    async def _load_sitemap(self) -> str:
         namespace = "http://www.sitemaps.org/schemas/sitemap/0.9"
         root = Element(f"{{{namespace}}}urlset")
         urls = {"/", "/catalog", "/brands"}
