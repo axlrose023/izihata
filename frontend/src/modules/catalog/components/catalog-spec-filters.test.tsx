@@ -23,8 +23,6 @@ it("groups material and IP values into the requested normalized filters", async 
     specFacetsQuery(params, undefined, "").queryKey,
     page([
       { value: "Матеріал", count: 12 },
-      { value: "Матеріал виготовлення", count: 5 },
-      { value: "Ступінь захисту, IP", count: 8 },
       { value: "Ступінь захисту IP", count: 8 },
     ]),
   );
@@ -77,4 +75,58 @@ it("groups material and IP values into the requested normalized filters", async 
     JSON.stringify(["Матеріал", "Метал"]),
     true,
   );
+});
+
+it("does not inject unrelated groups into an empty search result", async () => {
+  const params = { category: "panels" };
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  client.setQueryData(specFacetsQuery(params, undefined, "").queryKey, {
+    pages: [{ items: [], page: 1, has_next: false }],
+    pageParams: [1],
+  });
+  const view = render(
+    <QueryClientProvider client={client}>
+      <CatalogSpecFilters
+        params={params}
+        activeBrands={new Set()}
+        activeSpecs={new Set()}
+        onToggle={vi.fn()}
+      />
+    </QueryClientProvider>,
+  );
+  expect(view.container.querySelectorAll("summary")).toHaveLength(0);
+  view.unmount();
+});
+
+it("keeps an old raw selected attribute visible for removal", async () => {
+  const params = { category: "panels" };
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  for (const key of [undefined, "Матеріал корпусу"]) {
+    client.setQueryData(specFacetsQuery(params, key, "").queryKey, {
+      pages: [{ items: [], page: 1, has_next: false }],
+      pageParams: [1],
+    });
+  }
+  const onToggle = vi.fn();
+  const view = render(
+    <QueryClientProvider client={client}>
+      <CatalogSpecFilters
+        params={params}
+        activeBrands={new Set()}
+        activeSpecs={new Set([JSON.stringify(["Матеріал корпусу", "метал"])])}
+        onToggle={onToggle}
+      />
+    </QueryClientProvider>,
+  );
+  fireEvent.click(await screen.findByRole("checkbox", { name: "метал 0" }));
+  expect(onToggle).toHaveBeenCalledWith(
+    "spec",
+    JSON.stringify(["Матеріал корпусу", "метал"]),
+    false,
+  );
+  view.unmount();
 });

@@ -13,15 +13,6 @@ import { ErrorNotice } from "@/shared/ui/error-notice";
 type FilterParams = Record<string, QueryValue | QueryValue[]>;
 type Toggle = (name: string, value: string, checked: boolean) => void;
 
-const materialFilterKey = "Матеріал";
-const ipFilterKey = "Ступінь захисту IP";
-const groupedAttributeKeys = new Set([
-  "Матеріал виготовлення",
-  "Ступінь захисту, IP",
-  "Захисне виконання ІР",
-]);
-const groupedFilterCategories = new Set(["lowvoltage", "panels"]);
-
 export function CatalogSpecFilters({
   params,
   activeSpecs,
@@ -43,12 +34,6 @@ export function CatalogSpecFilters({
       .flatMap((page) => page.items)
       .map((item) => [item.value, item.count]),
   );
-  const category = typeof params.category === "string" ? params.category : "";
-  const showGroupedFilters = groupedFilterCategories.has(category);
-  if (showGroupedFilters) {
-    keys.set(materialFilterKey, 0);
-    keys.set(ipFilterKey, 0);
-  }
   const selected = new Map<string, string[]>();
   for (const raw of activeSpecs) {
     const pair = decodeSpecFilter(raw);
@@ -77,12 +62,6 @@ export function CatalogSpecFilters({
         />
       ) : null}
       {[...keys]
-        .filter(
-          ([key]) =>
-            !showGroupedFilters ||
-            !groupedAttributeKeys.has(key) ||
-            selected.has(key),
-        )
         .filter(
           ([key]) =>
             key.toLocaleLowerCase("uk") !== "серія" ||

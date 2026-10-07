@@ -365,3 +365,99 @@ async def test_required_definitions_still_validate_free_form_edits(
             product.id, UpdateProductRequest(specs={EXTRA: "Still supported"})
         )
     assert caught.value.code == "required_product_attribute_missing"
+
+
+@pytest.mark.asyncio
+async def test_alias_facets_preserve_supplier_options_and_scope_search(
+    filter_uow: UnitOfWork,
+):
+    panels = await filter_uow.session.scalar(
+        select(Category).where(Category.slug == "panels")
+    )
+    assert panels is not None
+    samples = (
+        ("ALIAS-1", "Матеріал корпусу", "Полістірол (PS)", "Ступінь захисту", "44"),
+        ("ALIAS-2", "Матеріал корпусу", "Кераміка", "Ступінь захисту", "IP55"),
+        (
+            "ALIAS-3",
+            "Матеріал виготовлення",
+            "метал",
+            "Ступінь захисту, IP",
+            "IP66(NEMA4X)",
+        ),
+        ("ALIAS-4", "Матеріал", "АБС-пластик", "Захисне виконання ІР", "і р 65"),
+    )
+    for sku, material_key, material, ip_key, ip in samples:
+        filter_uow.session.add(
+            Product(
+                sku=sku,
+                slug=sku.lower(),
+                name=sku,
+                brand="QA",
+                category_id=panels.id,
+                price=Decimal("100"),
+                stock_status=StockStatus.PREORDER,
+                attributes=[
+                    ProductAttribute(key=material_key, value=material),
+                    ProductAttribute(key=ip_key, value=ip),
+                ],
+            )
+        )
+    await filter_uow.session.flush()
+    await configure_category_filters(filter_uow.session, dry_run=False)
+    service = CatalogQueryService(filter_uow)
+    keys = await service.get_spec_facets(SpecFacetParams(category="panels"))
+    assert {item.value for item in keys.items} == {"Матеріал", "Ступінь захисту IP"}
+    searched = await service.get_spec_facets(
+        SpecFacetParams(category="panels", facet_search="Матеріал")
+    )
+    assert [item.value for item in searched.items] == ["Матеріал"]
+    assert not (
+        await service.get_spec_facets(
+            SpecFacetParams(category="panels", facet_search="not present")
+        )
+    ).items
+    materials = await service.get_spec_facets(
+        SpecFacetParams(category="panels", facet_key="Матеріал")
+    )
+    assert {item.value: item.count for item in materials.items} == {
+        "Метал": 1,
+        "Пластик": 1,
+        "АБС-пластик": 1,
+        "Кераміка": 1,
+    }
+    protection = await service.get_spec_facets(
+        SpecFacetParams(category="panels", facet_key="Ступінь захисту IP")
+    )
+    assert [item.value for item in protection.items] == [
+        "IP44",
+        "IP65",
+        "IP55",
+        "IP66(NEMA4X)",
+    ]
+    for key, value, sku in (
+        ("Матеріал", "Кераміка", "ALIAS-2"),
+        ("Матеріал", "Пластик", "ALIAS-1"),
+        ("Ступінь захисту IP", "IP44", "ALIAS-1"),
+        ("Ступінь захисту IP", "IP55", "ALIAS-2"),
+        ("Ступінь захисту IP", "IP65", "ALIAS-4"),
+        ("Ступінь захисту IP", "IP66(NEMA4X)", "ALIAS-3"),
+        ("Ступінь захисту", "44", "ALIAS-1"),
+    ):
+        products = await service.get_products(
+            ProductListParams(category="panels", spec=[json.dumps([key, value])])
+        )
+        assert [item.sku for item in products.items] == [sku]
+    first_page = await service.get_spec_facets(
+        SpecFacetParams(category="panels", facet_key="Ступінь захисту IP", page_size=2)
+    )
+    assert first_page.has_next
+    second_page = await service.get_spec_facets(
+        SpecFacetParams(
+            category="panels", facet_key="Ступінь захисту IP", page_size=2, page=2
+        )
+    )
+    assert not second_page.has_next
+    assert {item.value for item in first_page.items + second_page.items} == {
+        item.value for item in protection.items
+    }
