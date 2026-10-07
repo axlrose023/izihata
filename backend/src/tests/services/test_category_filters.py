@@ -462,3 +462,31 @@ async def test_alias_facets_preserve_supplier_options_and_scope_search(
     assert {item.value for item in first_page.items + second_page.items} == {
         item.value for item in protection.items
     }
+
+
+@pytest.mark.asyncio
+async def test_polyamide_is_not_mistaken_for_copper(filter_uow: UnitOfWork):
+    panels = await filter_uow.session.scalar(
+        select(Category).where(Category.slug == "panels")
+    )
+    assert panels is not None
+    for index, value in enumerate(("Поліамід", "Поліамід/мідь")):
+        filter_uow.session.add(
+            Product(
+                sku=f"POLYAMIDE-{index}",
+                slug=f"polyamide-{index}",
+                name="Panel QA",
+                brand="QA",
+                category_id=panels.id,
+                price=Decimal("100"),
+                attributes=[ProductAttribute(key="Матеріал корпусу", value=value)],
+            )
+        )
+    await filter_uow.session.flush()
+    response = await CatalogQueryService(filter_uow).get_spec_facets(
+        SpecFacetParams(category="panels", facet_key="Матеріал")
+    )
+    assert {item.value: item.count for item in response.items} == {
+        "Метал": 1,
+        "Пластик": 2,
+    }

@@ -43,7 +43,8 @@ _METAL_MATERIAL = or_(
     _contains_material_term("сталь"),
     _contains_material_term("алюміні"),
     _contains_material_term("силум"),
-    _contains_material_term("мід"),
+    _contains_material_term("мідь"),
+    _contains_material_term("мідн"),
     _contains_material_term("латун"),
     _contains_material_term("нікел"),
 )
