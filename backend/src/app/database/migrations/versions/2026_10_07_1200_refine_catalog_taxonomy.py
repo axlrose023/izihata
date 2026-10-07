@@ -45,6 +45,13 @@ def _rename_subcategory(
         and _subcategory_id(connection, category_id, new_name) is None
     ):
         connection.execute(
+            sa.text(
+                "INSERT INTO subcategory_names_before_catalog_refinement (id, name) "
+                "SELECT id, name FROM subcategories WHERE id = :id ON CONFLICT DO NOTHING"
+            ),
+            {"id": old_id},
+        )
+        connection.execute(
             sa.text("UPDATE subcategories SET name = :new_name WHERE id = :id"),
             {"id": old_id, "new_name": new_name},
         )
@@ -76,6 +83,12 @@ def _ensure_subcategory(
             "position": position,
         },
     )
+    connection.execute(
+        sa.text(
+            "INSERT INTO subcategories_created_by_catalog_refinement (id) VALUES (:id)"
+        ),
+        {"id": subcategory_id},
+    )
     return subcategory_id
 
 
@@ -87,17 +100,42 @@ def _move_named_products(
     where: str,
     params: dict[str, object],
 ) -> None:
-    query = (
-        "UPDATE products SET category_id = :category_id, "
-        "subcategory_id = :subcategory_id WHERE " + where
+    changed = f"({where}) AND (category_id IS DISTINCT FROM :category_id OR subcategory_id IS DISTINCT FROM :subcategory_id)"
+    values = {**params, "category_id": category_id, "subcategory_id": subcategory_id}
+    connection.execute(
+        sa.text(
+            "INSERT INTO product_categories_before_catalog_refinement (product_id, category_id, subcategory_id) "
+            "SELECT id, category_id, subcategory_id FROM products WHERE "
+            + changed
+            + " ON CONFLICT (product_id) DO NOTHING"
+        ),
+        values,
     )
     connection.execute(
-        sa.text(query),
-        {**params, "category_id": category_id, "subcategory_id": subcategory_id},
+        sa.text(
+            "UPDATE products SET category_id = :category_id, subcategory_id = :subcategory_id WHERE "
+            + changed
+        ),
+        values,
     )
 
 
 def upgrade() -> None:
+    op.create_table(
+        "product_categories_before_catalog_refinement",
+        sa.Column("product_id", sa.Uuid(), primary_key=True),
+        sa.Column("category_id", sa.Uuid()),
+        sa.Column("subcategory_id", sa.Uuid()),
+    )
+    op.create_table(
+        "subcategory_names_before_catalog_refinement",
+        sa.Column("id", sa.Uuid(), primary_key=True),
+        sa.Column("name", sa.String(200), nullable=False),
+    )
+    op.create_table(
+        "subcategories_created_by_catalog_refinement",
+        sa.Column("id", sa.Uuid(), primary_key=True),
+    )
     connection = op.get_bind()
     categories = {
         slug: _category_id(connection, slug)
@@ -292,129 +330,59 @@ def upgrade() -> None:
         params={},
     )
     if categories["installation"] is not None:
-        connection.execute(
-            sa.text(
-                "UPDATE products SET category_id = :category_id, "
-                "subcategory_id = :subcategory_id WHERE sku = 'AX-10045'"
-            ),
-            {"category_id": light_id, "subcategory_id": light_power_id},
+        _move_named_products(
+            connection,
+            category_id=light_id,
+            subcategory_id=light_power_id,
+            where="sku = 'AX-10045'",
+            params={},
         )
 
 
 def downgrade() -> None:
     connection = op.get_bind()
-    categories = {
-        slug: _category_id(connection, slug)
-        for slug in ("lowvoltage", "panels", "light", "installation", "other")
-    }
-    lowvoltage_id = categories["lowvoltage"]
-    if lowvoltage_id is None:
-        return
-    modular_id = _subcategory_id(
-        connection, lowvoltage_id, "Модульні автоматичні вимикачі"
+    archives = (
+        "product_categories_before_catalog_refinement",
+        "subcategory_names_before_catalog_refinement",
+        "subcategories_created_by_catalog_refinement",
     )
-    for name in (
-        "Силові автоматичні вимикачі",
-        "Повітряні автоматичні вимикачі",
+    if not set(archives).issubset(
+        sa.inspect(connection).get_table_names(
+            schema=connection.scalar(sa.text("SELECT current_schema()"))
+        )
     ):
-        subcategory_id = _subcategory_id(connection, lowvoltage_id, name)
-        if subcategory_id is not None and modular_id is not None:
-            connection.execute(
-                sa.text(
-                    "UPDATE products SET subcategory_id = :target_id "
-                    "WHERE subcategory_id = :source_id"
-                ),
-                {"target_id": modular_id, "source_id": subcategory_id},
+        # Existing deployments ran the original migration without snapshots.
+        # Their original assignments cannot be reconstructed from current data.
+        raise RuntimeError(
+            "Catalog refinement rollback has no original category snapshot; restore the pre-migration database backup instead."
+        )
+    connection.execute(
+        sa.text(
+            "UPDATE products p SET category_id = b.category_id, subcategory_id = b.subcategory_id "
+            "FROM product_categories_before_catalog_refinement b WHERE p.id = b.product_id"
+        )
+    )
+    connection.execute(
+        sa.text(
+            "UPDATE subcategories s SET name = b.name FROM subcategory_names_before_catalog_refinement b WHERE s.id = b.id"
+        )
+    )
+    if (
+        connection.execute(
+            sa.text(
+                "SELECT 1 FROM products WHERE subcategory_id IN "
+                "(SELECT id FROM subcategories_created_by_catalog_refinement) LIMIT 1"
             )
-
-    for name in (
-        "\u0410\u0412\u0420 (автоматичний ввід резерву)",
-        "ЯТП (ящик із знижувальним трансформатором)",
+        ).scalar_one_or_none()
+        is not None
     ):
-        if categories["panels"] is None:
-            break
-        subcategory_id = _subcategory_id(connection, categories["panels"], name)
-        if subcategory_id is not None and categories["other"] is not None:
-            connection.execute(
-                sa.text(
-                    "UPDATE products SET category_id = :category_id, "
-                    "subcategory_id = NULL WHERE subcategory_id = :subcategory_id"
-                ),
-                {
-                    "category_id": categories["other"],
-                    "subcategory_id": subcategory_id,
-                },
-            )
-    if categories["light"] is not None:
-        power_id = _subcategory_id(connection, categories["light"], "Блоки живлення")
-        if power_id is not None and categories["installation"] is not None:
-            connection.execute(
-                sa.text(
-                    "UPDATE products SET category_id = :category_id, "
-                    "subcategory_id = NULL WHERE subcategory_id = :subcategory_id"
-                ),
-                {
-                    "category_id": categories["installation"],
-                    "subcategory_id": power_id,
-                },
-            )
-
+        raise RuntimeError(
+            "New products use refined subcategories; reassign them before rollback."
+        )
     connection.execute(
         sa.text(
-            "UPDATE subcategories SET name = 'Автоматичні вимикачі "
-            "(модульні / корпусні / повітряні)' "
-            "WHERE category_id = :category_id AND name = 'Модульні автоматичні вимикачі'"
-        ),
-        {"category_id": lowvoltage_id},
+            "DELETE FROM subcategories WHERE id IN (SELECT id FROM subcategories_created_by_catalog_refinement)"
+        )
     )
-    connection.execute(
-        sa.text(
-            "UPDATE subcategories SET name = 'Додаткові пристрої до автоматів' "
-            "WHERE category_id = :category_id AND "
-            "name = 'Додаткові пристрої до автоматичних вимикачів'"
-        ),
-        {"category_id": lowvoltage_id},
-    )
-    connection.execute(
-        sa.text(
-            "UPDATE subcategories SET name = 'Диференціальні автомати' "
-            "WHERE category_id = :category_id AND "
-            "name = 'Диференціальні автоматичні вимикачі'"
-        ),
-        {"category_id": lowvoltage_id},
-    )
-    connection.execute(
-        sa.text(
-            "UPDATE subcategories SET name = 'Автомати захисту двигуна' "
-            "WHERE category_id = :category_id AND "
-            "name = 'Автоматичні вимикачі захисту двигуна'"
-        ),
-        {"category_id": lowvoltage_id},
-    )
-    for category_id, names in (
-        (
-            lowvoltage_id,
-            (
-                "Силові автоматичні вимикачі",
-                "Повітряні автоматичні вимикачі",
-            ),
-        ),
-        (
-            categories["panels"],
-            (
-                "\u0410\u0412\u0420 (автоматичний ввід резерву)",
-                "ЯТП (ящик із знижувальним трансформатором)",
-            ),
-        ),
-        (categories["light"], ("Блоки живлення",)),
-    ):
-        if category_id is None:
-            continue
-        for name in names:
-            connection.execute(
-                sa.text(
-                    "DELETE FROM subcategories "
-                    "WHERE category_id = :category_id AND name = :name"
-                ),
-                {"category_id": category_id, "name": name},
-            )
+    for table in archives:
+        op.drop_table(table)
