@@ -6,8 +6,9 @@ import { SiteHeader } from "./site-header";
 
 vi.mock("@/modules/cart/store", () => ({
   cartCount: () => 0,
-  useCartStore: (select: (state: { lines: never[]; open: () => void }) => unknown) =>
-    select({ lines: [], open: vi.fn() }),
+  useCartStore: (
+    select: (state: { lines: never[]; open: () => void }) => unknown,
+  ) => select({ lines: [], open: vi.fn() }),
 }));
 vi.mock("@/modules/cart/components/load-cart-drawer", () => ({
   preloadCartDrawer: vi.fn(),
@@ -34,14 +35,11 @@ afterEach(() => {
 });
 
 it("returns from a filtered category route to the unfiltered all-products route", async () => {
-  const router = createMemoryRouter(
-    [{ path: "*", element: <SiteHeader /> }],
-    {
-      initialEntries: [
-        "/catalog/lowvoltage?brand=ETI&spec=%5B%22Матеріал%22%2C%22Метал%22%5D&page=4",
-      ],
-    },
-  );
+  const router = createMemoryRouter([{ path: "*", element: <SiteHeader /> }], {
+    initialEntries: [
+      "/catalog/lowvoltage?brand=ETI&spec=%5B%22Матеріал%22%2C%22Метал%22%5D&page=4",
+    ],
+  });
 
   render(<RouterProvider router={router} />);
   fireEvent.click(screen.getByRole("link", { name: "Усі товари" }));

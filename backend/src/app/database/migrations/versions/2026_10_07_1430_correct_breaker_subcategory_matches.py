@@ -4,6 +4,7 @@
 # ruff: noqa: S608
 
 from collections.abc import Sequence
+from uuid import UUID
 
 import sqlalchemy as sa
 from alembic import op
@@ -14,13 +15,15 @@ branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
 
-def _category_id(connection: sa.Connection, slug: str):
+def _category_id(connection: sa.Connection, slug: str) -> UUID | None:
     return connection.execute(
         sa.text("SELECT id FROM categories WHERE slug = :slug"), {"slug": slug}
     ).scalar_one_or_none()
 
 
-def _subcategory_id(connection: sa.Connection, category_id, name: str):
+def _subcategory_id(
+    connection: sa.Connection, category_id: UUID | None, name: str
+) -> UUID | None:
     return connection.execute(
         sa.text(
             "SELECT id FROM subcategories "
@@ -33,8 +36,8 @@ def _subcategory_id(connection: sa.Connection, category_id, name: str):
 def _move(
     connection: sa.Connection,
     *,
-    category_id,
-    subcategory_id,
+    category_id: UUID,
+    subcategory_id: UUID,
     where: str,
 ) -> None:
     connection.execute(
@@ -65,9 +68,7 @@ def upgrade() -> None:
     if lowvoltage_id is None:
         return
 
-    power_id = _subcategory_id(
-        connection, lowvoltage_id, "Силові автоматичні вимикачі"
-    )
+    power_id = _subcategory_id(connection, lowvoltage_id, "Силові автоматичні вимикачі")
     if power_id is None:
         return
 

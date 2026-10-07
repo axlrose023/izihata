@@ -4,7 +4,7 @@
 # ruff: noqa: S608
 
 from collections.abc import Sequence
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import sqlalchemy as sa
 from alembic import op
@@ -15,13 +15,15 @@ branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
 
-def _category_id(connection: sa.Connection, slug: str):
+def _category_id(connection: sa.Connection, slug: str) -> UUID | None:
     return connection.execute(
         sa.text("SELECT id FROM categories WHERE slug = :slug"), {"slug": slug}
     ).scalar_one_or_none()
 
 
-def _subcategory_id(connection: sa.Connection, category_id, name: str):
+def _subcategory_id(
+    connection: sa.Connection, category_id: UUID | None, name: str
+) -> UUID | None:
     return connection.execute(
         sa.text(
             "SELECT id FROM subcategories "
@@ -33,12 +35,15 @@ def _subcategory_id(connection: sa.Connection, category_id, name: str):
 
 def _rename_subcategory(
     connection: sa.Connection,
-    category_id,
+    category_id: UUID,
     old_name: str,
     new_name: str,
 ) -> None:
     old_id = _subcategory_id(connection, category_id, old_name)
-    if old_id is not None and _subcategory_id(connection, category_id, new_name) is None:
+    if (
+        old_id is not None
+        and _subcategory_id(connection, category_id, new_name) is None
+    ):
         connection.execute(
             sa.text("UPDATE subcategories SET name = :new_name WHERE id = :id"),
             {"id": old_id, "new_name": new_name},
@@ -47,12 +52,12 @@ def _rename_subcategory(
 
 def _ensure_subcategory(
     connection: sa.Connection,
-    category_id,
+    category_id: UUID,
     *,
     slug: str,
     name: str,
     position: int,
-):
+) -> UUID:
     existing = _subcategory_id(connection, category_id, name)
     if existing is not None:
         return existing
@@ -77,15 +82,14 @@ def _ensure_subcategory(
 def _move_named_products(
     connection: sa.Connection,
     *,
-    category_id,
-    subcategory_id,
+    category_id: UUID,
+    subcategory_id: UUID,
     where: str,
     params: dict[str, object],
 ) -> None:
     query = (
         "UPDATE products SET category_id = :category_id, "
-        "subcategory_id = :subcategory_id WHERE "
-        + where
+        "subcategory_id = :subcategory_id WHERE " + where
     )
     connection.execute(
         sa.text(query),
@@ -99,7 +103,11 @@ def upgrade() -> None:
         slug: _category_id(connection, slug)
         for slug in ("lowvoltage", "panels", "light", "power", "other", "installation")
     }
-    if any(categories[slug] is None for slug in ("lowvoltage", "panels", "light")):
+    if (
+        categories["lowvoltage"] is None
+        or categories["panels"] is None
+        or categories["light"] is None
+    ):
         # An unseeded installation gets the current taxonomy from catalog.json.
         return
 
@@ -217,9 +225,7 @@ def upgrade() -> None:
             connection,
             category_id=lowvoltage_id,
             subcategory_id=lowvoltage_differential_id,
-            where=(
-                "category_id = :lowvoltage_id AND name ILIKE '%дифавтомат%'"
-            ),
+            where=("category_id = :lowvoltage_id AND name ILIKE '%дифавтомат%'"),
             params={"lowvoltage_id": lowvoltage_id},
         )
     _move_named_products(

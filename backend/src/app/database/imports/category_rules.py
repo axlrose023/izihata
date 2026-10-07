@@ -391,13 +391,13 @@ _KEYWORDS = tuple(
 
 def classify(name: str) -> tuple[str, str | None, bool]:
     """Return ``(category_slug, subcategory_name, matched)`` for a product name."""
-    for category, subcategory, expression in _SPECIFIC:
+    for specific_category, specific_subcategory, expression in _SPECIFIC:
         if expression.search(name):
-            return category, subcategory, True
-    for category, subcategory, expression in _COMPILED:
+            return specific_category, specific_subcategory, True
+    for leading_category, leading_subcategory, expression in _COMPILED:
         if expression.match(name):
-            return category, subcategory, True
-    for category, subcategory, expression in _KEYWORDS:
+            return leading_category, leading_subcategory, True
+    for keyword_category, keyword_subcategory, expression in _KEYWORDS:
         if expression.search(name):
-            return category, subcategory, True
+            return keyword_category, keyword_subcategory, True
     return FALLBACK_CATEGORY, None, False

@@ -56,10 +56,18 @@ it("groups material and IP values into the requested normalized filters", async 
     </QueryClientProvider>,
   );
 
-  expect(await screen.findByText("Матеріал", { selector: "summary" })).toBeVisible();
-  expect(screen.getByText("Ступінь захисту IP", { selector: "summary" })).toBeVisible();
-  expect(screen.queryByText("Матеріал виготовлення", { selector: "summary" })).toBeNull();
-  expect(screen.queryByText("Ступінь захисту, IP", { selector: "summary" })).toBeNull();
+  expect(
+    await screen.findByText("Матеріал", { selector: "summary" }),
+  ).toBeVisible();
+  expect(
+    screen.getByText("Ступінь захисту IP", { selector: "summary" }),
+  ).toBeVisible();
+  expect(
+    screen.queryByText("Матеріал виготовлення", { selector: "summary" }),
+  ).toBeNull();
+  expect(
+    screen.queryByText("Ступінь захисту, IP", { selector: "summary" }),
+  ).toBeNull();
 
   fireEvent.click(screen.getByText("Матеріал", { selector: "summary" }));
   const metal = await screen.findByRole("checkbox", { name: /Метал/ });

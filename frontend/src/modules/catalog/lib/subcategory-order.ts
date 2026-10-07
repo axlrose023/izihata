@@ -13,7 +13,9 @@ export function prioritizeSubcategories<T extends Pick<Subcategory, "name">>(
 ): T[] {
   if (categorySlug !== "lowvoltage") return subcategories;
 
-  const priority = new Map(lowVoltageBreakerOrder.map((name, index) => [name, index]));
+  const priority = new Map(
+    lowVoltageBreakerOrder.map((name, index) => [name, index]),
+  );
   return subcategories
     .map((subcategory, index) => ({ subcategory, index }))
     .sort((left, right) => {

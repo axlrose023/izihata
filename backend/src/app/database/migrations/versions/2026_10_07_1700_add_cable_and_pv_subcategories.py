@@ -4,7 +4,8 @@
 # ruff: noqa: S608
 
 from collections.abc import Sequence
-from uuid import uuid4
+from typing import cast
+from uuid import UUID, uuid4
 
 import sqlalchemy as sa
 from alembic import op
@@ -15,13 +16,15 @@ branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
 
-def _category(connection: sa.Connection, slug: str):
+def _category(connection: sa.Connection, slug: str) -> UUID | None:
     return connection.execute(
         sa.text("SELECT id FROM categories WHERE slug = :slug"), {"slug": slug}
     ).scalar_one_or_none()
 
 
-def _subcategory(connection: sa.Connection, category_id, name: str):
+def _subcategory(
+    connection: sa.Connection, category_id: UUID, name: str
+) -> UUID | None:
     return connection.execute(
         sa.text(
             "SELECT id FROM subcategories "
@@ -34,10 +37,10 @@ def _subcategory(connection: sa.Connection, category_id, name: str):
 def _ensure_subcategory(
     connection: sa.Connection,
     *,
-    category_id,
+    category_id: UUID,
     category_slug: str,
     name: str,
-):
+) -> UUID:
     existing_id = _subcategory(connection, category_id, name)
     if existing_id is not None:
         return existing_id
@@ -59,25 +62,27 @@ def _ensure_subcategory(
     ).scalar_one_or_none():
         slug_position += 1
 
-    subcategory_id = connection.execute(
-        sa.text(
-            "INSERT INTO subcategories "
-            "(id, category_id, slug, name, position, is_active) "
-            "VALUES (:id, :category_id, :slug, :name, :position, true) "
-            "RETURNING id"
-        ),
-        {
-            "id": uuid4(),
-            "category_id": category_id,
-            "slug": f"{category_slug}-{slug_position}",
-            "name": name,
-            "position": position,
-        },
-    ).scalar_one()
+    subcategory_id = cast(
+        UUID,
+        connection.execute(
+            sa.text(
+                "INSERT INTO subcategories "
+                "(id, category_id, slug, name, position, is_active) "
+                "VALUES (:id, :category_id, :slug, :name, :position, true) "
+                "RETURNING id"
+            ),
+            {
+                "id": uuid4(),
+                "category_id": category_id,
+                "slug": f"{category_slug}-{slug_position}",
+                "name": name,
+                "position": position,
+            },
+        ).scalar_one(),
+    )
     connection.execute(
         sa.text(
-            "INSERT INTO subcategories_created_by_electrical_taxonomy (id) "
-            "VALUES (:id)"
+            "INSERT INTO subcategories_created_by_electrical_taxonomy (id) VALUES (:id)"
         ),
         {"id": subcategory_id},
     )
@@ -87,8 +92,8 @@ def _ensure_subcategory(
 def _move_products(
     connection: sa.Connection,
     *,
-    category_id,
-    subcategory_id,
+    category_id: UUID,
+    subcategory_id: UUID,
     where: str,
 ) -> None:
     changed = (
@@ -112,8 +117,7 @@ def _move_products(
     connection.execute(
         sa.text(
             "UPDATE products SET category_id = :target_category_id, "
-            "subcategory_id = :target_subcategory_id WHERE "
-            + changed
+            "subcategory_id = :target_subcategory_id WHERE " + changed
         ),
         values,
     )
