@@ -174,3 +174,43 @@ def test_title_backslashes_are_literal():
         TEMPLATE, PublicPage(title=r"Cable \1 \g<1>"), "https://izihata.com.ua/"
     )
     assert r"Cable \1 \g&lt;1&gt;" in html
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("path", ["/catalog", "/products/qa", "/terms-of-use"])
+async def test_storefront_rate_limit_returns_mobile_html_not_api_json(
+    client, monkeypatch, path
+):
+    from app.api.common.exceptions import TooManyRequestsError
+    from app.services.rate_limit import RateLimitService
+
+    monkeypatch.setattr(
+        RateLimitService, "check", AsyncMock(side_effect=TooManyRequestsError(42))
+    )
+    response = await client.get(path)
+    assert response.status_code == 429
+    assert response.headers["retry-after"] == "42"
+    assert response.headers["cache-control"] == "no-store"
+    assert "text/html" in response.headers["content-type"]
+    assert "Забагато запитів" in response.text
+    assert 'name="viewport"' in response.text
+    assert 'name="robots" content="noindex"' in response.text
+    assert "rate_limit_exceeded" not in response.text
+    assert "Оновити сторінку" in response.text
+
+
+@pytest.mark.asyncio
+async def test_catalog_api_rate_limit_preserves_json_contract(client, monkeypatch):
+    from app.api.common.exceptions import TooManyRequestsError
+    from app.services.rate_limit import RateLimitService
+
+    monkeypatch.setattr(
+        RateLimitService, "check", AsyncMock(side_effect=TooManyRequestsError(42))
+    )
+    response = await client.get("/api/v1/catalog/products")
+    assert response.status_code == 429
+    assert response.headers["retry-after"] == "42"
+    assert response.json() == {
+        "code": "rate_limit_exceeded",
+        "detail": "Too many requests",
+    }

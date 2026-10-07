@@ -3,10 +3,11 @@ import logging
 from fastapi import FastAPI, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.api.common.exceptions import ApplicationError
+from app.api.common.public_errors import PUBLIC_PAGE_ROUTE_NAME, public_error_response
 
 logger = logging.getLogger(__name__)
 
@@ -14,9 +15,11 @@ logger = logging.getLogger(__name__)
 async def application_error_handler(
     request: Request,
     exc: Exception,
-) -> JSONResponse:
+) -> JSONResponse | HTMLResponse:
     if not isinstance(exc, ApplicationError):
         raise exc
+    if getattr(request.scope.get("route"), "name", None) == PUBLIC_PAGE_ROUTE_NAME:
+        return public_error_response(exc.status_code, exc.headers)
     headers = exc.headers
     if exc.status_code == 401:
         headers = {**(headers or {}), "WWW-Authenticate": "Bearer"}
@@ -70,11 +73,13 @@ async def validation_error_handler(
 async def unexpected_error_handler(
     request: Request,
     exc: Exception,
-) -> JSONResponse:
+) -> JSONResponse | HTMLResponse:
     logger.exception(
         "Unhandled request error",
         extra={"method": request.method, "path": request.url.path},
     )
+    if getattr(request.scope.get("route"), "name", None) == PUBLIC_PAGE_ROUTE_NAME:
+        return public_error_response(500)
     return JSONResponse(
         status_code=500,
         content={"code": "internal_error", "detail": "Internal server error"},
