@@ -8,6 +8,7 @@ from app.api.modules.catalog.models import (
     ProductDocument,
     ProductMedia,
     ProductRelation,
+    Subcategory,
 )
 from app.database.seed import seed_database
 
@@ -43,6 +44,7 @@ async def test_demo_catalog_seed_is_repeatable(session: AsyncSession) -> None:
         ).all()
     )
     category_names = set((await session.scalars(select(Category.name))).all())
+    subcategory_names = set((await session.scalars(select(Subcategory.name))).all())
 
     assert media_count == 2
     assert document_count == 1
@@ -52,3 +54,10 @@ async def test_demo_catalog_seed_is_repeatable(session: AsyncSession) -> None:
         "bought_together",
     ]
     assert {"Альтернативна енергія", "Кліматичне обладнання"} <= category_names
+    assert {
+        "Щити захисту PV систем",
+        "Хомути (стяжки кабельні)",
+        "Кабельні тримачі",
+        "Термоусаджувальна трубка",
+        "Ізолента",
+    } <= subcategory_names

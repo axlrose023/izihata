@@ -19,6 +19,36 @@ import re
 
 FALLBACK_CATEGORY = "other"
 
+# Explicit product families must win over broad rules below, even when a supplier
+# prefixes the product name with a SKU or brand.
+SPECIFIC_RULES: tuple[tuple[str, str, str], ...] = (
+    (
+        "power",
+        "Щити захисту PV систем",
+        r"(?:щит.*(?:\bpv\b|фотоелектр|сонячн)|(?:\bpv\b|фотоелектр|сонячн).*щит)",
+    ),
+    (
+        "cabletrays",
+        "Хомути (стяжки кабельні)",
+        r"(?:хомути?\s+(?:кабельн|нейлонов)|(?:кабельн\w*\s+)?стяжк\w*\s+кабельн|кабельн\w*\s+стяжк\w*)",
+    ),
+    (
+        "cabletrays",
+        "Кабельні тримачі",
+        r"(?:(?:тримач|утримувач|держатель)\w*.*(?:для\s+)?(?:кабел|провод)|(?:адаптер|кріплення)\w*.*(?:тримач|утримувач|держатель).*провод)",
+    ),
+    (
+        "installation",
+        "Термоусаджувальна трубка",
+        r"(?:термоусаджувальн|термоусадочн)\w*.*трубк|трубк\w*.*(?:термоусаджувальн|термоусадочн)",
+    ),
+    (
+        "installation",
+        "Ізолента",
+        r"(?:ізолент|изолент|ізострічк|ізоляційн\w*\s+стрічк|стрічк\w*\s+ізоляційн)",
+    ),
+)
+
 # (category slug, subcategory name or None, leading-name pattern)
 CATEGORY_RULES: tuple[tuple[str, str | None, str], ...] = (
     (
@@ -345,6 +375,10 @@ KEYWORD_RULES: tuple[tuple[str, str | None, str], ...] = (
     ("installation", None, r"\bклем\b|клемн|маркован|шильд|ущільнююче"),
 )
 
+_SPECIFIC = tuple(
+    (category, subcategory, re.compile(pattern, re.IGNORECASE))
+    for category, subcategory, pattern in SPECIFIC_RULES
+)
 _COMPILED = tuple(
     (category, subcategory, re.compile(rf"^\s*{pattern}", re.IGNORECASE))
     for category, subcategory, pattern in CATEGORY_RULES
@@ -357,6 +391,9 @@ _KEYWORDS = tuple(
 
 def classify(name: str) -> tuple[str, str | None, bool]:
     """Return ``(category_slug, subcategory_name, matched)`` for a product name."""
+    for category, subcategory, expression in _SPECIFIC:
+        if expression.search(name):
+            return category, subcategory, True
     for category, subcategory, expression in _COMPILED:
         if expression.match(name):
             return category, subcategory, True
