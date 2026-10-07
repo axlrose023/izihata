@@ -10,13 +10,16 @@ import {
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { afterEach, expect, it, vi } from "vitest";
 import { productListFixture } from "@/tests/product-fixture";
-import { fetchProducts } from "@/modules/catalog/api/catalog-api";
+import {
+  fetchCategories,
+  fetchProducts,
+} from "@/modules/catalog/api/catalog-api";
 import { ApiError } from "@/shared/api/errors";
 import { CatalogPage } from "./catalog-page";
 vi.mock("@/modules/catalog/api/catalog-api", () => ({
-  fetchCategories: async () => [
+  fetchCategories: vi.fn(async () => [
     { id: "cat", slug: "tools", name: "Tools", subcategories: [] },
-  ],
+  ]),
   fetchProducts: vi.fn(async () => productListFixture()),
 }));
 vi.mock("@/modules/catalog/components/catalog-filters", () => ({
@@ -153,4 +156,59 @@ it("waits for the recommendations block before requesting extra products", async
         .mock.calls.some(([params]) => params?.page_size === 20),
     ).toBe(true),
   );
+});
+
+const categoryFixture = (slug: string) => ({
+  id: slug,
+  slug,
+  name: slug,
+  description: "",
+  accent: "gold",
+  icon: "",
+  position: 0,
+  product_count: 100,
+  subcategories: Array.from({ length: 8 }, (_, index) => ({
+    id: `${slug}-${index}`,
+    slug: `${slug}-${index}`,
+    name: `Sub ${slug} ${index}`,
+    product_count: 8 - index,
+  })),
+});
+
+it("keeps collapse available and resets expansion when switching categories", async () => {
+  vi.mocked(fetchCategories).mockResolvedValueOnce([
+    categoryFixture("one"),
+    categoryFixture("two"),
+  ]);
+  const router = createMemoryRouter(
+    [{ path: "/catalog/:category", element: <CatalogPage /> }],
+    { initialEntries: ["/catalog/one?subcategory=one-7"] },
+  );
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  render(
+    <QueryClientProvider client={client}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>,
+  );
+  const more = await screen.findByRole("button", { name: "Ще 2 підкатегорії" });
+  expect(screen.getByRole("link", { name: /Sub one 7/ })).toHaveAttribute(
+    "data-active",
+    "true",
+  );
+  expect(screen.getAllByRole("link", { name: /Sub one/ })).toHaveLength(6);
+  fireEvent.click(more);
+  expect(screen.getAllByRole("link", { name: /Sub one/ })).toHaveLength(8);
+  fireEvent.click(screen.getByRole("button", { name: "Згорнути" }));
+  expect(screen.getAllByRole("link", { name: /Sub one/ })).toHaveLength(6);
+  fireEvent.click(screen.getByRole("button", { name: "Ще 2 підкатегорії" }));
+  await act(async () => {
+    await router.navigate("/catalog/two");
+  });
+  await screen.findByRole("link", { name: /Sub two 0/ });
+  expect(screen.getAllByRole("link", { name: /Sub two/ })).toHaveLength(6);
+  expect(
+    screen.getByRole("button", { name: "Ще 2 підкатегорії" }),
+  ).toHaveAttribute("aria-expanded", "false");
 });

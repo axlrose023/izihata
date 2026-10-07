@@ -96,7 +96,8 @@ export function CatalogPage({
     page_size: 12,
     include_facets: false,
   };
-  const [allSubcategoriesShown, setAllSubcategoriesShown] = useState(false);
+  const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
+  const allSubcategoriesShown = expandedCategory === query.category;
   const categoriesResult = useQuery(categoriesQuery());
   const productsResult = useQuery(productsQuery(query));
   const initialActiveCategory = categoriesResult.data?.find(
@@ -110,9 +111,18 @@ export function CatalogPage({
       .filter((item) => item.product_count > 0)
       .sort((a, b) => b.product_count - a.product_count),
   );
+  const previewSubcategories = rankedSubcategories.slice(0, 6);
+  const selectedSubcategory = rankedSubcategories.find(
+    (item) => item.slug === query.subcategory,
+  );
+  if (
+    selectedSubcategory &&
+    !previewSubcategories.includes(selectedSubcategory)
+  )
+    previewSubcategories.splice(5, 1, selectedSubcategory);
   const visibleSubcategories = allSubcategoriesShown
     ? rankedSubcategories
-    : rankedSubcategories.slice(0, 6);
+    : previewSubcategories;
   const hiddenSubcategories =
     rankedSubcategories.length - visibleSubcategories.length;
   // Інші товари запитуємо лише коли користувач наближається до блоку.
@@ -217,10 +227,14 @@ export function CatalogPage({
               <small>{item.product_count}</small>
             </Link>
           ))}
-          {hiddenSubcategories ? (
+          {rankedSubcategories.length > 6 ? (
             <button
               aria-expanded={allSubcategoriesShown}
-              onClick={() => setAllSubcategoriesShown((value) => !value)}
+              onClick={() =>
+                setExpandedCategory(
+                  allSubcategoriesShown ? null : (query.category ?? null),
+                )
+              }
               type="button"
             >
               {allSubcategoriesShown
