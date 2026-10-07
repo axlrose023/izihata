@@ -109,6 +109,19 @@ export function CatalogFilters({
     });
   const setSingle = (name: string, value: string) =>
     setValues({ [name]: value });
+  const setCategory = (value: string) =>
+    update((params) => {
+      for (const key of [
+        "subcategory",
+        "spec",
+        "min_price",
+        "max_price",
+        "section",
+      ])
+        params.delete(key);
+      if (value) params.set("category", value);
+      else params.delete("category");
+    });
   const toggleMulti = (name: string, value: string, checked: boolean) =>
     update((params) => {
       const kept = params.getAll(name).filter((item) => {
@@ -181,7 +194,7 @@ export function CatalogFilters({
             <select
               aria-label="Категорія"
               disabled={categoryIsRouteParam}
-              onChange={(event) => setSingle("category", event.target.value)}
+              onChange={(event) => setCategory(event.target.value)}
               value={activeCategory?.slug ?? ""}
             >
               <option value="">Усі категорії</option>
@@ -216,7 +229,7 @@ export function CatalogFilters({
           ) : null}
           <PriceFilter
             facets={facets}
-            key={`${query.min_price ?? ""}:${query.max_price ?? ""}`}
+            key={`${activeCategory?.slug ?? ""}:${params.section ?? ""}:${query.min_price ?? ""}:${query.max_price ?? ""}`}
             onChange={setValues}
             query={query}
           />
@@ -250,6 +263,7 @@ export function CatalogFilters({
                 options={facets.sale_units}
               />
               <CatalogSpecFilters
+                key={`${activeCategory?.slug ?? ""}:${params.section ?? ""}`}
                 params={params}
                 activeSpecs={activeSpecs}
                 activeBrands={activeBrands}
