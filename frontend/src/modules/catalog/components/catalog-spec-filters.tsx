@@ -135,7 +135,10 @@ function SpecFacet({
               Вибір серії покаже всі сумісні елементи цього дизайну.
             </p>
           ) : null}
-          {optionCount > 8 || search ? (
+          {optionCount > 8 ||
+          options.size > 8 ||
+          result.hasNextPage ||
+          search ? (
             <input
               aria-label={`Пошук: ${label.toLocaleLowerCase("uk")}`}
               className="facet-search"

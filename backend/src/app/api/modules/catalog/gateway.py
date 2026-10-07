@@ -49,6 +49,7 @@ from app.api.modules.catalog.schema import (
     SpecFacetParams,
 )
 from app.api.modules.catalog.spec_filter_aliases import (
+    ALIAS_FILTER_KEYS,
     FILTER_CATEGORY_SLUGS,
     IP_KEYS,
     IP_VALUES,
@@ -671,7 +672,9 @@ class ProductGateway:
             ):
                 return await self._aliased_spec_facet_page(params)
             column: ColumnElement[str] = ProductAttribute.value.expression
-            count = func.count(func.distinct(ProductAttribute.product_id))
+            count: ColumnElement[int] = func.count(
+                func.distinct(ProductAttribute.product_id)
+            )
             conditions = [ProductAttribute.key == params.facet_key]
             conditions.extend(
                 self._spec_filter_conditions(params, exclude_key=params.facet_key)
@@ -683,6 +686,10 @@ class ProductGateway:
                 else ProductAttribute.key.expression
             )
             count = func.count(func.distinct(ProductAttribute.value))
+            if params.category in FILTER_CATEGORY_SLUGS:
+                # Raw supplier values may collapse into one normalized option.
+                # Do not advertise their raw count as the number of choices.
+                count = case((column.in_(ALIAS_FILTER_KEYS), literal(0)), else_=count)
             conditions = self._spec_filter_conditions(params, include_facet_key=True)
             conditions.extend(await self._filterable_attribute_conditions(params))
         if params.facet_search:

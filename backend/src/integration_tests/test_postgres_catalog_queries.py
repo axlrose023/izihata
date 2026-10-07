@@ -145,3 +145,55 @@ async def test_repeated_collection_edits_preserve_variants_and_unique_positions(
         finally:
             await session.execute(delete(Product).where(Product.id == created.id))
             await uow.commit()
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_normalized_facet_keys_and_values_execute_on_postgresql():
+    import json
+    from decimal import Decimal
+
+    from app.api.modules.catalog.models import Category, ProductAttribute
+    from app.api.modules.catalog.schema import ProductListParams, SpecFacetParams
+    from app.api.modules.catalog.services.catalog_query import CatalogQueryService
+
+    async with SessionFactory() as session, UnitOfWork(session) as uow:
+        category = await session.scalar(
+            select(Category).where(Category.slug == "panels")
+        )
+        assert category is not None
+        unique = uuid.uuid4().hex
+        session.add(
+            Product(
+                sku=unique,
+                slug=unique,
+                name="Facet QA",
+                brand=unique,
+                category_id=category.id,
+                price=Decimal("100.00"),
+                attributes=[
+                    ProductAttribute(key="Матеріал корпусу", value="метал"),
+                    ProductAttribute(key="Ступінь захисту", value="44"),
+                ],
+            )
+        )
+        await session.flush()
+        service = CatalogQueryService(uow)
+        keys = await service.get_spec_facets(
+            SpecFacetParams(category="panels", brand=[unique])
+        )
+        assert {item.value: item.count for item in keys.items} == {
+            "Матеріал": 0,
+            "Ступінь захисту IP": 0,
+        }
+        for key, value in (("Матеріал", "Метал"), ("Ступінь захисту IP", "IP44")):
+            values = await service.get_spec_facets(
+                SpecFacetParams(category="panels", brand=[unique], facet_key=key)
+            )
+            assert [(item.value, item.count) for item in values.items] == [(value, 1)]
+            products = await service.get_products(
+                ProductListParams(
+                    category="panels", brand=[unique], spec=[json.dumps([key, value])]
+                )
+            )
+            assert products.total == 1
+        await session.rollback()

@@ -408,6 +408,7 @@ async def test_alias_facets_preserve_supplier_options_and_scope_search(
     service = CatalogQueryService(filter_uow)
     keys = await service.get_spec_facets(SpecFacetParams(category="panels"))
     assert {item.value for item in keys.items} == {"Матеріал", "Ступінь захисту IP"}
+    assert all(item.count == 0 for item in keys.items)
     searched = await service.get_spec_facets(
         SpecFacetParams(category="panels", facet_search="Матеріал")
     )

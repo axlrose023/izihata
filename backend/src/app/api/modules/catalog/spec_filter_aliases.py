@@ -9,6 +9,7 @@ from app.api.modules.catalog.models import ProductAttribute
 
 MATERIAL_FILTER_KEY = "Матеріал"
 IP_FILTER_KEY = "Ступінь захисту IP"
+ALIAS_FILTER_KEYS = (MATERIAL_FILTER_KEY, IP_FILTER_KEY)
 FILTER_CATEGORY_SLUGS = frozenset({"lowvoltage", "panels"})
 
 MATERIAL_KEYS = ("Матеріал", "Матеріал виготовлення", "Матеріал корпусу")
@@ -70,7 +71,7 @@ _PLASTIC_MATERIAL = or_(
 
 
 def is_alias_facet_key(key: str) -> bool:
-    return key in {MATERIAL_FILTER_KEY, IP_FILTER_KEY}
+    return key in ALIAS_FILTER_KEYS
 
 
 def source_keys(key: str) -> Sequence[str]:
