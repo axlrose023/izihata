@@ -238,8 +238,13 @@ def upgrade() -> None:
         subcategory_id=lowvoltage_power_id,
         where=(
             "category_id IN (:lowvoltage_id, :other_id) AND "
-            "(name ILIKE '%силов%вимикач%' OR name ILIKE '%вимикач%силов%' "
-            "OR name ~* '(^|[^[:alnum:]])[xh][0-9]{2,4}([^[:alnum:]]|$)')"
+            "(name ILIKE '%силовий автоматичний вимикач%' OR "
+            "name ILIKE '%автоматичний силовий вимикач%' OR "
+            "name ILIKE '%силовий вимикач%' OR "
+            "name ILIKE '%корпусний автоматичний вимикач%' OR "
+            "name ILIKE '%MCCB%вимикач%' OR "
+            "(name ILIKE '%автоматичний вимикач%' AND "
+            "name ~* '(^|[^[:alnum:]])[xh][0-9]{2,4}([^[:alnum:]]|$)'))"
         ),
         params={"lowvoltage_id": lowvoltage_id, "other_id": categories["other"]},
     )
