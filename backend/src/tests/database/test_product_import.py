@@ -485,7 +485,7 @@ class TestRuleCorrections:
             ),
             (
                 "Контролер АВР ATSC25",
-                "panels",
+                "lowvoltage",
                 "АВР (автоматичний ввід резерву)",
             ),
             (
@@ -886,3 +886,42 @@ class TestPublishingOnClassification:
 
         assert outcome.published == 0
         assert (await self._by_sku(uow)).is_active is False
+
+
+@pytest.mark.parametrize(
+    ("name", "category", "subcategory"),
+    [
+        (
+            "Основа e.ctb.stand.20.20 під кабельну стяжку, 20х20мм",
+            "cabletrays",
+            "Кабельні тримачі",
+        ),
+        ("Кріплення стяжки e.metiz.ctdub.6.3", "cabletrays", "Кабельні тримачі"),
+        ("Майданчик до хомутів CTH-2", "cabletrays", "Кабельні тримачі"),
+        ("Дюбель-хомут під круглий кабель", "cabletrays", "Кабельні тримачі"),
+        (
+            "Дюбель зі стяжкою e.holder.pro.s під гвинт",
+            "cabletrays",
+            "Кабельні тримачі",
+        ),
+        ("CHS-150 EP (дюбель-хомут)", "cabletrays", "Кабельні тримачі"),
+        ("CHS-150 (хомут маркувальний)", "cabletrays", "Хомути (стяжки кабельні)"),
+        ("CHS-150 (хомут вузликовий)", "cabletrays", "Хомути (стяжки кабельні)"),
+        (
+            "CHS-200 Хомути з майданчиком під гвинт",
+            "cabletrays",
+            "Хомути (стяжки кабельні)",
+        ),
+        (
+            "Інструмент для затягування кабельної стяжки",
+            "other",
+            "Професійний інструмент",
+        ),
+        ("Додатковий контакт для імпульсних реле 6А", "relay", None),
+        ("АВР 100А", "lowvoltage", "АВР (автоматичний ввід резерву)"),
+    ],
+)
+def test_specific_accessories_do_not_match_the_product_they_attach_to(
+    name, category, subcategory
+):
+    assert classify(name) == (category, subcategory, True)

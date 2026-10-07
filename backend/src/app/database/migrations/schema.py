@@ -4,6 +4,8 @@ from alembic.runtime.environment import NameFilterParentNames, NameFilterType
 
 MIGRATION_ARCHIVE_TABLES = frozenset(
     {
+        "product_categories_before_reviewed_taxonomy",
+        "subcategory_before_avr_move",
         "product_categories_before_catalog_refinement",
         "subcategory_names_before_catalog_refinement",
         "subcategories_created_by_catalog_refinement",

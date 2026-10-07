@@ -94,7 +94,72 @@ def exercise_original(connection):
             assert snapshot(connection) == before
 
 
-@pytest.mark.parametrize("exercise", [exercise_original])
+def exercise_reviewed(connection):
+    with Session(connection, join_transaction_mode="create_savepoint") as session:
+        categories = {
+            slug: Category(slug=slug, name=slug)
+            for slug in ("lowvoltage", "panels", "cabletrays", "other")
+        }
+        session.add_all(categories.values())
+        session.flush()
+        avr = Subcategory(
+            category_id=categories["panels"].id,
+            slug="panels-14",
+            name="\u0410\u0412\u0420 (автоматичний ввід резерву)",
+            position=13,
+        )
+        holders = Subcategory(
+            category_id=categories["cabletrays"].id,
+            slug="cabletrays-6",
+            name="Кабельні тримачі",
+        )
+        session.add_all([avr, holders])
+        session.flush()
+        session.add_all(
+            [
+                Product(
+                    sku="s015097",
+                    slug="base",
+                    name="Основа під кабельну стяжку",
+                    brand="QA",
+                    category_id=categories["other"].id,
+                    price=123.45,
+                ),
+                Product(
+                    sku="TEST-AVR",
+                    slug="avr",
+                    name="\u0410\u0412\u0420 100\u0410",
+                    brand="QA",
+                    category_id=categories["panels"].id,
+                    subcategory_id=avr.id,
+                    price=123.45,
+                ),
+                Product(
+                    sku="UNRELATED",
+                    slug="unchanged",
+                    name="Unchanged",
+                    brand="QA",
+                    category_id=categories["other"].id,
+                    price=123.45,
+                ),
+            ]
+        )
+        session.flush()
+        before = snapshot(connection)
+        module = migration("2026_10_07_1900_correct_reviewed_taxonomy_assignments.py")
+        with Operations.context(MigrationContext.configure(connection)):
+            module.upgrade()
+            assignments = dict(
+                connection.execute(select(Product.sku, Product.category_id)).all()
+            )
+            assert assignments["s015097"] == categories["cabletrays"].id
+            assert assignments["TEST-AVR"] == categories["lowvoltage"].id
+            assert assignments["UNRELATED"] == categories["other"].id
+            module.downgrade()
+            assert snapshot(connection) == before
+
+
+@pytest.mark.parametrize("exercise", [exercise_original, exercise_reviewed])
 @pytest.mark.asyncio(loop_scope="session")
 async def test_taxonomy_migrations_restore_original_rows(exercise):
     schema = f"taxonomy_test_{uuid4().hex}"

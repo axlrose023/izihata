@@ -21,21 +21,31 @@ FALLBACK_CATEGORY = "other"
 
 # Explicit product families must win over broad rules below, even when a supplier
 # prefixes the product name with a SKU or brand.
-SPECIFIC_RULES: tuple[tuple[str, str, str], ...] = (
+SPECIFIC_RULES: tuple[tuple[str, str | None, str], ...] = (
     (
         "power",
         "Щити захисту PV систем",
         r"(?:щит.*(?:\bpv\b|фотоелектр|сонячн)|(?:\bpv\b|фотоелектр|сонячн).*щит)",
     ),
     (
-        "cabletrays",
-        "Хомути (стяжки кабельні)",
-        r"(?:хомути?\s+(?:кабельн|нейлонов)|(?:кабельн\w*\s+)?стяжк\w*\s+кабельн|кабельн\w*\s+стяжк\w*)",
+        "other",
+        "Професійний інструмент",
+        r"(?:інструмент|кліщі)\w*.*(?:стяжк|хомут)",
     ),
     (
         "cabletrays",
         "Кабельні тримачі",
-        r"(?:(?:тримач|утримувач|держатель)\w*.*(?:для\s+)?(?:кабел|провод)|(?:адаптер|кріплення)\w*.*(?:тримач|утримувач|держатель).*провод)",
+        r"(?:(?:тримач|утримувач|держатель)\w*.*(?:для\s+)?(?:кабел|провод)|(?:адаптер|кріплення)\w*.*(?:тримач|утримувач|держатель).*провод|(?:основа|майданчик|кріплення)\b.*(?:стяжк|хомут)|дюбель[-\s]+(?:зі\s+)?(?:стяжк|хомут))",
+    ),
+    (
+        "cabletrays",
+        "Хомути (стяжки кабельні)",
+        r"(?:хомути?\s+(?:кабельн|нейлонов|маркувальн|вузликов|з\s+майданчик)|(?:кабельн\w*\s+)?стяжк\w*\s+кабельн|кабельн\w*\s+стяжк\w*)",
+    ),
+    (
+        "relay",
+        None,
+        r"додатков\w*\s+контакт\w*.*(?:для\s+)?(?:імпульсн\w*\s+)?реле",
     ),
     (
         "installation",
@@ -52,7 +62,7 @@ SPECIFIC_RULES: tuple[tuple[str, str, str], ...] = (
 # (category slug, subcategory name or None, leading-name pattern)
 CATEGORY_RULES: tuple[tuple[str, str | None, str], ...] = (
     (
-        "panels",
+        "lowvoltage",
         "АВР (автоматичний ввід резерву)",
         r"АВР|автоматичний ввід резерву",
     ),
@@ -110,11 +120,6 @@ CATEGORY_RULES: tuple[tuple[str, str | None, str], ...] = (
         "lowvoltage",
         "Додаткові пристрої до автоматичних вимикачів",
         r"(Блок затримки|Блок-контакт|Незалежний розчіплювач)",
-    ),
-    (
-        "lowvoltage",
-        "Додаткові пристрої до автоматичних вимикачів",
-        r"Розчіплювач.*для автоматів захисту двиг",
     ),
     (
         "lowvoltage",
@@ -193,7 +198,7 @@ CATEGORY_RULES: tuple[tuple[str, str | None, str], ...] = (
 # product family on its own, wherever it appears in the name.
 KEYWORD_RULES: tuple[tuple[str, str | None, str], ...] = (
     (
-        "panels",
+        "lowvoltage",
         "АВР (автоматичний ввід резерву)",
         r"авр|автоматичний ввід резерву",
     ),
