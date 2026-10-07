@@ -4,7 +4,19 @@ from collections.abc import Sequence
 from decimal import Decimal
 from uuid import UUID
 
-from sqlalchemy import Select, and_, case, delete, func, or_, select, tuple_, update
+from sqlalchemy import (
+    Select,
+    and_,
+    case,
+    delete,
+    func,
+    literal,
+    or_,
+    select,
+    tuple_,
+    union_all,
+    update,
+)
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, load_only, selectinload
 from sqlalchemy.sql.elements import ColumnElement
@@ -35,6 +47,17 @@ from app.api.modules.catalog.schema import (
     AdminProductListParams,
     ProductListParams,
     SpecFacetParams,
+)
+from app.api.modules.catalog.spec_filter_aliases import (
+    FILTER_CATEGORY_SLUGS,
+    IP_FILTER_KEY,
+    IP_VALUES,
+    MATERIAL_FILTER_KEY,
+    MATERIAL_VALUES,
+    facet_label_expression,
+    option_condition,
+    selection_condition,
+    source_keys,
 )
 
 
@@ -346,6 +369,19 @@ class ProductGateway:
         for key, values in params.spec_filters.items():
             if key == exclude_key:
                 continue
+            aliased = (
+                selection_condition(key, values)
+                if params.category in FILTER_CATEGORY_SLUGS
+                else None
+            )
+            if aliased is not None:
+                matching_alias = Product.attributes.any(aliased)
+                conditions.append(
+                    or_(ProductAttribute.key == key, matching_alias)
+                    if include_facet_key
+                    else matching_alias
+                )
+                continue
             matching_value = Product.attributes.any(
                 and_(
                     ProductAttribute.key == key,
@@ -618,6 +654,11 @@ class ProductGateway:
         self, params: SpecFacetParams
     ) -> Sequence[tuple[str, int]]:
         if params.facet_key:
+            if (
+                params.facet_key in {MATERIAL_FILTER_KEY, IP_FILTER_KEY}
+                and params.category in FILTER_CATEGORY_SLUGS
+            ):
+                return await self._aliased_spec_facet_page(params)
             column = ProductAttribute.value
             count = func.count(func.distinct(ProductAttribute.product_id))
             conditions = [ProductAttribute.key == params.facet_key]
@@ -637,6 +678,90 @@ class ProductGateway:
             .where(*self._conditions(params, include_specs=False), *conditions)
             .group_by(column)
             .order_by(column)
+            .offset(params.offset)
+            .limit(params.page_size + 1)
+        )
+        return [
+            (value, int(count))
+            for value, count in (await self._session.execute(stmt)).all()
+        ]
+
+    async def _aliased_spec_facet_page(
+        self, params: SpecFacetParams
+    ) -> Sequence[tuple[str, int]]:
+        facet_key = params.facet_key
+        if facet_key is None or params.category not in FILTER_CATEGORY_SLUGS:
+            return []
+        label = facet_label_expression(facet_key)
+        keys = source_keys(facet_key)
+        values = MATERIAL_VALUES if facet_key == MATERIAL_FILTER_KEY else IP_VALUES
+        if label is None:
+            return []
+
+        conditions: list[ColumnElement[bool]] = [
+            *self._conditions(params, include_specs=False),
+            *self._spec_filter_conditions(params, exclude_key=facet_key),
+            ProductAttribute.key.in_(keys),
+        ]
+
+        if facet_key == MATERIAL_FILTER_KEY:
+            branches = []
+            for value in values:
+                match = option_condition(facet_key, value)
+                if match is None:
+                    continue
+                branches.append(
+                    select(
+                        literal(value).label("value"),
+                        func.count(func.distinct(ProductAttribute.product_id)).label(
+                            "count"
+                        ),
+                    )
+                    .join(Product, Product.id == ProductAttribute.product_id)
+                    .where(*conditions, match)
+                    .group_by(literal(value))
+                )
+            if not branches:
+                return []
+            options = union_all(*branches).subquery()
+            if params.facet_search:
+                conditions_for_values = [
+                    literal_contains(options.c.value, params.facet_search)
+                ]
+            else:
+                conditions_for_values = []
+            choice_order = case(
+                *(
+                    (options.c.value == value, position)
+                    for position, value in enumerate(values)
+                ),
+                else_=len(values),
+            )
+            stmt = (
+                select(options.c.value, options.c.count)
+                .where(options.c.count > 0, *conditions_for_values)
+                .order_by(choice_order)
+                .offset(params.offset)
+                .limit(params.page_size + 1)
+            )
+            return [
+                (value, int(count))
+                for value, count in (await self._session.execute(stmt)).all()
+            ]
+
+        conditions.append(label.in_(values))
+        if params.facet_search:
+            conditions.append(literal_contains(label, params.facet_search))
+        choice_order = case(
+            *((label == value, position) for position, value in enumerate(values)),
+            else_=len(values),
+        )
+        stmt = (
+            select(label, func.count(func.distinct(ProductAttribute.product_id)))
+            .join(Product, Product.id == ProductAttribute.product_id)
+            .where(*conditions)
+            .group_by(label)
+            .order_by(choice_order)
             .offset(params.offset)
             .limit(params.page_size + 1)
         )

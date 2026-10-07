@@ -11,6 +11,7 @@ import {
   decodeSpecFilter,
   encodeSpecFilter,
 } from "@/modules/catalog/lib/spec-filter";
+import { prioritizeSubcategories } from "@/modules/catalog/lib/subcategory-order";
 import { useBodyScrollLock } from "@/shared/lib/use-body-scroll-lock";
 import { useCloseOnEscape } from "@/shared/lib/use-close-on-escape";
 import { useDebouncedValue } from "@/shared/lib/use-debounced-value";
@@ -202,7 +203,10 @@ export function CatalogFilters({
                 value={query.subcategory ?? ""}
               >
                 <option value="">Усі</option>
-                {activeCategory.subcategories.map((item) => (
+                {prioritizeSubcategories(
+                  activeCategory.slug,
+                  activeCategory.subcategories,
+                ).map((item) => (
                   <option key={item.id} value={item.slug}>
                     {item.name} ({item.product_count})
                   </option>

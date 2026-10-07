@@ -265,7 +265,7 @@ async def _seed_catalog_demo_content(
 ) -> None:
     sku = "DEMO-MCB-16"
     category = categories["lowvoltage"]
-    subcategory_name = "Автоматичні вимикачі (модульні / корпусні / повітряні)"
+    subcategory_name = "Модульні автоматичні вимикачі"
     subcategory = subcategories[(category.id, subcategory_name)]
     product = products_by_sku.get(sku)
     if product is None:

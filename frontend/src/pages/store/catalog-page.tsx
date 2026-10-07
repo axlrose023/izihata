@@ -19,6 +19,7 @@ import {
   type CatalogFilterQuery,
 } from "@/modules/catalog/components/catalog-filters";
 import { catalogHref } from "@/modules/catalog/lib/catalog-href";
+import { prioritizeSubcategories } from "@/modules/catalog/lib/subcategory-order";
 import { ActiveFilters } from "@/modules/catalog/components/active-filters";
 import { ProductCard } from "@/modules/catalog/components/product-card";
 import type { ProductBadge, ProductSort } from "@/shared/types/api";
@@ -103,9 +104,12 @@ export function CatalogPage({
   );
   // Порожні підкатегорії нічого не дають, а решту показуємо за спаданням —
   // артборд Catalog показує кілька найбільших і ховає хвіст за «ще N».
-  const rankedSubcategories = [...(initialActiveCategory?.subcategories ?? [])]
-    .filter((item) => item.product_count > 0)
-    .sort((a, b) => b.product_count - a.product_count);
+  const rankedSubcategories = prioritizeSubcategories(
+    initialActiveCategory?.slug,
+    [...(initialActiveCategory?.subcategories ?? [])]
+      .filter((item) => item.product_count > 0)
+      .sort((a, b) => b.product_count - a.product_count),
+  );
   const visibleSubcategories = allSubcategoriesShown
     ? rankedSubcategories
     : rankedSubcategories.slice(0, 6);

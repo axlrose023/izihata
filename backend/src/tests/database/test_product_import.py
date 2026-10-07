@@ -105,7 +105,7 @@ class TestClassify:
     def test_motor_protection_wins_over_the_generic_breaker_rule(self):
         _, subcategory, _ = classify("Авт.захисту двиг. MSP-25")
 
-        assert subcategory == "Автомати захисту двигуна"
+        assert subcategory == "Автоматичні вимикачі захисту двигуна"
 
 
 @pytest.mark.asyncio
@@ -433,7 +433,7 @@ class TestRuleCorrections:
             (
                 "Повітр. авт. вим. викочувальний EPL-08 3H AD/M2C2S2",
                 "lowvoltage",
-                "Автоматичні вимикачі (модульні / корпусні / повітряні)",
+                "Повітряні автоматичні вимикачі",
             ),
             ("Короб перфорований B 25x40 T (ПВХ, Ш25xВ40, 2м)", "cabletrays", None),
             ("Сальник M20 (еластичний, Ø8-13мм, IP67)", "installation", None),
@@ -449,6 +449,59 @@ class TestRuleCorrections:
 
     def test_a_plain_relay_is_still_a_relay(self):
         assert classify("Реле контролю фаз")[0] == "relay"
+
+    @pytest.mark.parametrize(
+        ("name", "category", "subcategory"),
+        [
+            (
+                "Силовий автоматичний вимикач e.industrial.ukm.60S.32",
+                "lowvoltage",
+                "Силові автоматичні вимикачі",
+            ),
+            (
+                "Автоматичний вимикач x160, In=16А, 3п, 18kA",
+                "lowvoltage",
+                "Силові автоматичні вимикачі",
+            ),
+            (
+                "Дифавтомат DS201 1P+N C16 30мА",
+                "lowvoltage",
+                "Диференціальні автоматичні вимикачі",
+            ),
+            (
+                "Автоматичний вимикач захисту двигуна УКРЕМ ВА-2005",
+                "lowvoltage",
+                "Автоматичні вимикачі захисту двигуна",
+            ),
+            (
+                "Повітряний автоматичний вимикач e.industrial.acb.1600F",
+                "lowvoltage",
+                "Повітряні автоматичні вимикачі",
+            ),
+            (
+                "Контролер АВР ATSC25",
+                "panels",
+                "АВР (автоматичний ввід резерву)",
+            ),
+            (
+                "Ящик із знижувальним трансформатором ЯТП-0,25 220/12В",
+                "panels",
+                "ЯТП (ящик із знижувальним трансформатором)",
+            ),
+            (
+                "Блок живлення на DIN-рейку 24В",
+                "light",
+                "Блоки живлення",
+            ),
+            (
+                "Розчіплювач мінімальної напруги для автоматів захисту двигуна 230В",
+                "lowvoltage",
+                "Додаткові пристрої до автоматичних вимикачів",
+            ),
+        ],
+    )
+    def test_new_taxonomy_rules(self, name: str, category: str, subcategory: str):
+        assert classify(name) == (category, subcategory, True)
 
     def test_frequency_drives_have_no_home_yet(self):
         assert classify("Перетворювач частоти CFW500 D 24P0")[0] == FALLBACK_CATEGORY

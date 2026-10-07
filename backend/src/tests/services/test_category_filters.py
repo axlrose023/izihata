@@ -47,7 +47,7 @@ async def filter_uow() -> AsyncIterator[UnitOfWork]:
         async with async_sessionmaker(engine, expire_on_commit=False)() as session:
             categories = {
                 slug: Category(id=uuid4(), slug=slug, name=slug)
-                for slug in ("lowvoltage", "sockets", "future")
+                for slug in ("lowvoltage", "sockets", "future", "panels")
             }
             session.add_all(categories.values())
             await session.flush()
@@ -159,6 +159,122 @@ async def test_existing_links_to_uncurated_specs_remain_filterable(
     )
     assert {item.value for item in values.items} == {"QA-1", "QA-2"}
     assert all(item.count == 1 for item in values.items)
+
+
+@pytest.mark.asyncio
+async def test_normalized_material_and_ip_filters_use_supplier_attributes(
+    filter_uow: UnitOfWork,
+):
+    panels = await filter_uow.session.scalar(
+        select(Category).where(Category.slug == "panels")
+    )
+    assert panels is not None
+    sockets = await filter_uow.session.scalar(
+        select(Category).where(Category.slug == "sockets")
+    )
+    assert sockets is not None
+    filter_uow.session.add_all(
+        (
+            Product(
+                sku="PANEL-METAL",
+                slug="panel-metal",
+                name="Металевий щит IP31",
+                brand="QA",
+                category_id=panels.id,
+                price=Decimal("100"),
+                stock_status=StockStatus.PREORDER,
+                attributes=[
+                    ProductAttribute(key="Матеріал", value="метал"),
+                    ProductAttribute(key="Ступінь захисту, IP", value="ІР31"),
+                ],
+            ),
+            Product(
+                sku="PANEL-ABS",
+                slug="panel-abs",
+                name="Щит ABS IP65",
+                brand="QA",
+                category_id=panels.id,
+                price=Decimal("100"),
+                stock_status=StockStatus.PREORDER,
+                attributes=[
+                    ProductAttribute(
+                        key="Матеріал виготовлення", value="Корпус – ABS - пластик"
+                    ),
+                    ProductAttribute(key="Ступінь захисту IP", value="IP65"),
+                ],
+            ),
+            Product(
+                sku="PANEL-MIXED",
+                slug="panel-mixed",
+                name="Комбінований щит IP20",
+                brand="QA",
+                category_id=panels.id,
+                price=Decimal("100"),
+                stock_status=StockStatus.PREORDER,
+                attributes=[
+                    ProductAttribute(key="Матеріал", value="Пластик/метал"),
+                    ProductAttribute(key="Ступінь захисту IP", value="IP20"),
+                ],
+            ),
+            Product(
+                sku="SOCKET-METAL",
+                slug="socket-metal",
+                name="Металева розетка",
+                brand="QA",
+                category_id=sockets.id,
+                price=Decimal("100"),
+                stock_status=StockStatus.PREORDER,
+                attributes=[ProductAttribute(key="Матеріал", value="метал")],
+            ),
+        )
+    )
+    await filter_uow.session.flush()
+    service = CatalogQueryService(filter_uow)
+
+    materials = await service.get_spec_facets(
+        SpecFacetParams(category="panels", facet_key="Матеріал")
+    )
+    assert {item.value: item.count for item in materials.items} == {
+        "Метал": 2,
+        "Пластик": 1,
+        "АБС-пластик": 1,
+    }
+    protection = await service.get_spec_facets(
+        SpecFacetParams(category="panels", facet_key="Ступінь захисту IP")
+    )
+    assert {item.value: item.count for item in protection.items} == {
+        "IP20": 1,
+        "IP31": 1,
+        "IP65": 1,
+    }
+
+    selected_materials = await service.get_products(
+        ProductListParams(
+            category="panels",
+            spec=[
+                json.dumps(["Матеріал", "Метал"]),
+                json.dumps(["Матеріал", "Пластик"]),
+            ],
+        )
+    )
+    assert {item.sku for item in selected_materials.items} == {
+        "PANEL-METAL",
+        "PANEL-MIXED",
+    }
+    selected_ip = await service.get_products(
+        ProductListParams(
+            category="panels", spec=[json.dumps(["Ступінь захисту IP", "IP31"])]
+        )
+    )
+    assert [item.sku for item in selected_ip.items] == ["PANEL-METAL"]
+
+    raw_global_material = await service.get_products(
+        ProductListParams(spec=[json.dumps(["Матеріал", "метал"])])
+    )
+    assert {item.sku for item in raw_global_material.items} == {
+        "PANEL-METAL",
+        "SOCKET-METAL",
+    }
 
 
 @pytest.mark.asyncio
