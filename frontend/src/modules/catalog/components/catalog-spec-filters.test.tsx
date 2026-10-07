@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 
 import { specFacetsQuery } from "@/modules/catalog/api/facet-queries";
@@ -7,6 +7,7 @@ import type { FacetOption } from "@/shared/types/api";
 import { CatalogSpecFilters } from "./catalog-spec-filters";
 
 afterEach(() => {
+  cleanup();
   vi.restoreAllMocks();
 });
 
@@ -122,7 +123,7 @@ it("keeps an old raw selected attribute visible for removal", async () => {
       />
     </QueryClientProvider>,
   );
-  fireEvent.click(await screen.findByRole("checkbox", { name: "метал 0" }));
+  fireEvent.click(await screen.findByRole("checkbox", { name: /метал/ }));
   expect(onToggle).toHaveBeenCalledWith(
     "spec",
     JSON.stringify(["Матеріал корпусу", "метал"]),

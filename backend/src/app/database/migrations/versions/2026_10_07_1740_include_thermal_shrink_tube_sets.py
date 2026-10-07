@@ -54,16 +54,14 @@ def upgrade() -> None:
         sa.text(
             "INSERT INTO product_categories_before_shrink_tube_sets "
             "(product_id, category_id, subcategory_id) "
-            "SELECT id, category_id, subcategory_id FROM products WHERE "
-            + where
+            "SELECT id, category_id, subcategory_id FROM products WHERE " + where
         ),
         values,
     )
     connection.execute(
         sa.text(
             "UPDATE products SET category_id = :category_id, "
-            "subcategory_id = :subcategory_id WHERE "
-            + where
+            "subcategory_id = :subcategory_id WHERE " + where
         ),
         values,
     )
