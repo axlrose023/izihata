@@ -110,6 +110,19 @@ class Product(Base, UUIDIDMixin, DateTimeMixin):
     __tablename__ = "products"
     __table_args__ = (
         Index("products_sku_lower_idx", text("lower(sku)")),
+        Index("ix_products_image_url", "image_url"),
+        Index(
+            "products_sku_trgm_idx",
+            "sku",
+            postgresql_using="gin",
+            postgresql_ops={"sku": "gin_trgm_ops"},
+        ),
+        Index(
+            "products_brand_trgm_idx",
+            "brand",
+            postgresql_using="gin",
+            postgresql_ops={"brand": "gin_trgm_ops"},
+        ),
         CheckConstraint("price >= 0", name="product_price_non_negative"),
         CheckConstraint(
             "old_price IS NULL OR old_price >= price",
@@ -159,7 +172,7 @@ class Product(Base, UUIDIDMixin, DateTimeMixin):
     production_country: Mapped[str | None] = mapped_column(String(120))
     short_description: Mapped[str | None] = mapped_column(String(500))
     description: Mapped[str | None] = mapped_column(Text)
-    image_url: Mapped[str | None] = mapped_column(String(500), index=True)
+    image_url: Mapped[str | None] = mapped_column(String(500))
     image_variants: Mapped[dict | None] = mapped_column(JSON)
     price: Mapped[Decimal] = mapped_column(Numeric(12, 2))
     old_price: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))
@@ -302,13 +315,14 @@ class ProductMedia(Base, UUIDIDMixin, DateTimeMixin):
     __tablename__ = "product_media"
     __table_args__ = (
         UniqueConstraint("product_id", "position", name="product_media_position_ukey"),
+        Index("ix_product_media_url", "url"),
     )
 
     product_id: Mapped[UUID] = mapped_column(
         ForeignKey("products.id", ondelete="CASCADE"),
         index=True,
     )
-    url: Mapped[str] = mapped_column(String(500), index=True)
+    url: Mapped[str] = mapped_column(String(500))
     image_variants: Mapped[dict | None] = mapped_column(JSON)
     alt: Mapped[str] = mapped_column(String(240))
     position: Mapped[int] = mapped_column(Integer, default=0, nullable=False)

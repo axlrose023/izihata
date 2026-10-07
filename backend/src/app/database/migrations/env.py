@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 
 from app.database.base import Base
 from app.database.migrations.import_models import import_models
+from app.database.migrations.schema import include_schema_name
 from app.settings import get_config
 
 # this is the Alembic Config object, which provides
@@ -58,7 +59,11 @@ def run_migrations_offline() -> None:
 
 
 def do_run_migrations(connection: Connection) -> None:
-    context.configure(connection=connection, target_metadata=target_metadata)
+    context.configure(
+        connection=connection,
+        target_metadata=target_metadata,
+        include_name=include_schema_name,
+    )
 
     with context.begin_transaction():
         context.run_migrations()
