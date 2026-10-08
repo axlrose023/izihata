@@ -1,5 +1,5 @@
 import { LoaderCircle } from "lucide-react";
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 interface DeliverySuggestion {
   ref: string;
@@ -33,10 +33,55 @@ export function DeliveryAutocomplete<TOption extends DeliverySuggestion>({
 }: DeliveryAutocompleteProps<TOption>) {
   const [isOpen, setIsOpen] = useState(false);
   const [activeRef, setActiveRef] = useState<string | null>(null);
+  const [menuPosition, setMenuPosition] = useState({
+    placement: "below",
+    maxHeight: 242,
+  });
+  const inputRef = useRef<HTMLInputElement>(null);
   const activeIndex = options.findIndex((option) => option.ref === activeRef);
   const listboxId = useId();
   const canSuggest = value.trim().length >= minimumQueryLength;
   const showListbox = suggestionsEnabled && isOpen && canSuggest;
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const updatePosition = () => {
+      const input = inputRef.current;
+      if (!input) return;
+
+      const bounds = input.getBoundingClientRect();
+      const viewport = window.visualViewport;
+      const viewportTop = viewport?.offsetTop ?? 0;
+      const viewportBottom =
+        viewportTop + (viewport?.height ?? window.innerHeight);
+      const spaceAbove = Math.max(0, bounds.top - viewportTop - 8);
+      const spaceBelow = Math.max(0, viewportBottom - bounds.bottom - 8);
+      const placement =
+        spaceBelow >= 180 || spaceBelow >= spaceAbove ? "below" : "above";
+      const availableSpace = placement === "above" ? spaceAbove : spaceBelow;
+
+      setMenuPosition({
+        placement,
+        maxHeight: Math.max(80, Math.min(242, availableSpace)),
+      });
+    };
+
+    let frame = 0;
+    const scheduleUpdate = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(updatePosition);
+    };
+    scheduleUpdate();
+    window.addEventListener("resize", scheduleUpdate);
+    window.visualViewport?.addEventListener("resize", scheduleUpdate);
+
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("resize", scheduleUpdate);
+      window.visualViewport?.removeEventListener("resize", scheduleUpdate);
+    };
+  }, [isOpen]);
 
   const select = (option: TOption) => {
     onSelect(option);
@@ -56,6 +101,7 @@ export function DeliveryAutocomplete<TOption extends DeliverySuggestion>({
         aria-haspopup="listbox"
         autoComplete="off"
         disabled={disabled}
+        ref={inputRef}
         onBlur={() => {
           setIsOpen(false);
           setActiveRef(null);
@@ -99,8 +145,10 @@ export function DeliveryAutocomplete<TOption extends DeliverySuggestion>({
       {showListbox ? (
         <div
           className="delivery-autocomplete__menu"
+          data-placement={menuPosition.placement}
           id={listboxId}
           role="listbox"
+          style={{ maxHeight: menuPosition.maxHeight }}
         >
           {isLoading ? (
             <p className="delivery-autocomplete__state">

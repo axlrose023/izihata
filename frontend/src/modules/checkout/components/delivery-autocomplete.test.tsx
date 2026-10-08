@@ -1,4 +1,10 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 
 import { DeliveryAutocomplete } from "./delivery-autocomplete";
@@ -51,4 +57,27 @@ it("tracks the selected reference when suggestions are reordered", () => {
   );
   fireEvent.keyDown(input, { key: "Enter" });
   expect(initial.onSelect).toHaveBeenCalledWith(options[0]);
+});
+
+it("opens suggestions above the field when there is no room below", async () => {
+  const bounds = vi
+    .spyOn(HTMLInputElement.prototype, "getBoundingClientRect")
+    .mockReturnValue({
+      x: 0,
+      y: 780,
+      width: 300,
+      height: 40,
+      top: 780,
+      right: 300,
+      bottom: 820,
+      left: 0,
+      toJSON: () => ({}),
+    });
+  render(<DeliveryAutocomplete {...props()} />);
+  fireEvent.focus(screen.getByRole("combobox"));
+
+  const menu = screen.getByRole("listbox");
+  await waitFor(() => expect(menu).toHaveAttribute("data-placement", "above"));
+  expect(menu).toHaveStyle({ maxHeight: "242px" });
+  bounds.mockRestore();
 });

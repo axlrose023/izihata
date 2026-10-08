@@ -4912,6 +4912,10 @@ h2 {
   background: #fff;
   box-shadow: 0 12px 28px rgba(16, 36, 67, 0.16);
 }
+.delivery-autocomplete__menu[data-placement="above"] {
+  top: auto;
+  bottom: calc(100% + 5px);
+}
 .delivery-autocomplete__menu button,
 .delivery-autocomplete__state {
   width: 100%;
