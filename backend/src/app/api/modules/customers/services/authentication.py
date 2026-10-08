@@ -26,7 +26,16 @@ class CustomerAuthenticationService:
     async def register(self, request: CustomerRegistrationRequest) -> TokenPairResponse:
         if await self._uow.customers.get_by_email(request.email) is not None:
             raise ConflictError(
-                "Customer email already exists", code="customer_email_exists"
+                "Користувач із такою електронною адресою вже зареєстрований.",
+                code="customer_email_exists",
+            )
+        if (
+            request.phone is not None
+            and await self._uow.customers.get_by_phone(request.phone) is not None
+        ):
+            raise ConflictError(
+                "Користувач із таким номером телефону вже зареєстрований.",
+                code="customer_phone_exists",
             )
         customer = Customer(
             email=request.email,
@@ -40,10 +49,20 @@ class CustomerAuthenticationService:
             await self._uow.commit()
         except IntegrityError as exc:
             await self._uow.rollback()
-            raise ConflictError(
-                "Customer email already exists",
-                code="customer_email_exists",
-            ) from exc
+            if await self._uow.customers.get_by_email(request.email) is not None:
+                raise ConflictError(
+                    "Користувач із такою електронною адресою вже зареєстрований.",
+                    code="customer_email_exists",
+                ) from exc
+            if (
+                request.phone is not None
+                and await self._uow.customers.get_by_phone(request.phone) is not None
+            ):
+                raise ConflictError(
+                    "Користувач із таким номером телефону вже зареєстрований.",
+                    code="customer_phone_exists",
+                ) from exc
+            raise
         return tokens
 
     async def login(self, request: CustomerLoginRequest) -> TokenPairResponse:

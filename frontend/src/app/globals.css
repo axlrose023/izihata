@@ -1389,6 +1389,7 @@ h2 {
   align-items: center;
   gap: 12px;
   padding: 16px 18px;
+  color: var(--ink);
   border-bottom: 1px solid var(--line);
   background: var(--surface);
 }
@@ -1401,6 +1402,7 @@ h2 {
 }
 .site-sidebar__auth strong {
   display: block;
+  color: var(--ink);
   font-size: 0.86rem;
 }
 .site-sidebar__auth small {

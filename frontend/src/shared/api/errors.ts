@@ -71,6 +71,10 @@ const localizedMessages: Record<string, string> = {
   network_error: "Немає зв’язку із сервером. Перевірте інтернет і повторіть.",
   not_found: "Запитувані дані не знайдено.",
   category_not_found: "Обрану категорію більше не знайдено. Оновіть форму.",
+  customer_email_exists:
+    "Користувач із такою електронною адресою вже зареєстрований.",
+  customer_phone_exists:
+    "Користувач із таким номером телефону вже зареєстрований.",
   product_identity_exists: "Товар із таким SKU вже існує.",
   request_body_too_large:
     "Запит завеликий. Зменште розмір даних або зображення.",

@@ -26,6 +26,10 @@ class CustomerGateway:
         stmt = select(Customer).where(Customer.email == email)
         return (await self._session.execute(stmt)).scalar_one_or_none()
 
+    async def get_by_phone(self, phone: str) -> Customer | None:
+        stmt = select(Customer).where(Customer.phone == phone)
+        return (await self._session.execute(stmt)).scalar_one_or_none()
+
     async def get_by_id(self, customer_id: UUID) -> Customer | None:
         stmt = select(Customer).where(Customer.id == customer_id)
         return (await self._session.execute(stmt)).scalar_one_or_none()
