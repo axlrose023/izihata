@@ -1402,7 +1402,6 @@ h2 {
 }
 .site-sidebar__auth strong {
   display: block;
-  color: var(--ink);
   font-size: 0.86rem;
 }
 .site-sidebar__auth small {

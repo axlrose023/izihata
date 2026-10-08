@@ -154,7 +154,7 @@ class TestCustomersB2B:
 
         assert first.status_code == 201, first.text
         assert duplicate.status_code == 409
-        assert duplicate.json()["code"] == "customer_email_exists"
+        assert duplicate.json()["code"] == "customer_contact_exists"
         assert "вже зареєстрований" in duplicate.json()["detail"]
 
     async def test_rejects_duplicate_customer_phone_after_normalization(
@@ -171,7 +171,7 @@ class TestCustomersB2B:
 
         assert first.status_code == 201, first.text
         assert duplicate.status_code == 409
-        assert duplicate.json()["code"] == "customer_phone_exists"
+        assert duplicate.json()["code"] == "customer_contact_exists"
         assert "вже зареєстрований" in duplicate.json()["detail"]
 
     async def test_rotates_and_revokes_customer_session(self, client: AsyncClient):

@@ -24,19 +24,7 @@ class CustomerAuthenticationService:
         self._jwt_service = jwt_service
 
     async def register(self, request: CustomerRegistrationRequest) -> TokenPairResponse:
-        if await self._uow.customers.get_by_email(request.email) is not None:
-            raise ConflictError(
-                "Користувач із такою електронною адресою вже зареєстрований.",
-                code="customer_email_exists",
-            )
-        if (
-            request.phone is not None
-            and await self._uow.customers.get_by_phone(request.phone) is not None
-        ):
-            raise ConflictError(
-                "Користувач із таким номером телефону вже зареєстрований.",
-                code="customer_phone_exists",
-            )
+        await self._ensure_registration_contacts_available(request)
         customer = Customer(
             email=request.email,
             password_hash=await hash_password(request.password),
@@ -49,21 +37,26 @@ class CustomerAuthenticationService:
             await self._uow.commit()
         except IntegrityError as exc:
             await self._uow.rollback()
-            if await self._uow.customers.get_by_email(request.email) is not None:
-                raise ConflictError(
-                    "Користувач із такою електронною адресою вже зареєстрований.",
-                    code="customer_email_exists",
-                ) from exc
-            if (
-                request.phone is not None
-                and await self._uow.customers.get_by_phone(request.phone) is not None
-            ):
-                raise ConflictError(
-                    "Користувач із таким номером телефону вже зареєстрований.",
-                    code="customer_phone_exists",
-                ) from exc
+            try:
+                await self._ensure_registration_contacts_available(request)
+            except ConflictError as conflict:
+                raise conflict from exc
             raise
         return tokens
+
+    async def _ensure_registration_contacts_available(
+        self,
+        request: CustomerRegistrationRequest,
+    ) -> None:
+        if await self._uow.customers.has_registration_contact(
+            request.email,
+            request.phone,
+        ):
+            raise ConflictError(
+                "Користувач із такою електронною адресою або номером телефону "  # noqa: RUF001
+                "вже зареєстрований.",
+                code="customer_contact_exists",
+            )
 
     async def login(self, request: CustomerLoginRequest) -> TokenPairResponse:
         customer = await self._uow.customers.get_by_email(request.email)

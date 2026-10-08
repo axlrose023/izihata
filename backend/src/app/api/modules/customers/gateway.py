@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.modules.customers.enums import CompanyStatus
@@ -26,9 +26,16 @@ class CustomerGateway:
         stmt = select(Customer).where(Customer.email == email)
         return (await self._session.execute(stmt)).scalar_one_or_none()
 
-    async def get_by_phone(self, phone: str) -> Customer | None:
-        stmt = select(Customer).where(Customer.phone == phone)
-        return (await self._session.execute(stmt)).scalar_one_or_none()
+    async def has_registration_contact(
+        self,
+        email: str,
+        phone: str | None,
+    ) -> bool:
+        contacts = [Customer.email == email]
+        if phone is not None:
+            contacts.append(Customer.phone == phone)
+        stmt = select(Customer.id).where(or_(*contacts)).limit(1)
+        return (await self._session.execute(stmt)).scalar_one_or_none() is not None
 
     async def get_by_id(self, customer_id: UUID) -> Customer | None:
         stmt = select(Customer).where(Customer.id == customer_id)
