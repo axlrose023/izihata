@@ -1,4 +1,3 @@
-import { useQuery } from "@tanstack/react-query";
 import {
   ChevronLeft,
   ChevronRight,
@@ -19,9 +18,9 @@ import {
 import { useCallback, useState } from "react";
 import { Link } from "react-router-dom";
 
+import type { Category } from "@/shared/types/api";
 import { cartCount, useCartStore } from "@/modules/cart/store";
 import { preloadCartDrawer } from "@/modules/cart/components/load-cart-drawer";
-import { categoriesQuery } from "@/modules/catalog/api/catalog-queries";
 import { useCollectionStore } from "@/modules/collections/store";
 import { useCustomerAuth } from "@/modules/customers/customer-auth-context";
 import { LeadAction } from "@/modules/leads/components/lead-action";
@@ -41,14 +40,15 @@ const shortcuts = [
 ];
 
 export function SiteSidebar({
+  categories,
   open,
   onClose,
 }: {
+  categories: Category[];
   open: boolean;
   onClose: () => void;
 }) {
   const [showCatalog, setShowCatalog] = useState(false);
-  const categories = useQuery(categoriesQuery()).data ?? [];
   const lines = useCartStore((state) => state.lines);
   const openCart = useCartStore((state) => state.open);
   const favoriteCount = useCollectionStore((state) => state.favorites.length);

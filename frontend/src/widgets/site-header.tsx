@@ -1,5 +1,6 @@
 import {
   Calculator,
+  ChevronDown,
   GitCompareArrows,
   Heart,
   House,
@@ -12,26 +13,36 @@ import {
   ShoppingCart,
   UserRound,
 } from "lucide-react";
-import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useState, type CSSProperties } from "react";
 import { Link, useLocation } from "react-router-dom";
 
+import { categoriesQuery } from "@/modules/catalog/api/catalog-queries";
 import { cartCount, useCartStore } from "@/modules/cart/store";
 import { preloadCartDrawer } from "@/modules/cart/components/load-cart-drawer";
 import { ProductSearch } from "@/modules/catalog/components/product-search";
 import { useCollectionStore } from "@/modules/collections/store";
 import { LeadAction } from "@/modules/leads/components/lead-action";
 import { useCustomerAuth } from "@/modules/customers/customer-auth-context";
-import { formatMoney, pluralizePositions } from "@/shared/lib/format";
+import {
+  formatMoney,
+  pluralizePositions,
+  pluralizeProducts,
+} from "@/shared/lib/format";
+import { CategoryIcon } from "@/shared/ui/category-icon";
 import { Logo } from "@/shared/ui/logo";
 import { storeInfo } from "@/shared/config/store-info";
 import { SiteSidebar } from "./site-sidebar";
 
 export function SiteHeader() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [catalogMenuOpen, setCatalogMenuOpen] = useState(false);
   const lines = useCartStore((state) => state.lines);
   const openCart = useCartStore((state) => state.open);
   const favoriteCount = useCollectionStore((state) => state.favorites.length);
   const compareCount = useCollectionStore((state) => state.compare.length);
+  const categoriesResult = useQuery(categoriesQuery());
+  const categories = categoriesResult.data ?? [];
   const { status: customerStatus } = useCustomerAuth();
   const cartTotal = lines.reduce(
     (sum, line) => sum + Number(line.product.price) * line.quantity,
@@ -139,13 +150,96 @@ export function SiteHeader() {
         </div>
       </div>
       {menuOpen ? (
-        <SiteSidebar onClose={() => setMenuOpen(false)} open />
+        <SiteSidebar
+          categories={categories}
+          onClose={() => setMenuOpen(false)}
+          open
+        />
       ) : null}
       <nav className="catalog-nav">
         <div className="container catalog-nav__inner">
-          <Link className="catalog-nav__primary" to="/catalog">
-            <Menu size={18} /> Усі товари
-          </Link>
+          <div
+            className="catalog-nav__all"
+            onBlur={(event) => {
+              if (
+                !event.currentTarget.contains(
+                  event.relatedTarget as Node | null,
+                )
+              ) {
+                setCatalogMenuOpen(false);
+              }
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "Escape") setCatalogMenuOpen(false);
+            }}
+            onMouseEnter={() => setCatalogMenuOpen(true)}
+            onMouseLeave={() => setCatalogMenuOpen(false)}
+          >
+            <Link
+              aria-controls={
+                catalogMenuOpen ? "catalog-category-menu" : undefined
+              }
+              aria-expanded={catalogMenuOpen}
+              className="catalog-nav__primary"
+              onClick={() => setCatalogMenuOpen(false)}
+              onFocus={() => setCatalogMenuOpen(true)}
+              to="/catalog"
+            >
+              <Menu size={18} /> Усі товари <ChevronDown size={14} />
+            </Link>
+            {catalogMenuOpen ? (
+              <nav
+                aria-label="Категорії товарів"
+                className="catalog-mega-menu"
+                id="catalog-category-menu"
+              >
+                <div className="catalog-mega-menu__panel">
+                  <div className="catalog-mega-menu__head">
+                    <strong>Категорії каталогу</strong>
+                    <Link
+                      onClick={() => setCatalogMenuOpen(false)}
+                      to="/catalog"
+                    >
+                      Переглянути всі товари <span aria-hidden="true">→</span>
+                    </Link>
+                  </div>
+                  {categoriesResult.isPending ? (
+                    <p className="catalog-mega-menu__state" role="status">
+                      Завантажуємо категорії…
+                    </p>
+                  ) : categoriesResult.isError ? (
+                    <p className="catalog-mega-menu__state" role="status">
+                      Не вдалося завантажити категорії.
+                    </p>
+                  ) : (
+                    <div className="catalog-mega-menu__grid">
+                      {categories.map((category) => (
+                        <Link
+                          className="catalog-mega-menu__category"
+                          key={category.id}
+                          onClick={() => setCatalogMenuOpen(false)}
+                          style={
+                            {
+                              "--category-accent": category.accent,
+                            } as CSSProperties
+                          }
+                          to={`/catalog/${category.slug}`}
+                        >
+                          <CategoryIcon size={23} slug={category.slug} />
+                          <span>
+                            <strong>{category.name}</strong>
+                            <small>
+                              {pluralizeProducts(category.product_count)}
+                            </small>
+                          </span>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </nav>
+            ) : null}
+          </div>
           <Link to="/catalog?sort=popular">Популярне</Link>
           <Link to="/catalog/new">Новинки</Link>
           <Link className="catalog-nav__sale" to="/catalog/sale">
