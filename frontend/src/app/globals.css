@@ -1080,7 +1080,7 @@ h2 {
   z-index: 100;
   top: 100%;
   left: 0;
-  width: min(860px, calc(100vw - 40px));
+  width: min(860px, calc(100vw - 80px));
   padding-top: 6px;
   color: var(--ink);
 }
