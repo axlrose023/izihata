@@ -15,7 +15,7 @@ import {
   UserRound,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 
 import { categoriesQuery } from "@/modules/catalog/api/catalog-queries";
@@ -38,6 +38,7 @@ export function SiteHeader() {
   const [catalogCategorySlug, setCatalogCategorySlug] = useState<string | null>(
     null,
   );
+  const catalogMenuRef = useRef<HTMLDivElement>(null);
   const lines = useCartStore((state) => state.lines);
   const openCart = useCartStore((state) => state.open);
   const favoriteCount = useCollectionStore((state) => state.favorites.length);
@@ -78,6 +79,20 @@ export function SiteHeader() {
     );
     setCatalogMenuOpen(true);
   };
+
+  useEffect(() => {
+    if (!catalogMenuOpen) return;
+
+    const closeOnOutsideClick = (event: PointerEvent) => {
+      if (!catalogMenuRef.current?.contains(event.target as Node)) {
+        setCatalogMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("pointerdown", closeOnOutsideClick);
+    return () =>
+      document.removeEventListener("pointerdown", closeOnOutsideClick);
+  }, [catalogMenuOpen]);
 
   return (
     <header className="site-header" data-variant="store">
@@ -187,6 +202,7 @@ export function SiteHeader() {
         <div className="container catalog-nav__inner">
           <div
             className="catalog-nav__all"
+            ref={catalogMenuRef}
             onBlur={(event) => {
               if (
                 !event.currentTarget.contains(
@@ -199,8 +215,6 @@ export function SiteHeader() {
             onKeyDown={(event) => {
               if (event.key === "Escape") setCatalogMenuOpen(false);
             }}
-            onMouseEnter={openCatalogMenu}
-            onMouseLeave={() => setCatalogMenuOpen(false)}
           >
             <button
               aria-controls={
@@ -208,8 +222,9 @@ export function SiteHeader() {
               }
               aria-expanded={catalogMenuOpen}
               className="catalog-nav__primary"
-              onClick={openCatalogMenu}
-              onFocus={openCatalogMenu}
+              onClick={() =>
+                catalogMenuOpen ? setCatalogMenuOpen(false) : openCatalogMenu()
+              }
               type="button"
             >
               <Menu size={18} /> Усі товари <ChevronDown size={14} />

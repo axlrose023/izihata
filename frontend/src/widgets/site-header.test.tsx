@@ -103,13 +103,16 @@ it("returns from a filtered category route to the unfiltered all-products route"
   expect(router.state.location.search).toBe("");
 });
 
-it("opens the category popover on hover and closes it with Escape", () => {
+it("opens the category popover on click and closes it with Escape", () => {
   renderHeader("/");
   const trigger = document.querySelector<HTMLButtonElement>(
     ".catalog-nav__primary",
   )!;
 
   fireEvent.mouseEnter(trigger.parentElement!);
+  expect(trigger).toHaveAttribute("aria-expanded", "false");
+
+  fireEvent.click(trigger);
 
   expect(trigger).toHaveAttribute("aria-expanded", "true");
   const menu = screen.getByRole("navigation", {
