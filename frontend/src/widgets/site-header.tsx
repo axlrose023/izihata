@@ -1,6 +1,7 @@
 import {
   Calculator,
   ChevronDown,
+  ChevronRight,
   GitCompareArrows,
   Heart,
   House,
@@ -14,29 +15,29 @@ import {
   UserRound,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { useState, type CSSProperties } from "react";
+import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 
 import { categoriesQuery } from "@/modules/catalog/api/catalog-queries";
 import { cartCount, useCartStore } from "@/modules/cart/store";
 import { preloadCartDrawer } from "@/modules/cart/components/load-cart-drawer";
 import { ProductSearch } from "@/modules/catalog/components/product-search";
+import { availableSubcategories } from "@/modules/catalog/lib/subcategory-order";
 import { useCollectionStore } from "@/modules/collections/store";
 import { LeadAction } from "@/modules/leads/components/lead-action";
 import { useCustomerAuth } from "@/modules/customers/customer-auth-context";
-import {
-  formatMoney,
-  pluralizePositions,
-  pluralizeProducts,
-} from "@/shared/lib/format";
-import { CategoryIcon } from "@/shared/ui/category-icon";
+import { formatMoney, pluralizePositions } from "@/shared/lib/format";
 import { Logo } from "@/shared/ui/logo";
+import type { Category } from "@/shared/types/api";
 import { storeInfo } from "@/shared/config/store-info";
 import { SiteSidebar } from "./site-sidebar";
 
 export function SiteHeader() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [catalogMenuOpen, setCatalogMenuOpen] = useState(false);
+  const [catalogCategorySlug, setCatalogCategorySlug] = useState<string | null>(
+    null,
+  );
   const lines = useCartStore((state) => state.lines);
   const openCart = useCartStore((state) => state.open);
   const favoriteCount = useCollectionStore((state) => state.favorites.length);
@@ -51,6 +52,32 @@ export function SiteHeader() {
   const { pathname } = useLocation();
   const isCatalogRoute =
     pathname === "/catalog" || pathname.startsWith("/catalog/");
+  const routeCategorySlug = pathname.match(/^\/catalog\/([^/]+)$/)?.[1];
+  const routeCategory = categories.find(
+    (category) => category.slug === routeCategorySlug,
+  );
+  const categoryWithMostSubcategories = categories.reduce<Category | undefined>(
+    (best, category) =>
+      !best ||
+      availableSubcategories(category.slug, category.subcategories).length >
+        availableSubcategories(best.slug, best.subcategories).length
+        ? category
+        : best,
+    undefined,
+  );
+  const activeCategory =
+    categories.find((category) => category.slug === catalogCategorySlug) ??
+    routeCategory ??
+    categoryWithMostSubcategories;
+  const activeSubcategories = activeCategory
+    ? availableSubcategories(activeCategory.slug, activeCategory.subcategories)
+    : [];
+  const openCatalogMenu = () => {
+    setCatalogCategorySlug(
+      routeCategory?.slug ?? categoryWithMostSubcategories?.slug ?? null,
+    );
+    setCatalogMenuOpen(true);
+  };
 
   return (
     <header className="site-header" data-variant="store">
@@ -172,21 +199,21 @@ export function SiteHeader() {
             onKeyDown={(event) => {
               if (event.key === "Escape") setCatalogMenuOpen(false);
             }}
-            onMouseEnter={() => setCatalogMenuOpen(true)}
+            onMouseEnter={openCatalogMenu}
             onMouseLeave={() => setCatalogMenuOpen(false)}
           >
-            <Link
+            <button
               aria-controls={
                 catalogMenuOpen ? "catalog-category-menu" : undefined
               }
               aria-expanded={catalogMenuOpen}
               className="catalog-nav__primary"
-              onClick={() => setCatalogMenuOpen(false)}
-              onFocus={() => setCatalogMenuOpen(true)}
-              to="/catalog"
+              onClick={openCatalogMenu}
+              onFocus={openCatalogMenu}
+              type="button"
             >
               <Menu size={18} /> Усі товари <ChevronDown size={14} />
-            </Link>
+            </button>
             {catalogMenuOpen ? (
               <nav
                 aria-label="Категорії товарів"
@@ -212,28 +239,76 @@ export function SiteHeader() {
                       Не вдалося завантажити категорії.
                     </p>
                   ) : (
-                    <div className="catalog-mega-menu__grid">
-                      {categories.map((category) => (
-                        <Link
-                          className="catalog-mega-menu__category"
-                          key={category.id}
-                          onClick={() => setCatalogMenuOpen(false)}
-                          style={
-                            {
-                              "--category-accent": category.accent,
-                            } as CSSProperties
-                          }
-                          to={`/catalog/${category.slug}`}
-                        >
-                          <CategoryIcon size={23} slug={category.slug} />
-                          <span>
-                            <strong>{category.name}</strong>
-                            <small>
-                              {pluralizeProducts(category.product_count)}
-                            </small>
-                          </span>
-                        </Link>
-                      ))}
+                    <div className="catalog-mega-menu__body">
+                      <div
+                        aria-label="Категорії каталогу"
+                        className="catalog-mega-menu__roots"
+                        role="group"
+                      >
+                        {categories.map((category) => (
+                          <button
+                            aria-pressed={
+                              activeCategory?.slug === category.slug
+                            }
+                            className="catalog-mega-menu__root"
+                            key={category.id}
+                            onClick={() =>
+                              setCatalogCategorySlug(category.slug)
+                            }
+                            onFocus={() =>
+                              setCatalogCategorySlug(category.slug)
+                            }
+                            onMouseEnter={() =>
+                              setCatalogCategorySlug(category.slug)
+                            }
+                            type="button"
+                          >
+                            <span>{category.name}</span>
+                            <ChevronRight aria-hidden="true" size={15} />
+                          </button>
+                        ))}
+                      </div>
+                      <section
+                        aria-label={`Підкатегорії ${activeCategory?.name ?? ""}`}
+                        className="catalog-mega-menu__subcategories"
+                      >
+                        {activeCategory ? (
+                          <>
+                            <div className="catalog-mega-menu__subhead">
+                              <strong>{activeCategory.name}</strong>
+                              <Link
+                                onClick={() => setCatalogMenuOpen(false)}
+                                to={`/catalog/${activeCategory.slug}`}
+                              >
+                                Усі товари розділу{" "}
+                                <span aria-hidden="true">→</span>
+                              </Link>
+                            </div>
+                            {activeSubcategories.length ? (
+                              <div className="catalog-mega-menu__subgrid">
+                                {activeSubcategories.map((subcategory) => (
+                                  <Link
+                                    className="catalog-mega-menu__subcategory"
+                                    key={subcategory.id}
+                                    onClick={() => setCatalogMenuOpen(false)}
+                                    to={`/catalog/${activeCategory.slug}?subcategory=${encodeURIComponent(subcategory.slug)}`}
+                                  >
+                                    {subcategory.name}
+                                  </Link>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="catalog-mega-menu__state">
+                                У цьому розділі поки немає підкатегорій.
+                              </p>
+                            )}
+                          </>
+                        ) : (
+                          <p className="catalog-mega-menu__state">
+                            Категорії поки недоступні.
+                          </p>
+                        )}
+                      </section>
                     </div>
                   )}
                 </div>

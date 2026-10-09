@@ -28,3 +28,13 @@ export function prioritizeSubcategories<T extends Pick<Subcategory, "name">>(
     })
     .map(({ subcategory }) => subcategory);
 }
+
+export function availableSubcategories<T extends Subcategory>(
+  categorySlug: string | undefined,
+  subcategories: T[],
+): T[] {
+  const populated = [...subcategories]
+    .filter((subcategory) => subcategory.product_count > 0)
+    .sort((left, right) => right.product_count - left.product_count);
+  return prioritizeSubcategories(categorySlug, populated);
+}

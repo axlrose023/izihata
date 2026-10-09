@@ -50,7 +50,14 @@ const categories: Category[] = [
     name: "Розетки та вимикачі",
     accent: "#f2a30b",
     product_count: 6,
-    subcategories: [],
+    subcategories: [
+      {
+        id: "sockets-subcategory-id",
+        slug: "sockets-outlets",
+        name: "Розетки",
+        product_count: 6,
+      },
+    ],
   },
   {
     id: "cable-id",
@@ -85,7 +92,12 @@ it("returns from a filtered category route to the unfiltered all-products route"
   const { router } = renderHeader(
     "/catalog/lowvoltage?brand=ETI&spec=%5B%22Матеріал%22%2C%22Метал%22%5D&page=4",
   );
-  fireEvent.click(screen.getByRole("link", { name: "Усі товари" }));
+  fireEvent.click(screen.getByRole("button", { name: "Усі товари" }));
+  fireEvent.click(
+    within(
+      screen.getByRole("navigation", { name: "Категорії товарів" }),
+    ).getByRole("link", { name: /Переглянути всі товари/ }),
+  );
 
   await waitFor(() => expect(router.state.location.pathname).toBe("/catalog"));
   expect(router.state.location.search).toBe("");
@@ -93,7 +105,7 @@ it("returns from a filtered category route to the unfiltered all-products route"
 
 it("opens the category popover on hover and closes it with Escape", () => {
   renderHeader("/");
-  const trigger = document.querySelector<HTMLAnchorElement>(
+  const trigger = document.querySelector<HTMLButtonElement>(
     ".catalog-nav__primary",
   )!;
 
@@ -103,10 +115,14 @@ it("opens the category popover on hover and closes it with Escape", () => {
   const menu = screen.getByRole("navigation", {
     name: "Категорії товарів",
   });
-  expect(
-    within(menu).getByRole("link", { name: /Розетки та вимикачі/ }),
-  ).toHaveAttribute("href", "/catalog/sockets");
-  expect(menu).toHaveTextContent("6 товарів");
+  const categoryButton = within(menu).getByRole("button", {
+    name: "Розетки та вимикачі",
+  });
+  fireEvent.mouseEnter(categoryButton);
+  expect(within(menu).getByRole("link", { name: "Розетки" })).toHaveAttribute(
+    "href",
+    "/catalog/sockets?subcategory=sockets-outlets",
+  );
 
   fireEvent.keyDown(trigger, { key: "Escape" });
   expect(

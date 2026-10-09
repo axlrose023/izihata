@@ -19,7 +19,7 @@ import {
   type CatalogFilterQuery,
 } from "@/modules/catalog/components/catalog-filters";
 import { catalogHref } from "@/modules/catalog/lib/catalog-href";
-import { prioritizeSubcategories } from "@/modules/catalog/lib/subcategory-order";
+import { availableSubcategories } from "@/modules/catalog/lib/subcategory-order";
 import { ActiveFilters } from "@/modules/catalog/components/active-filters";
 import { ProductCard } from "@/modules/catalog/components/product-card";
 import type { ProductBadge, ProductSort } from "@/shared/types/api";
@@ -103,13 +103,10 @@ export function CatalogPage({
   const initialActiveCategory = categoriesResult.data?.find(
     (item) => item.slug === query.category,
   );
-  // Порожні підкатегорії нічого не дають, а решту показуємо за спаданням —
-  // артборд Catalog показує кілька найбільших і ховає хвіст за «ще N».
-  const rankedSubcategories = prioritizeSubcategories(
+  // Каталог і меню використовують однаковий порядок підкатегорій.
+  const rankedSubcategories = availableSubcategories(
     initialActiveCategory?.slug,
-    [...(initialActiveCategory?.subcategories ?? [])]
-      .filter((item) => item.product_count > 0)
-      .sort((a, b) => b.product_count - a.product_count),
+    initialActiveCategory?.subcategories ?? [],
   );
   const previewSubcategories = rankedSubcategories.slice(0, 6);
   const selectedSubcategory = rankedSubcategories.find(
