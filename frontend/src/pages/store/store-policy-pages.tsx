@@ -343,6 +343,21 @@ export function TermsOfUsePage() {
           менеджера. Ці умови не обмежують законних прав споживача.
         </p>
       </PolicySection>
+      <PolicySection id="contact-details" title="Контактна інформація:">
+        <address className="policy-legal-contact">
+          <p>ФОП Довбиш О. М.</p>
+          <p>ЄДРПОУ: 3453113494</p>
+          <p>Юридична адреса: 03151, м. Київ, вул. Ушинського, 19</p>
+          <p>
+            <a href={`mailto:${storeInfo.email.support}`}>
+              {storeInfo.email.support}
+            </a>
+          </p>
+          <p>
+            Тел.: <a href={storeInfo.phone.href}>{storeInfo.phone.label}</a>
+          </p>
+        </address>
+      </PolicySection>
     </PolicyLayout>
   );
 }

@@ -5332,6 +5332,19 @@ h2 {
 .policy-content .policy-contact p {
   margin: 0;
 }
+.policy-content .policy-legal-contact {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+  font-style: normal;
+  line-height: 1.55;
+}
+.policy-content .policy-legal-contact p {
+  margin: 0;
+  color: inherit;
+}
 @media (max-width: 820px) {
   .policy-page {
     padding-bottom: 32px;
