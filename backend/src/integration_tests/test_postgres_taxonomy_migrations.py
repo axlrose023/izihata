@@ -216,6 +216,14 @@ def exercise_requested(connection):
                     price=123.45,
                 ),
                 Product(
+                    sku="TEST-THERMAL-ALT",
+                    slug="test-thermal-alt",
+                    name="Реле теплове \u0420\u0422\u041a\u041c 90-120 \u0410",
+                    brand="QA",
+                    category_id=categories["relay"].id,
+                    price=123.45,
+                ),
+                Product(
                     sku="TEST-ACCESSORY",
                     slug="test-accessory",
                     name="Блок реверса контактора AR85",
@@ -308,6 +316,7 @@ def exercise_requested(connection):
             )
             assert assignments["TEST-COIL"][0] == categories["lowvoltage"].id
             assert assignments["TEST-THERMAL"][0] == categories["lowvoltage"].id
+            assert assignments["TEST-THERMAL-ALT"][0] == categories["relay"].id
             assert assignments["TEST-ACCESSORY"][0] == categories["lowvoltage"].id
             assert assignments["TEST-MARKER"][0] == categories["installation"].id
             assert assignments["TEST-SIP"][0] == categories["cabletrays"].id
@@ -317,6 +326,14 @@ def exercise_requested(connection):
                 contactors.id,
             )
             assert assignments["TEST-UNRELATED"][0] == categories["other"].id
+            adjustment = migration(
+                "2026_10_16_1330_complete_thermal_relay_assignment.py"
+            )
+            adjustment.upgrade()
+            assert connection.execute(
+                select(Product.category_id).where(Product.sku == "TEST-THERMAL-ALT")
+            ).scalar_one() == categories["lowvoltage"].id
+            adjustment.downgrade()
             module.downgrade()
             assert snapshot(connection) == before
 
