@@ -426,6 +426,97 @@ class TestRuleCorrections:
         ("name", "category", "subcategory"),
         [
             (
+                "Котушка управління контактора e.industrial.ukc.coil.40.24",
+                "lowvoltage",
+                "Котушки управління до контакторів",
+            ),
+            (
+                "Блок реверса контактора e.industrial.ar85",
+                "lowvoltage",
+                "Додаткове обладнання для контакторів",
+            ),
+            (
+                "Адаптер теплового реле CES-AD-RT0",
+                "lowvoltage",
+                "Додаткове обладнання для контакторів",
+            ),
+            (
+                "Незалежна основа теплового реле e.industrial.azh.22",
+                "lowvoltage",
+                "Додаткове обладнання для контакторів",
+            ),
+            (
+                "Реле теплове до контакторів EV007...EV015",
+                "lowvoltage",
+                "Теплові реле",
+            ),
+            (
+                "Реле захисту двигуна e.control.m01",
+                "relay",
+                "Реле захисту двигуна",
+            ),
+            (
+                "Імпульсне реле CRM-2H UNI 12-240V AC/DC",
+                "relay",
+                "Імпульсні реле",
+            ),
+            (
+                "Реле контролю напруги розеткове URate S-16",
+                "relay",
+                "Розеточні реле",
+            ),
+            (
+                "Реле часу електромеханічне розеточне добове e.control.t11",
+                "relay",
+                "Розеточні реле",
+            ),
+            (
+                "Блок розподільчий EDB-207",
+                "installation",
+                "Блоки розподільчі",
+            ),
+            ("Ізолятор-тримач SM25", "installation", "Ізолятори"),
+            (
+                "Комплект кабельного маркування тип М-0",
+                "installation",
+                "Маркери кабельні",
+            ),
+            (
+                "Маркування EC-0 0,75-1,5 кв.мм2",
+                "installation",
+                "Маркери кабельні",
+            ),
+            (
+                "Шайба мідно-алюмінієва М8",
+                "installation",
+                "Шайби мідно-алюмінієві",
+            ),
+            (
+                "Вироби для кріплення кабельних трас",
+                "installation",
+                "Вироби для кріплення",
+            ),
+            (
+                "Відгалужувальний проколюючий затискач AsXS 35-70",
+                "cabletrays",
+                "Арматура СІП",
+            ),
+            (
+                "Муфта для труб ПВХ 20 мм",
+                "cabletrays",
+                "Аксесуари для труб ПВХ",
+            ),
+            (
+                "Колодязь кабельний пластиковий 200х200х200мм",
+                "cabletrays",
+                "Колодязі кабельні",
+            ),
+            (
+                "Модульний контактор MK-N 1P 16A",
+                "lowvoltage",
+                "Контактори",
+            ),
+            (
                 "Реле диференційне (ПЗВ) 2р EFI-P2 16/0,03 тип AC (10kA)",
                 "lowvoltage",
                 "ПЗВ (УЗО)",
@@ -449,6 +540,19 @@ class TestRuleCorrections:
 
     def test_a_plain_relay_is_still_a_relay(self):
         assert classify("Реле контролю фаз")[0] == "relay"
+
+    def test_accessory_for_impulse_relays_is_not_an_impulse_relay(self):
+        assert classify("Додатковий контакт для імпульсних реле 6А") == (
+            "relay",
+            None,
+            True,
+        )
+
+    def test_surge_protection_clamp_is_not_sip_armature(self):
+        category, subcategory, _ = classify(
+            "Відгалужувальний проколюючий затискач для обмежувачів перенапруги"
+        )
+        assert (category, subcategory) != ("cabletrays", "Арматура СІП")
 
     @pytest.mark.parametrize(
         ("name", "category", "subcategory"),
