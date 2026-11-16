@@ -245,6 +245,34 @@ it("stops directory searches after selection and resumes when edited", async () 
   await waitFor(() => expect(directoryCalls()).toHaveLength(5));
 });
 
+it("keeps the selected city when switching between branch and locker", async () => {
+  renderForm(false, false, [
+    {
+      ref: "point-8",
+      label: "Відділення № 8: вул. Хрещатик, 1",
+      name: "Відділення № 8: вул. Хрещатик, 1",
+      number: "8",
+    },
+  ]);
+  const [city] = screen.getAllByRole("combobox");
+  fireEvent.focus(city);
+  fireEvent.change(city, { target: { value: "Київ" } });
+  fireEvent.mouseDown(await screen.findByRole("option", { name: "Київ" }));
+  fireEvent.blur(city);
+  fireEvent.focus(city);
+  expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+
+  fireEvent.click(screen.getByDisplayValue("nova_poshta_locker"));
+  expect(city).toHaveValue("Київ");
+  expect(screen.getAllByRole("combobox")[1]).not.toBeDisabled();
+  await waitFor(() =>
+    expect(apiClient).toHaveBeenCalledWith(
+      expect.stringContaining("city_ref=city-1&kind=locker"),
+      expect.anything(),
+    ),
+  );
+});
+
 it("retains the applied promo through temporary failures and retries explicitly", async () => {
   renderForm();
   await waitFor(() =>

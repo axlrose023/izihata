@@ -8669,6 +8669,11 @@ h1 {
   font-weight: 600;
 }
 
+.checkout-card--payment .choice-grid span {
+  height: 100%;
+  min-height: 68px;
+}
+
 .checkout-email-field {
   grid-column: 1 / -1;
 }

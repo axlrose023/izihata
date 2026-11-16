@@ -156,6 +156,8 @@ export function CheckoutForm() {
   const point = useWatch({ control, name: "point" });
   const deferredCity = useDebouncedValue(city.trim(), 300);
   const deferredPoint = useDebouncedValue(point.trim(), 300);
+  const citySearchPending = city.trim() !== deferredCity;
+  const pointSearchPending = point.trim() !== deferredPoint;
   const isNovaPoshta = deliveryMethod !== "pickup";
   const cities = useQuery({
     queryKey: ["delivery", "cities", deferredCity],
@@ -163,7 +165,9 @@ export function CheckoutForm() {
       isNovaPoshta &&
       !manualDelivery &&
       selectedCityRef === null &&
+      !citySearchPending &&
       deferredCity.length >= 2,
+    staleTime: 5 * 60_000,
     queryFn: ({ signal }) =>
       apiClient<DeliveryCityOption[]>(
         `/delivery/cities?${new URLSearchParams({ search: deferredCity })}`,
@@ -178,7 +182,9 @@ export function CheckoutForm() {
       isNovaPoshta &&
       !manualDelivery &&
       selectedCityRef !== null &&
-      selectedPointRef === null,
+      selectedPointRef === null &&
+      !pointSearchPending,
+    staleTime: 5 * 60_000,
     queryFn: ({ signal }) =>
       apiClient<DeliveryPointOption[]>(
         `/delivery/points?${new URLSearchParams({
@@ -379,7 +385,6 @@ export function CheckoutForm() {
                         event.target.value as typeof option.value,
                       );
                       setValue("point", "");
-                      setSelectedCityRef(null);
                       setSelectedPointRef(null);
                     }}
                     checked={deliveryMethod === option.value}
@@ -408,7 +413,7 @@ export function CheckoutForm() {
                     render={({ field }) => (
                       <DeliveryAutocomplete
                         emptyMessage="Місто не знайдено"
-                        isLoading={cities.isFetching}
+                        isLoading={citySearchPending || cities.isFetching}
                         minimumQueryLength={2}
                         onChange={(value) => {
                           if (canEnterManually) setManualDelivery(true);
@@ -425,7 +430,7 @@ export function CheckoutForm() {
                           setValue("point", "");
                         }}
                         options={cities.data ?? []}
-                        suggestionsEnabled={!manualDelivery}
+                        suggestionsEnabled={!manualDelivery && !selectedCityRef}
                         placeholder="Почніть вводити місто й оберіть зі списку"
                         value={field.value}
                       />
@@ -450,7 +455,7 @@ export function CheckoutForm() {
                             ? "Поштомат не знайдено"
                             : "Відділення не знайдено"
                         }
-                        isLoading={points.isFetching}
+                        isLoading={pointSearchPending || points.isFetching}
                         onChange={(value) => {
                           if (canEnterManually) setManualDelivery(true);
                           field.onChange(value);
@@ -461,7 +466,9 @@ export function CheckoutForm() {
                           setSelectedPointRef(option.ref);
                         }}
                         options={points.data ?? []}
-                        suggestionsEnabled={!manualDelivery}
+                        suggestionsEnabled={
+                          !manualDelivery && !selectedPointRef
+                        }
                         placeholder={
                           selectedCityRef
                             ? `Почніть вводити номер або адресу й оберіть ${
