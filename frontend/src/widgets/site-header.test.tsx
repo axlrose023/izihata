@@ -1,4 +1,5 @@
 import {
+  cleanup,
   fireEvent,
   render,
   screen,
@@ -40,7 +41,9 @@ vi.mock("@/shared/ui/logo", () => ({ Logo: () => null }));
 vi.mock("./site-sidebar", () => ({ SiteSidebar: () => null }));
 
 afterEach(() => {
+  cleanup();
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
 });
 
 const categories: Category[] = [
@@ -69,14 +72,15 @@ const categories: Category[] = [
   },
 ];
 
-function renderHeader(initialEntry: string) {
+function renderHeader(initialEntry: string, seedCategories = true) {
   const router = createMemoryRouter([{ path: "*", element: <SiteHeader /> }], {
     initialEntries: [initialEntry],
   });
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
-  queryClient.setQueryData(categoriesQuery().queryKey, categories);
+  if (seedCategories)
+    queryClient.setQueryData(categoriesQuery().queryKey, categories);
 
   return {
     router,
@@ -87,6 +91,18 @@ function renderHeader(initialEntry: string) {
     ),
   };
 }
+
+it("loads categories only when the catalog menu is opened on an informational page", async () => {
+  const fetchMock = vi.fn().mockResolvedValue(Response.json(categories));
+  vi.stubGlobal("fetch", fetchMock);
+  renderHeader("/delivery-and-payment", false);
+  expect(fetchMock).not.toHaveBeenCalled();
+
+  fireEvent.click(screen.getByRole("button", { name: "Усі товари" }));
+  await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+  expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/v1/catalog/categories");
+  await screen.findByRole("button", { name: "Розетки та вимикачі" });
+});
 
 it("returns from a filtered category route to the unfiltered all-products route", async () => {
   const { router } = renderHeader(

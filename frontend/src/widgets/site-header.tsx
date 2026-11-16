@@ -43,7 +43,10 @@ export function SiteHeader() {
   const openCart = useCartStore((state) => state.open);
   const favoriteCount = useCollectionStore((state) => state.favorites.length);
   const compareCount = useCollectionStore((state) => state.compare.length);
-  const categoriesResult = useQuery(categoriesQuery());
+  const categoriesResult = useQuery({
+    ...categoriesQuery(),
+    enabled: menuOpen || catalogMenuOpen,
+  });
   const categories = categoriesResult.data ?? [];
   const { status: customerStatus } = useCustomerAuth();
   const cartTotal = lines.reduce(
