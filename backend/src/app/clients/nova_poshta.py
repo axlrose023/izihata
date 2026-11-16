@@ -6,7 +6,6 @@ from typing import Any
 import httpx
 from redis.asyncio import Redis
 
-from app.api.common.exceptions import ServiceUnavailableError
 from app.clients.nova_poshta_gate import NovaPoshtaRequestGate, directory_unavailable
 from app.settings import NovaPoshtaConfig
 
@@ -60,10 +59,7 @@ class NovaPoshtaClient:
         )
         addresses = data[0].get("Addresses", []) if data else []
         if not isinstance(addresses, list):
-            raise ServiceUnavailableError(
-                "Delivery address directory is temporarily unavailable",
-                code="delivery_provider_unavailable",
-            )
+            raise directory_unavailable()
         return [
             NovaPoshtaCity(
                 ref=str(item["DeliveryCity"]),
