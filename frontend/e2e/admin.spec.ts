@@ -142,7 +142,9 @@ test("hiding a product keeps it recoverable", async ({ page }) => {
     .getByRole("link", { name: "Товари" })
     .click();
 
-  const row = page.locator(".admin-table tbody tr").first();
+  const row = page
+    .locator('.admin-table tbody tr:not([data-hidden="true"])')
+    .first();
   await expect(row).toBeVisible();
   const name = (await row.locator(".admin-product-name").innerText()).trim();
 
