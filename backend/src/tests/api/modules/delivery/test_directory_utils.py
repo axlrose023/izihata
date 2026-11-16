@@ -81,3 +81,18 @@ def test_point_index_keeps_cities_separate_and_matches_numbers_and_streets():
     assert [item.ref for item in index.search("a", "МИРУ", None, 2, 1)] == ["c"]
     assert index.search("a", "2", None, 1, 50) == []
     assert index.search("missing", "1", None, 1, 50) is None
+
+
+def test_nationwide_points_have_a_stable_numeric_order_before_pagination():
+    index = PointSearchIndex(
+        tuple(
+            NovaPoshtaPoint(str(number), "Point", "", number, "branch", city_ref="city")
+            for number in ["390", "12", "2", "", "1"]
+        )
+    )
+    assert [item.number for item in index.search("city", "", None, 1, 2)] == ["1", "2"]
+    assert [item.number for item in index.search("city", "", None, 2, 2)] == [
+        "12",
+        "390",
+    ]
+    assert [item.number for item in index.search("city", "", None, 3, 2)] == [""]

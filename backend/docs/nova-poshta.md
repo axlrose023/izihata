@@ -13,6 +13,9 @@ snapshot and one point snapshot, not a job/cache entry for each selected city.
 City matching uses a pre-normalized index and a bounded 256-query result cache.
 Points are indexed by city, exact number and normalized address, so users in
 different cities can search without additional provider requests.
+Snapshot decoding and index construction run off the request event loop;
+per-process locks allow only one build for a snapshot, including cold bursts.
+Point pages have a stable numeric order within each city.
 
 On a cold miss, online search remains available. Identical requests share one
 loader through an owner-checked Redis lease; distinct cold provider requests

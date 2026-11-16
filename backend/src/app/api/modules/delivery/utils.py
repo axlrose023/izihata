@@ -103,7 +103,18 @@ class PointSearchIndex:
             cities.setdefault(point.city_ref, []).append(point)
             numbers.setdefault((point.city_ref, point.number), []).append(point)
             self._text[point.ref] = normalized_address(f"{point.name} {point.label}")
-        self._cities = {key: tuple(value) for key, value in cities.items()}
+        self._cities = {
+            key: tuple(
+                sorted(
+                    value,
+                    key=lambda point: (
+                        int(point.number) if point.number.isdecimal() else float("inf"),
+                        point.ref,
+                    ),
+                )
+            )
+            for key, value in cities.items()
+        }
         self._numbers = {key: tuple(value) for key, value in numbers.items()}
 
     def search(

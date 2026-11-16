@@ -100,7 +100,8 @@ class DeliveryDirectoryCache:
         if raw is None:
             return None
         try:
-            value = model.model_validate_json(raw)
+            # Large country snapshots must not stall unrelated Redis/HTTP I/O.
+            value = await asyncio.to_thread(model.model_validate_json, raw)
         except ValidationError:
             logger.warning("Invalid cached delivery directory; loading again")
             return None

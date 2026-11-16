@@ -1,5 +1,6 @@
 import asyncio
 import json
+import threading
 from time import monotonic, perf_counter, time
 from unittest.mock import AsyncMock
 from uuid import uuid4
@@ -67,6 +68,51 @@ async def test_cold_lookup_is_coalesced_across_four_instances(directories):
     )
     assert calls == 1
     assert all(result.items[0].ref == "city" for result in results)
+
+
+@pytest.mark.parametrize("kind", ["cities", "points"])
+async def test_cold_index_build_yields_to_io_and_runs_once(
+    directories, monkeypatch, kind
+):
+    import app.api.modules.delivery.services.directory as directory_module
+
+    _, caches, _ = directories
+    city = NovaPoshtaCity("city", "Київ", "м. Київ")
+    point = _point("p", "Відділення №1", "", "1", "branch")
+    snapshot = (
+        CitySnapshot.create([city], ttl=60, stale=60)
+        if kind == "cities"
+        else PointSnapshot.create([point], ttl=60, stale=60)
+    )
+    await caches[0].save(kind, snapshot, group=kind, capacity=1)
+    client = AsyncMock(spec=NovaPoshtaClient)
+    service = DeliveryDirectoryService(client, caches[0], NovaPoshtaConfig())
+    index_name = "CitySearchIndex" if kind == "cities" else "PointSearchIndex"
+    index_factory = getattr(directory_module, index_name)
+    loop = asyncio.get_running_loop()
+    builds = 0
+
+    def build(items):
+        nonlocal builds
+        builds += 1
+        io_processed = threading.Event()
+        loop.call_soon_threadsafe(io_processed.set)
+        assert io_processed.wait(1), "Index construction blocked the request loop"
+        return index_factory(items)
+
+    monkeypatch.setattr(directory_module, index_name, build)
+    results = await asyncio.gather(
+        *(
+            service.search_cities("Київ")
+            if kind == "cities"
+            else service.search_points("city", "1")
+            for _ in range(100)
+        )
+    )
+    assert all(len(result) == 1 for result in results)
+    assert builds == 1
+    client.search_cities.assert_not_awaited()
+    client.search_points.assert_not_awaited()
 
 
 async def test_many_different_cities_use_one_network_snapshot(directories):

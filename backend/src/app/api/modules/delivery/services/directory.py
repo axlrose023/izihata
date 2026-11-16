@@ -1,3 +1,4 @@
+import asyncio
 import hashlib
 import json
 import logging
@@ -39,6 +40,8 @@ class DeliveryDirectoryService:
         self._city_index = CitySearchIndex(())
         self._point_source: PointSnapshot | None = None
         self._point_index = PointSearchIndex(())
+        self._city_index_lock = asyncio.Lock()
+        self._point_index_lock = asyncio.Lock()
 
     async def search_cities(self, search: str) -> list[NovaPoshtaCity]:
         if not self._enabled:
@@ -54,9 +57,12 @@ class DeliveryDirectoryService:
         if missing or (directory and not directory.is_fresh):
             await self._schedule_refresh()
         if directory:
-            if self._city_source is not directory:
-                self._city_index = CitySearchIndex(directory.items)
-                self._city_source = directory
+            async with self._city_index_lock:
+                if self._city_source is not directory:
+                    self._city_index = await asyncio.to_thread(
+                        CitySearchIndex, directory.items
+                    )
+                    self._city_source = directory
             matches = self._city_index.search(search)
             if matches:
                 return matches
@@ -91,9 +97,12 @@ class DeliveryDirectoryService:
         if missing or (directory and not directory.is_fresh):
             await self._schedule_refresh()
         if directory:
-            if self._point_source is not directory:
-                self._point_index = PointSearchIndex(directory.items)
-                self._point_source = directory
+            async with self._point_index_lock:
+                if self._point_source is not directory:
+                    self._point_index = await asyncio.to_thread(
+                        PointSearchIndex, directory.items
+                    )
+                    self._point_source = directory
             matches = self._point_index.search(
                 city_ref,
                 search,
