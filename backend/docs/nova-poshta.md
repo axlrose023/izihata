@@ -27,10 +27,14 @@ published as a valid directory.
 
 - `refresh_delivery_directories`: every 10 minutes checks both nationwide
   directories; a missing/stale snapshot also queues this same task under a
-  shared lease. Cities refresh after 12 hours, points after six hours by
+  five-minute shared dispatch cooldown. Cities refresh after 12 hours;
+  points refresh after six hours by
   default. One task downloads complete paginated directories, then atomically
   replaces each snapshot. Failed refreshes preserve the last successful data.
   The job has a ten-minute deadline and a fifteen-minute ownership lease.
+  The dispatch cooldown survives job completion/failure so stale readers do
+  not continuously requeue work while NP is unavailable. The batch lease
+  independently prevents concurrent directory downloads.
 - Redis retains one city snapshot, one point snapshot and at most 512 query
   results. All have finite TTLs; stale snapshots remain usable for at most an
   additional day by default. No per-city refresh queue can accumulate.
@@ -80,8 +84,11 @@ Background synchronization is disabled without a configured NP API key.
 responses. It checks four independent cache/service instances, cold request
 coalescing, many distinct searches, owner-safe leases, storage bounds, failure
 rollback, cancelled loaders, stale results, pagination and the shared gate.
-The HTTP integration test sends 500 concurrent requests from separate test IPs
+The HTTP load test sends 500 concurrent requests from separate test IPs
 to the production ASGI application with real Redis, across 500 cached cities.
+CI runs `pytest -m load` separately from `pytest -m 'not load' --cov=src/app`:
+coverage instrumentation must not distort the production socket deadlines.
+The concurrency and success assertions use the normal application settings.
 
 `scripts/benchmark_delivery.py` runs a burst benchmark against the configured
 Redis using four service instances and synthetic directories. It makes **zero

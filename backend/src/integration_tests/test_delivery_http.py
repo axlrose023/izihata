@@ -70,6 +70,7 @@ async def test_delivery_http_uses_shared_cache_and_still_throttles_abuse(monkeyp
         await redis.aclose()
 
 
+@pytest.mark.load
 async def test_500_concurrent_http_users_search_without_calling_the_provider(
     monkeypatch,
 ):
