@@ -94,7 +94,7 @@ jobs:
         run: |
           uv run cli bootstrap
           uv run alembic check
-          uv run pytest src/integration_tests -q
+          uv run pytest src/integration_tests -q --cov=src/app --cov-append --cov-report=xml --cov-report=term --cov-fail-under=80
 
       - name: Build production image
         run: docker build -t izihata-api:ci .
