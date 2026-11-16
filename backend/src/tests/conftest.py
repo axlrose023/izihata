@@ -3,6 +3,7 @@ from app.settings import (
     APIConfig,
     Config,
     JwtConfig,
+    NovaPoshtaConfig,
     PostgresConfig,
     PublicCatalogCacheConfig,
     RateLimitConfig,
@@ -18,6 +19,7 @@ _test_config = Config(
     redis=RedisConfig(host="localhost"),
     rate_limit=RateLimitConfig(enabled=False),
     public_catalog_cache=PublicCatalogCacheConfig(enabled=False),
+    nova_poshta=NovaPoshtaConfig(directory_enabled=False),
 )
 
 app.settings.get_config = lambda: _test_config

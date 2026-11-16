@@ -142,3 +142,32 @@ class TestDeliveryLocations:
             },
         )
         assert response.status_code == 422
+
+    async def test_skips_forbidden_points_without_losing_the_next_page(
+        self, client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+    ):
+        async def search_points(provider, city_ref, search, type_ref=None, page=1):
+            return [
+                NovaPoshtaPoint(
+                    str(i),
+                    "Відділення",
+                    "",
+                    str(i),
+                    "branch",
+                    selectable=i != 0,
+                )
+                for i in range(50)
+            ]
+
+        monkeypatch.setattr(NovaPoshtaClient, "search_points", search_points)
+        response = await client.get(
+            "/api/v1/delivery/points",
+            params={
+                "city_ref": "8d5a980d-391c-11dd-90d9-001a92567626",
+                "kind": "branch",
+                "page": 1,
+            },
+        )
+        assert response.status_code == 200
+        assert len(response.json()["items"]) == 49
+        assert response.json()["next_page"] == 2

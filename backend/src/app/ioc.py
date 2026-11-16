@@ -1,7 +1,7 @@
 from collections.abc import AsyncIterator
 
 from dishka import AsyncContainer, Provider, Scope, make_async_container, provide
-from redis.asyncio import Redis
+from redis.asyncio import BlockingConnectionPool, Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.modules.activity.service import (
@@ -40,7 +40,12 @@ from app.api.modules.customers.service import (
     CustomerAuthenticationService,
     CustomerProfileService,
 )
-from app.api.modules.delivery.service import DeliveryLocationService
+from app.api.modules.delivery.cache import DeliveryDirectoryCache
+from app.api.modules.delivery.service import (
+    DeliveryDirectoryRefreshService,
+    DeliveryDirectoryService,
+    DeliveryLocationService,
+)
 from app.api.modules.leads.service import (
     LeadCreationService,
     LeadManagementService,
@@ -80,12 +85,15 @@ class AppProvider(Provider):
 
     @provide(scope=Scope.APP)
     async def get_redis(self, config: Config) -> AsyncIterator[Redis]:
-        redis = Redis.from_url(
+        pool = BlockingConnectionPool.from_url(
             config.redis_url,
+            max_connections=config.redis.max_connections,
+            timeout=config.redis.pool_timeout_seconds,
             decode_responses=True,
             socket_connect_timeout=config.redis.socket_connect_timeout_seconds,
             socket_timeout=config.redis.socket_timeout_seconds,
         )
+        redis = Redis.from_pool(pool)
         try:
             yield redis
         finally:
@@ -105,8 +113,9 @@ class AppProvider(Provider):
     async def get_nova_poshta_client(
         self,
         config: Config,
+        redis: Redis,
     ) -> AsyncIterator[NovaPoshtaClient]:
-        client = NovaPoshtaClient(config.nova_poshta)
+        client = NovaPoshtaClient(config.nova_poshta, redis)
         try:
             yield client
         finally:
@@ -115,6 +124,32 @@ class AppProvider(Provider):
 
 class ServicesProvider(Provider):
     """Services provider for dependency injection."""
+
+    @provide(scope=Scope.APP)
+    def get_delivery_directory_cache(self, redis: Redis) -> DeliveryDirectoryCache:
+        return DeliveryDirectoryCache(redis)
+
+    @provide(scope=Scope.APP)
+    def get_delivery_directory_service(
+        self, client: NovaPoshtaClient, cache: DeliveryDirectoryCache, config: Config
+    ) -> DeliveryDirectoryService:
+        async def enqueue(city_ref: str, token: str) -> None:
+            from app.tasks.delivery import refresh_delivery_city
+
+            await refresh_delivery_city.kiq(city_ref, token)
+
+        return DeliveryDirectoryService(
+            client,
+            cache,
+            config.nova_poshta,
+            enqueue if config.nova_poshta.api_key is not None else None,
+        )
+
+    @provide(scope=Scope.APP)
+    def get_delivery_directory_refresh_service(
+        self, client: NovaPoshtaClient, cache: DeliveryDirectoryCache, config: Config
+    ) -> DeliveryDirectoryRefreshService:
+        return DeliveryDirectoryRefreshService(client, cache, config.nova_poshta)
 
     @provide(scope=Scope.APP)
     def get_public_catalog_cache(
@@ -156,9 +191,9 @@ class ServicesProvider(Provider):
     @provide(scope=Scope.REQUEST)
     def get_delivery_location_service(
         self,
-        client: NovaPoshtaClient,
+        directory: DeliveryDirectoryService,
     ) -> DeliveryLocationService:
-        return DeliveryLocationService(client)
+        return DeliveryLocationService(directory)
 
     @provide(scope=Scope.APP)
     def get_media_storage_service(self, config: Config) -> MediaStorageService:

@@ -47,9 +47,15 @@ class RateLimitService:
             current, ttl = int(result[0]), int(result[1])
         except (RedisError, ConnectionError, TimeoutError) as exc:
             if self._fail_open:
-                logger.exception("Rate limiter is unavailable; allowing request")
+                logger.warning(
+                    "Rate limiter is unavailable; allowing request: %s",
+                    type(exc).__name__,
+                )
                 return
-            logger.exception("Rate limiter is unavailable; rejecting request")
+            logger.warning(
+                "Rate limiter is unavailable; rejecting request: %s",
+                type(exc).__name__,
+            )
             raise ServiceUnavailableError("Rate limiter is unavailable") from exc
 
         if current > policy.requests:
