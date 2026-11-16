@@ -8,8 +8,11 @@ The public API remains `GET /api/v1/delivery/cities` and
 The directory service searches complete cached snapshots, not the provider on
 each keystroke. Redis shares snapshots and coordination across web processes
 and Taskiq workers. Each process keeps at most 64 decoded snapshots for 30
-seconds, avoiding repeated JSON decoding of large cities. City matching uses a
-pre-normalized index and a bounded 256-query result cache.
+seconds, avoiding repeated JSON decoding. There is one country-wide city
+snapshot and one point snapshot, not a job/cache entry for each selected city.
+City matching uses a pre-normalized index and a bounded 256-query result cache.
+Points are indexed by city, exact number and normalized address, so users in
+different cities can search without additional provider requests.
 
 On a cold miss, online search remains available. Identical requests share one
 loader through an owner-checked Redis lease; distinct cold provider requests
@@ -19,15 +22,16 @@ published as a valid directory.
 
 ## Background work and bounds
 
-- `refresh_delivery_city`: queued once when a city is first used or its
-  snapshot becomes stale. Downloads all pages before atomically replacing the
-  snapshot. Failed refreshes preserve the previous successful snapshot.
-- `refresh_delivery_directories`: every 10 minutes checks the country
-  directory and up to 64 recently used cities. Cities refresh after 12 hours;
-  point snapshots after one hour by default.
-- Redis retains at most 64 city-point snapshots, one country snapshot and 512
-  query results. All have finite TTLs. Active-city tracking is also bounded.
-- A shared per-key gate spaces outbound request starts by 500 ms by default.
+- `refresh_delivery_directories`: every 10 minutes checks both nationwide
+  directories; a missing/stale snapshot also queues this same task under a
+  shared lease. Cities refresh after 12 hours, points after six hours by
+  default. One task downloads complete paginated directories, then atomically
+  replaces each snapshot. Failed refreshes preserve the last successful data.
+  The job has a ten-minute deadline and a fifteen-minute ownership lease.
+- Redis retains one city snapshot, one point snapshot and at most 512 query
+  results. All have finite TTLs; stale snapshots remain usable for at most an
+  additional day by default. No per-city refresh queue can accumulate.
+- A shared per-key gate spaces outbound request starts by one second by default.
   Waiting for a slot is limited to two seconds; an individual provider lookup
   is limited to eight seconds including its one retry.
 - The complete public lookup has a 10-second deadline. The IP-level abuse
@@ -57,9 +61,9 @@ Optional environment settings use the existing nested configuration:
 
 ```dotenv
 APP__NOVA_POSHTA__DIRECTORY_ENABLED=true
-APP__NOVA_POSHTA__DIRECTORY_TTL_SECONDS=3600
+APP__NOVA_POSHTA__DIRECTORY_TTL_SECONDS=21600
 APP__NOVA_POSHTA__DIRECTORY_STALE_SECONDS=86400
-APP__NOVA_POSHTA__REQUEST_INTERVAL_SECONDS=0.5
+APP__NOVA_POSHTA__REQUEST_INTERVAL_SECONDS=1
 APP__NOVA_POSHTA__REQUEST_WAIT_SECONDS=2
 APP__NOVA_POSHTA__REQUEST_DEADLINE_SECONDS=8
 ```
@@ -73,6 +77,8 @@ Background synchronization is disabled without a configured NP API key.
 responses. It checks four independent cache/service instances, cold request
 coalescing, many distinct searches, owner-safe leases, storage bounds, failure
 rollback, cancelled loaders, stale results, pagination and the shared gate.
+The HTTP integration test sends 500 concurrent requests from separate test IPs
+to the production ASGI application with real Redis, across 500 cached cities.
 
 `scripts/benchmark_delivery.py` runs a burst benchmark against the configured
 Redis using four service instances and synthetic directories. It makes **zero
@@ -86,8 +92,8 @@ uv run python scripts/benchmark_delivery.py --concurrency 500 --size 10000
 
 Recorded measurements and production smoke checks should include the tested
 release, hardware/environment, concurrency, directory size, response percentiles
-and upstream-call count. Cold caches serving entirely different, previously
-unused cities still depend on the provider's quota; bounded overload is
+and upstream-call count. Until the initial nationwide synchronization finishes,
+cold unmatched queries still depend on the provider's quota; bounded overload is
 reported as a controlled 503 rather than unbounded waiting or provider flooding.
 
 ## References

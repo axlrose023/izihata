@@ -87,7 +87,7 @@ async def benchmark(concurrency: int, size: int) -> None:
             provider.search_points.await_count == 1, "duplicate cold provider calls"
         )
         await caches[0].save(
-            "points:city",
+            "points",
             PointSnapshot.create(
                 [
                     NovaPoshtaPoint(
@@ -96,6 +96,7 @@ async def benchmark(concurrency: int, size: int) -> None:
                         f"вул. Тестова, {index}",
                         str(index),
                         "branch",
+                        city_ref=f"city-{(index - 1) % min(500, size)}",
                     )
                     for index in range(1, size + 1)
                 ],
@@ -122,7 +123,9 @@ async def benchmark(concurrency: int, size: int) -> None:
 
         async def points(service, index):
             number = str(index % size + 1)
-            result = await service.search_points("city", number)
+            result = await service.search_points(
+                f"city-{index % size % min(500, size)}", number
+            )
             require(len(result) == 1 and result[0].number == number, "wrong point")
 
         async def cities(service, index):
@@ -130,7 +133,7 @@ async def benchmark(concurrency: int, size: int) -> None:
             result = await service.search_cities(name)
             require(result[0].name == name, "wrong city")
 
-        await measure("different point numbers in a cached city", points)
+        await measure("different point numbers across cached cities", points)
         await measure("cities from the cached country directory", cities)
         require(
             all(report["provider_calls"] == 0 for report in reports[1:]),
