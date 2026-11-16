@@ -53,6 +53,23 @@ test("font configuration prevents late replacement of painted text", async ({
   expect(new URL(href!).searchParams.get("display")).toBe("optional");
 });
 
+test("home directories fit wide fallback typography at 320px", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 844 });
+  await page.route("https://fonts.googleapis.com/**", (route) => route.abort());
+  await page.goto("/");
+  await expect(page.locator(".category-card").first()).toBeVisible();
+  await expect(page.locator(".section-card__content h3").first()).toBeVisible();
+  await page.addStyleTag({
+    content: `.category-card strong, .section-card__content h3 {
+      font-family: Georgia, serif !important;
+      font-size: 24px !important;
+    }`,
+  });
+  await expectDocumentFits(page);
+});
+
 test("catalog breadcrumbs open the category directory", async ({
   page,
   request,
