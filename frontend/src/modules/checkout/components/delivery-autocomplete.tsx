@@ -17,6 +17,10 @@ interface DeliveryAutocompleteProps<TOption extends DeliverySuggestion> {
   value: string;
   disabled?: boolean;
   suggestionsEnabled?: boolean;
+  hasMore?: boolean;
+  isLoadingMore?: boolean;
+  loadMoreError?: boolean;
+  onLoadMore?: () => void;
 }
 
 export function DeliveryAutocomplete<TOption extends DeliverySuggestion>({
@@ -30,6 +34,10 @@ export function DeliveryAutocomplete<TOption extends DeliverySuggestion>({
   value,
   disabled = false,
   suggestionsEnabled = true,
+  hasMore = false,
+  isLoadingMore = false,
+  loadMoreError = false,
+  onLoadMore,
 }: DeliveryAutocompleteProps<TOption>) {
   const [isOpen, setIsOpen] = useState(false);
   const [activeRef, setActiveRef] = useState<string | null>(null);
@@ -85,12 +93,20 @@ export function DeliveryAutocomplete<TOption extends DeliverySuggestion>({
 
   const select = (option: TOption) => {
     onSelect(option);
+    inputRef.current?.focus();
     setIsOpen(false);
     setActiveRef(null);
   };
 
   return (
-    <div className="delivery-autocomplete">
+    <div
+      className="delivery-autocomplete"
+      onBlur={(event) => {
+        if (event.currentTarget.contains(event.relatedTarget)) return;
+        setIsOpen(false);
+        setActiveRef(null);
+      }}
+    >
       <input
         aria-autocomplete="list"
         aria-activedescendant={
@@ -102,10 +118,6 @@ export function DeliveryAutocomplete<TOption extends DeliverySuggestion>({
         autoComplete="off"
         disabled={disabled}
         ref={inputRef}
-        onBlur={() => {
-          setIsOpen(false);
-          setActiveRef(null);
-        }}
         onChange={(event) => {
           onChange(event.target.value);
           setIsOpen(true);
@@ -121,11 +133,12 @@ export function DeliveryAutocomplete<TOption extends DeliverySuggestion>({
           }
           if (event.key === "Enter" && isOpen) {
             event.preventDefault();
+            if (isLoading) return;
             const option = options[activeIndex];
             if (option) select(option);
             return;
           }
-          if (!options.length) return;
+          if (isLoading || !options.length) return;
           if (event.key === "ArrowDown") {
             event.preventDefault();
             setIsOpen(true);
@@ -146,33 +159,54 @@ export function DeliveryAutocomplete<TOption extends DeliverySuggestion>({
         <div
           className="delivery-autocomplete__menu"
           data-placement={menuPosition.placement}
-          id={listboxId}
-          role="listbox"
           style={{ maxHeight: menuPosition.maxHeight }}
         >
-          {isLoading ? (
-            <p className="delivery-autocomplete__state">
-              <LoaderCircle className="spin" size={15} /> Завантажуємо…
+          <div id={listboxId} role="listbox">
+            {isLoading ? (
+              <p className="delivery-autocomplete__state">
+                <LoaderCircle className="spin" size={15} /> Завантажуємо…
+              </p>
+            ) : options.length ? (
+              options.map((option, index) => (
+                <button
+                  aria-selected={index === activeIndex}
+                  id={`${listboxId}-option-${index}`}
+                  key={option.ref}
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => select(option)}
+                  role="option"
+                  type="button"
+                >
+                  {option.label}
+                </button>
+              ))
+            ) : (
+              <p className="delivery-autocomplete__state">
+                {hasMore
+                  ? "Уточніть пошук або завантажте наступні пункти"
+                  : emptyMessage}
+              </p>
+            )}
+          </div>
+          {loadMoreError ? (
+            <p className="delivery-autocomplete__state" role="status">
+              Не вдалося завантажити наступні пункти. Спробуйте ще раз.
             </p>
-          ) : options.length ? (
-            options.map((option, index) => (
-              <button
-                aria-selected={index === activeIndex}
-                id={`${listboxId}-option-${index}`}
-                key={option.ref}
-                onMouseDown={(event) => {
-                  event.preventDefault();
-                  select(option);
-                }}
-                role="option"
-                type="button"
-              >
-                {option.label}
-              </button>
-            ))
-          ) : (
-            <p className="delivery-autocomplete__state">{emptyMessage}</p>
-          )}
+          ) : null}
+          {(hasMore || loadMoreError) && onLoadMore ? (
+            <button
+              disabled={isLoadingMore}
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={onLoadMore}
+              type="button"
+            >
+              {isLoadingMore
+                ? "Завантажуємо…"
+                : loadMoreError
+                  ? "Повторити завантаження"
+                  : "Показати ще"}
+            </button>
+          ) : null}
         </div>
       ) : null}
     </div>

@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { Check, LoaderCircle, ShoppingBag } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
@@ -9,6 +9,7 @@ import { z } from "zod";
 import { MAX_CART_LINES, useCartStore } from "@/modules/cart/store";
 import { ProductVisual } from "@/modules/catalog/components/product-visual";
 import { DeliveryAutocomplete } from "@/modules/checkout/components/delivery-autocomplete";
+import { getDeliveryPoints } from "@/modules/checkout/api/delivery-api";
 import { useCustomerAuth } from "@/modules/customers/customer-auth-context";
 import { storePolicyPages } from "@/shared/config/store-policy-pages";
 import { apiClient } from "@/shared/api/client";
@@ -19,12 +20,7 @@ import {
 import { ApiError, getUserErrorMessage } from "@/shared/api/errors";
 import { useDebouncedValue } from "@/shared/lib/use-debounced-value";
 import { formatMoney } from "@/shared/lib/format";
-import type {
-  DeliveryCityOption,
-  DeliveryPointOption,
-  Order,
-  Quote,
-} from "@/shared/types/api";
+import type { DeliveryCityOption, Order, Quote } from "@/shared/types/api";
 import { EmptyState } from "@/shared/ui/empty-state";
 
 const deliveryOptions = [
@@ -176,7 +172,7 @@ export function CheckoutForm() {
   });
   const pointKind =
     deliveryMethod === "nova_poshta_locker" ? "locker" : "branch";
-  const points = useQuery({
+  const points = useInfiniteQuery({
     queryKey: ["delivery", "points", selectedCityRef, pointKind, deferredPoint],
     enabled:
       isNovaPoshta &&
@@ -185,17 +181,20 @@ export function CheckoutForm() {
       selectedPointRef === null &&
       !pointSearchPending,
     staleTime: 5 * 60_000,
-    queryFn: ({ signal }) =>
-      apiClient<DeliveryPointOption[]>(
-        `/delivery/points?${new URLSearchParams({
-          city_ref: selectedCityRef ?? "",
-          kind: pointKind,
-          ...(deferredPoint ? { search: deferredPoint } : {}),
-        })}`,
-        { signal },
+    initialPageParam: 1,
+    queryFn: ({ signal, pageParam }) =>
+      getDeliveryPoints(
+        selectedCityRef ?? "",
+        pointKind,
+        deferredPoint,
+        pageParam,
+        signal,
       ),
+    getNextPageParam: (lastPage) => lastPage.next_page ?? undefined,
   });
-  const canEnterManually = manualDelivery || cities.isError || points.isError;
+  const pointDirectoryError = points.isError && !points.data;
+  const canEnterManually =
+    manualDelivery || cities.isError || pointDirectoryError;
   const tooManyItems = lines.length > MAX_CART_LINES;
   const items = lines.map((line) => ({
     product_id: line.product.id,
@@ -455,7 +454,12 @@ export function CheckoutForm() {
                             ? "Поштомат не знайдено"
                             : "Відділення не знайдено"
                         }
-                        isLoading={pointSearchPending || points.isFetching}
+                        isLoading={pointSearchPending || points.isLoading}
+                        isLoadingMore={points.isFetchingNextPage}
+                        hasMore={points.hasNextPage}
+                        loadMoreError={points.isFetchNextPageError}
+                        onLoadMore={() => void points.fetchNextPage()}
+                        minimumQueryLength={0}
                         onChange={(value) => {
                           if (canEnterManually) setManualDelivery(true);
                           field.onChange(value);
@@ -465,7 +469,9 @@ export function CheckoutForm() {
                           field.onChange(option.name);
                           setSelectedPointRef(option.ref);
                         }}
-                        options={points.data ?? []}
+                        options={
+                          points.data?.pages.flatMap((page) => page.items) ?? []
+                        }
                         suggestionsEnabled={
                           !manualDelivery && !selectedPointRef
                         }
@@ -494,7 +500,7 @@ export function CheckoutForm() {
               <p className="delivery-fallback-note" role="status">
                 Адресу введено вручну. Менеджер перевірить пункт доставки.
               </p>
-            ) : cities.error || points.error ? (
+            ) : cities.error || pointDirectoryError ? (
               <p className="delivery-fallback-note" role="status">
                 {getUserErrorMessage(
                   cities.error ?? points.error,

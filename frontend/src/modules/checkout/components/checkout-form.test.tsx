@@ -75,6 +75,7 @@ function renderForm(
   cityFails = true,
   pointFails = false,
   pointOptions: unknown[] = [],
+  nextPage: number | null = null,
 ) {
   vi.mocked(apiClient).mockImplementation(async (path) => {
     if (path === "/checkout/quote") return quote;
@@ -84,7 +85,7 @@ function renderForm(
     }
     if (path.startsWith("/delivery/points")) {
       if (pointFails) throw unavailable;
-      return pointOptions;
+      return { items: pointOptions, next_page: nextPage };
     }
     throw unavailable; // Never create an order, even inside this regression.
   });
@@ -163,7 +164,7 @@ it("allows a manual point when only the point directory fails", async () => {
   const [city, point] = screen.getAllByRole("combobox");
   fireEvent.focus(city);
   fireEvent.change(city, { target: { value: "Київ" } });
-  fireEvent.mouseDown(await screen.findByRole("option", { name: "Київ" }));
+  fireEvent.click(await screen.findByRole("option", { name: "Київ" }));
   await screen.findByText(/Автопідказки Нової пошти/);
   fireEvent.change(point, { target: { value: "Відділення № 8" } });
   fireEvent.click(
@@ -191,10 +192,10 @@ it("submits the full delivery point description including its number", async () 
   const [city, point] = screen.getAllByRole("combobox");
   fireEvent.focus(city);
   fireEvent.change(city, { target: { value: "Київ" } });
-  fireEvent.mouseDown(await screen.findByRole("option", { name: "Київ" }));
+  fireEvent.click(await screen.findByRole("option", { name: "Київ" }));
   fireEvent.focus(point);
   fireEvent.change(point, { target: { value: "8" } });
-  fireEvent.mouseDown(
+  fireEvent.click(
     await screen.findByRole("option", { name: "вул. Хрещатик, 1" }),
   );
   fireEvent.click(
@@ -224,10 +225,10 @@ it("stops directory searches after selection and resumes when edited", async () 
   const [city, point] = screen.getAllByRole("combobox");
   fireEvent.focus(city);
   fireEvent.change(city, { target: { value: "Ки" } });
-  fireEvent.mouseDown(await screen.findByRole("option", { name: "Київ" }));
+  fireEvent.click(await screen.findByRole("option", { name: "Київ" }));
   fireEvent.focus(point);
   fireEvent.change(point, { target: { value: "8" } });
-  fireEvent.mouseDown(
+  fireEvent.click(
     await screen.findByRole("option", { name: "вул. Хрещатик, 1" }),
   );
   const directoryCalls = () =>
@@ -257,7 +258,7 @@ it("keeps the selected city when switching between branch and locker", async () 
   const [city] = screen.getAllByRole("combobox");
   fireEvent.focus(city);
   fireEvent.change(city, { target: { value: "Київ" } });
-  fireEvent.mouseDown(await screen.findByRole("option", { name: "Київ" }));
+  fireEvent.click(await screen.findByRole("option", { name: "Київ" }));
   fireEvent.blur(city);
   fireEvent.focus(city);
   expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
@@ -271,6 +272,51 @@ it("keeps the selected city when switching between branch and locker", async () 
       expect.anything(),
     ),
   );
+});
+
+it("appends another delivery page and keeps existing results after a failed page", async () => {
+  renderForm(
+    false,
+    false,
+    [
+      {
+        ref: "first",
+        name: "Відділення №1",
+        label: "Відділення №1",
+        number: "1",
+      },
+    ],
+    2,
+  );
+  const [city, point] = screen.getAllByRole("combobox");
+  fireEvent.change(city, { target: { value: "Київ" } });
+  fireEvent.click(await screen.findByRole("option", { name: "Київ" }));
+  fireEvent.focus(point);
+  await screen.findByRole("option", { name: "Відділення №1" });
+  vi.mocked(apiClient).mockRejectedValue(unavailable);
+  fireEvent.click(screen.getByRole("button", { name: "Показати ще" }));
+  await screen.findByRole("button", { name: "Повторити завантаження" });
+  expect(
+    screen.getByRole("option", { name: "Відділення №1" }),
+  ).toBeInTheDocument();
+  expect(screen.queryByText(/Адресу введено вручну/)).not.toBeInTheDocument();
+  vi.mocked(apiClient).mockResolvedValue({
+    items: [
+      {
+        ref: "second",
+        name: "Відділення №51",
+        label: "Відділення №51",
+        number: "51",
+      },
+    ],
+    next_page: null,
+  });
+  fireEvent.click(
+    screen.getByRole("button", { name: "Повторити завантаження" }),
+  );
+  await screen.findByRole("option", { name: "Відділення №51" });
+  expect(screen.getAllByRole("option")).toHaveLength(2);
+  expect(vi.mocked(apiClient).mock.calls.at(-1)?.[0]).toContain("page=2");
 });
 
 it("retains the applied promo through temporary failures and retries explicitly", async () => {

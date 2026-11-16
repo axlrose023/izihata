@@ -258,14 +258,17 @@ test("checkout explains an invalid promo and suggests Nova Poshta addresses", as
   });
   await page.route("**/api/v1/delivery/points?*", async (route) => {
     await route.fulfill({
-      json: [
-        {
-          ref: "point-ref",
-          name: "Відділення №12",
-          label: "Київ, вул. Хрещатик, 12",
-          number: "12",
-        },
-      ],
+      json: {
+        items: [
+          {
+            ref: "point-ref",
+            name: "Відділення №12",
+            label: "Київ, вул. Хрещатик, 12",
+            number: "12",
+          },
+        ],
+        next_page: null,
+      },
     });
   });
 
