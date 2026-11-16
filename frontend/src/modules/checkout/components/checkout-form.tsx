@@ -411,6 +411,7 @@ export function CheckoutForm() {
                     name="city"
                     render={({ field }) => (
                       <DeliveryAutocomplete
+                        ariaLabel="Місто"
                         emptyMessage="Місто не знайдено"
                         isLoading={citySearchPending || cities.isFetching}
                         minimumQueryLength={2}
@@ -448,6 +449,9 @@ export function CheckoutForm() {
                     name="point"
                     render={({ field }) => (
                       <DeliveryAutocomplete
+                        ariaLabel={
+                          pointKind === "locker" ? "Поштомат" : "Відділення"
+                        }
                         disabled={!selectedCityRef && !canEnterManually}
                         emptyMessage={
                           deliveryMethod === "nova_poshta_locker"

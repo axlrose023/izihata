@@ -7,6 +7,7 @@ interface DeliverySuggestion {
 }
 
 interface DeliveryAutocompleteProps<TOption extends DeliverySuggestion> {
+  ariaLabel?: string;
   emptyMessage: string;
   isLoading: boolean;
   minimumQueryLength?: number;
@@ -24,6 +25,7 @@ interface DeliveryAutocompleteProps<TOption extends DeliverySuggestion> {
 }
 
 export function DeliveryAutocomplete<TOption extends DeliverySuggestion>({
+  ariaLabel,
   emptyMessage,
   isLoading,
   minimumQueryLength = 1,
@@ -108,6 +110,7 @@ export function DeliveryAutocomplete<TOption extends DeliverySuggestion>({
       }}
     >
       <input
+        aria-label={ariaLabel}
         aria-autocomplete="list"
         aria-activedescendant={
           activeIndex >= 0 ? `${listboxId}-option-${activeIndex}` : undefined
@@ -197,7 +200,12 @@ export function DeliveryAutocomplete<TOption extends DeliverySuggestion>({
             <button
               disabled={isLoadingMore}
               onMouseDown={(event) => event.preventDefault()}
-              onClick={onLoadMore}
+              onClick={(event) => {
+                event.preventDefault();
+                inputRef.current?.focus();
+                setIsOpen(true);
+                onLoadMore();
+              }}
               type="button"
             >
               {isLoadingMore
