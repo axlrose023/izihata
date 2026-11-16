@@ -28,16 +28,22 @@ async def test_uses_recent_success_during_outage_but_not_expired_data(monkeypatc
     now = 0
     monkeypatch.setattr("app.clients.lookup_cache.monotonic", lambda: now)
     cache: LookupCache[str] = LookupCache(ttl=10, stale_ttl=20)
+    failures = 0
 
     async def load():
         return ["City"]
 
     async def fail():
+        nonlocal failures
+        failures += 1
         raise ServiceUnavailableError("Unavailable")
 
     await cache.remember("city", load)
     now = 11
     assert await cache.remember("city", fail) == ["City"]
+    # Waiting requests use the short fallback without another provider call.
+    assert await cache.remember("city", fail) == ["City"]
+    assert failures == 1
     now = 31
     with pytest.raises(ServiceUnavailableError):
         await cache.remember("city", fail)

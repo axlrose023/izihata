@@ -42,6 +42,13 @@ class LookupCache[T]:
             except ServiceUnavailableError:
                 if cached and cached.usable_until > monotonic():
                     logger.warning("Using recent address lookup during provider outage")
+                    # Coalesce failures too: do not make every waiting buyer
+                    # repeat the same slow lookup during a provider outage.
+                    self._entries[key] = LookupEntry(
+                        cached.items,
+                        min(monotonic() + 10, cached.usable_until),
+                        cached.usable_until,
+                    )
                     return list(cached.items)
                 raise
             now = monotonic()
