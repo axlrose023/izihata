@@ -53,6 +53,7 @@ class TestDeliveryLocations:
             city_ref: str,
             search: str,
             type_ref: str | None = None,
+            page: int = 1,
         ) -> list[NovaPoshtaPoint]:
             assert city_ref == "8d5a980d-391c-11dd-90d9-001a92567626"
             assert search == "12"
@@ -102,3 +103,42 @@ class TestDeliveryLocations:
 
         assert response.status_code == 422
         assert response.json()["code"] == "validation_error"
+
+    async def test_keeps_pagination_when_a_raw_page_only_contains_lockers(
+        self, client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+    ):
+        async def search_points(provider, city_ref, search, type_ref=None, page=1):
+            assert page == 2
+            return [
+                NovaPoshtaPoint(
+                    str(i),
+                    "Locker",
+                    "Locker",
+                    str(i),
+                    "f9316480-5f2d-425d-bc2c-ac7cd29decf0",
+                )
+                for i in range(50)
+            ]
+
+        monkeypatch.setattr(NovaPoshtaClient, "search_points", search_points)
+        response = await client.get(
+            "/api/v1/delivery/points",
+            params={
+                "city_ref": "8d5a980d-391c-11dd-90d9-001a92567626",
+                "kind": "branch",
+                "page": 2,
+            },
+        )
+        assert response.status_code == 200
+        assert response.json() == {"items": [], "next_page": 3}
+
+    async def test_rejects_invalid_point_page(self, client: AsyncClient):
+        response = await client.get(
+            "/api/v1/delivery/points",
+            params={
+                "city_ref": "8d5a980d-391c-11dd-90d9-001a92567626",
+                "kind": "branch",
+                "page": 0,
+            },
+        )
+        assert response.status_code == 422

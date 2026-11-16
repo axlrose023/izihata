@@ -9,6 +9,7 @@ from app.api.common.rate_limit import DELIVERY_LOOKUP_RATE_LIMIT, RateLimit
 from app.api.modules.delivery.enums import DeliveryPointKind
 from app.api.modules.delivery.schema import (
     DeliveryCityResponse,
+    DeliveryPointPage,
     DeliveryPointResponse,
 )
 from app.api.modules.delivery.service import DeliveryLocationService
@@ -30,7 +31,7 @@ async def search_cities(
 
 @router.get(
     "/points",
-    response_model=list[DeliveryPointResponse],
+    response_model=list[DeliveryPointResponse] | DeliveryPointPage,
     dependencies=[Depends(RateLimit(DELIVERY_LOOKUP_RATE_LIMIT))],
 )
 async def search_points(
@@ -38,5 +39,6 @@ async def search_points(
     kind: Annotated[DeliveryPointKind, Query()],
     service: FromDishka[DeliveryLocationService],
     search: Annotated[str, Query(max_length=120)] = "",
-) -> list[DeliveryPointResponse]:
-    return await service.search_points(str(city_ref), kind, search.strip())
+    page: Annotated[int | None, Query(ge=1, le=10000)] = None,
+) -> list[DeliveryPointResponse] | DeliveryPointPage:
+    return await service.search_points(str(city_ref), kind, search.strip(), page)

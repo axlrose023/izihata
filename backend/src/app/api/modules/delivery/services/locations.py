@@ -1,9 +1,10 @@
 from app.api.modules.delivery.enums import DeliveryPointKind
 from app.api.modules.delivery.schema import (
     DeliveryCityResponse,
+    DeliveryPointPage,
     DeliveryPointResponse,
 )
-from app.clients.nova_poshta import NovaPoshtaClient
+from app.clients.nova_poshta import POINTS_PAGE_SIZE, NovaPoshtaClient
 
 LOCKER_TYPE_REFS = {
     "95dc212d-479c-4ffb-a8ab-8c1b9073d0bc",
@@ -28,14 +29,16 @@ class DeliveryLocationService:
         city_ref: str,
         kind: DeliveryPointKind,
         search: str,
-    ) -> list[DeliveryPointResponse]:
+        page: int | None = None,
+    ) -> list[DeliveryPointResponse] | DeliveryPointPage:
         needs_locker = kind == DeliveryPointKind.LOCKER
         points = await self._client.search_points(
             city_ref,
             search,
             type_ref=NOVA_POSHTA_LOCKER_TYPE_REF if needs_locker else None,
+            page=page or 1,
         )
-        return [
+        items = [
             DeliveryPointResponse(
                 ref=point.ref,
                 name=point.name,
@@ -45,3 +48,10 @@ class DeliveryLocationService:
             for point in points
             if (point.type_ref in LOCKER_TYPE_REFS) == needs_locker
         ]
+        # Keep the existing array contract for callers without pagination.
+        if page is None:
+            return items
+        return DeliveryPointPage(
+            items=items,
+            next_page=page + 1 if len(points) == POINTS_PAGE_SIZE else None,
+        )

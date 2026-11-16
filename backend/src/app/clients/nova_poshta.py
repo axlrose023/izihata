@@ -1,11 +1,17 @@
 import asyncio
+import json
+import logging
 from dataclasses import dataclass
 from typing import Any
 
 import httpx
 
 from app.api.common.exceptions import ServiceUnavailableError
+from app.clients.lookup_cache import LookupCache
 from app.settings import NovaPoshtaConfig
+
+logger = logging.getLogger(__name__)
+POINTS_PAGE_SIZE = 50
 
 
 @dataclass(frozen=True, slots=True)
@@ -31,11 +37,17 @@ class NovaPoshtaClient:
             base_url=config.api_url,
             timeout=config.timeout_seconds,
         )
+        self._cities: LookupCache[NovaPoshtaCity] = LookupCache()
+        self._points: LookupCache[NovaPoshtaPoint] = LookupCache()
 
     async def close(self) -> None:
         await self._client.aclose()
 
     async def search_cities(self, search: str) -> list[NovaPoshtaCity]:
+        search = " ".join(search.split()).casefold()
+        return await self._cities.remember(search, lambda: self._search_cities(search))
+
+    async def _search_cities(self, search: str) -> list[NovaPoshtaCity]:
         data = await self._call(
             model="AddressGeneral",
             method="searchSettlements",
@@ -65,10 +77,28 @@ class NovaPoshtaClient:
         city_ref: str,
         search: str,
         type_ref: str | None = None,
+        page: int = 1,
     ) -> list[NovaPoshtaPoint]:
-        properties = {"CityRef": city_ref, "Limit": "50", "Page": "1"}
+        search = " ".join(search.split()).casefold()
+        key = json.dumps([city_ref, search, type_ref, page])
+        return await self._points.remember(
+            key, lambda: self._search_points(city_ref, search, type_ref, page)
+        )
+
+    async def _search_points(
+        self, city_ref: str, search: str, type_ref: str | None, page: int
+    ) -> list[NovaPoshtaPoint]:
+        properties = {
+            "CityRef": city_ref,
+            "Limit": str(POINTS_PAGE_SIZE),
+            "Page": str(page),
+        }
         if search:
-            properties["FindByString"] = search
+            properties[
+                "WarehouseId"
+                if search.isascii() and search.isdigit()
+                else "FindByString"
+            ] = search
         if type_ref:
             properties["TypeOfWarehouseRef"] = type_ref
         data = await self._call(
@@ -105,24 +135,42 @@ class NovaPoshtaClient:
             for attempt in range(2):
                 try:
                     response = await self._client.post("", json=request)
-                    if response.status_code in {502, 503, 504} and attempt == 0:
-                        await asyncio.sleep(0.2)
-                        continue
-                    break
-                except httpx.TransportError:
+                    response.raise_for_status()
+                    payload: Any = response.json()
+                    if (
+                        not isinstance(payload, dict)
+                        or payload.get("success") is not True
+                    ):
+                        raise ValueError("Nova Poshta rejected the address request")
+                    data = payload.get("data")
+                    if not isinstance(data, list):
+                        raise ValueError("Nova Poshta returned an invalid response")
+                    return [item for item in data if isinstance(item, dict)]
+                except (httpx.TransportError, ValueError):
                     if attempt:
                         raise
+                    logger.warning("Retrying Nova Poshta lookup: method=%s", method)
                     await asyncio.sleep(0.2)
-            response.raise_for_status()
-            payload: Any = response.json()
-            if not isinstance(payload, dict) or payload.get("success") is not True:
-                raise ValueError("Nova Poshta rejected the address request")
-            data = payload.get("data")
-            if not isinstance(data, list):
-                raise ValueError("Nova Poshta returned an invalid response")
-            return [item for item in data if isinstance(item, dict)]
+                except httpx.HTTPStatusError as exc:
+                    if attempt or exc.response.status_code not in {429, 502, 503, 504}:
+                        raise
+                    logger.warning(
+                        "Retrying Nova Poshta lookup: method=%s http=%s",
+                        method,
+                        exc.response.status_code,
+                    )
+                    await asyncio.sleep(0.2)
         except (httpx.HTTPError, ValueError) as exc:
+            logger.warning(
+                "Nova Poshta lookup unavailable: method=%s error=%s",
+                method,
+                type(exc).__name__,
+            )
             raise ServiceUnavailableError(
                 "Delivery address directory is temporarily unavailable",
                 code="delivery_provider_unavailable",
             ) from exc
+        raise ServiceUnavailableError(
+            "Delivery address directory is temporarily unavailable",
+            code="delivery_provider_unavailable",
+        )

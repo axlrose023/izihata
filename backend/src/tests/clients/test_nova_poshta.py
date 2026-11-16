@@ -1,3 +1,5 @@
+import json
+
 import httpx
 import pytest
 
@@ -78,7 +80,9 @@ async def test_maps_delivery_point_response():
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("failure", ["timeout", "503"])
+@pytest.mark.parametrize(
+    "failure", ["timeout", "503", "invalid_json", "provider_error"]
+)
 async def test_retries_temporary_provider_failures(failure: str):
     attempts = 0
 
@@ -88,6 +92,14 @@ async def test_retries_temporary_provider_failures(failure: str):
         if attempts == 1:
             if failure == "timeout":
                 raise httpx.ReadTimeout("timed out", request=request)
+            if failure == "invalid_json":
+                return httpx.Response(
+                    200, content=b"temporarily unavailable", request=request
+                )
+            if failure == "provider_error":
+                return httpx.Response(
+                    200, json={"success": False, "data": []}, request=request
+                )
             return httpx.Response(503, request=request)
         return httpx.Response(200, json={"success": True, "data": []}, request=request)
 
@@ -124,3 +136,23 @@ async def test_normalizes_provider_failures(payload: object, status_code: int):
         await client.close()
 
     assert exc_info.value.code == "delivery_provider_unavailable"
+
+
+@pytest.mark.asyncio
+async def test_searches_by_exact_number_and_forwards_page():
+    def handler(request: httpx.Request) -> httpx.Response:
+        properties = json.loads(request.content)["methodProperties"]
+        assert properties["WarehouseId"] == "390"
+        assert properties["Page"] == "2"
+        assert "FindByString" not in properties
+        return httpx.Response(200, json={"success": True, "data": []})
+
+    client = NovaPoshtaClient(NovaPoshtaConfig())
+    await client.close()
+    client._client = httpx.AsyncClient(
+        transport=httpx.MockTransport(handler), base_url="https://example.test/"
+    )
+    try:
+        assert await client.search_points("city", "390", page=2) == []
+    finally:
+        await client.close()

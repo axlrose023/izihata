@@ -12,3 +12,8 @@ class DeliveryPointResponse(BaseModel):
     name: str
     label: str
     number: str
+
+
+class DeliveryPointPage(BaseModel):
+    items: list[DeliveryPointResponse]
+    next_page: int | None
