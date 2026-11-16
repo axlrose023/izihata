@@ -2,19 +2,21 @@ import { expect, test, type Page } from "@playwright/test";
 
 async function expectDocumentFits(page: Page) {
   await expect
-    .poll(() =>
-      page.evaluate(
-        () => document.documentElement.scrollWidth <= window.innerWidth + 1,
-      ),
+    .poll(
+      () =>
+        page.evaluate(
+          () => document.documentElement.scrollWidth - window.innerWidth,
+        ),
+      { message: `Horizontal overflow at ${page.url()}` },
     )
-    .toBe(true);
+    .toBeLessThanOrEqual(1);
   expect(await page.evaluate(() => window.scrollX)).toBe(0);
 }
 
 test("font configuration prevents late replacement of painted text", async ({
   page,
 }) => {
-  await page.goto("/catalog");
+  await page.goto("/catalog", { waitUntil: "domcontentloaded" });
   const href = await page
     .locator('link[href*="fonts.googleapis.com/css2"]')
     .getAttribute("href");
