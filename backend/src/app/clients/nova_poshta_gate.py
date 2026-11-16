@@ -36,7 +36,7 @@ class NovaPoshtaRequestGate:
         redis: Redis | None,
         identity: str,
         *,
-        interval: float = 0.5,
+        interval: float = 1,
         max_wait: float = 2,
     ):
         digest = hashlib.sha256(identity.encode()).hexdigest()[:24]

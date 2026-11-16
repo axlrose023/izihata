@@ -260,3 +260,26 @@ async def test_bulk_city_mapping_keeps_a_plain_name_and_a_distinguishing_label()
         assert "Абазовка" in cities[0].aliases[1]
     finally:
         await client.close()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("city_ref", ["city-ref", None])
+async def test_countrywide_points_require_a_city_reference(city_ref):
+    client = await make_client(
+        {
+            "success": True,
+            "data": [
+                {"Ref": "point", "Description": "Відділення №1", "CityRef": city_ref}
+            ],
+        }
+    )
+    try:
+        if city_ref is None:
+            with pytest.raises(ServiceUnavailableError):
+                await client.get_points_page(None, 1)
+        else:
+            points, more = await client.get_points_page(None, 1)
+            assert not more
+            assert points[0].city_ref == city_ref
+    finally:
+        await client.close()

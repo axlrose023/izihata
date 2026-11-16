@@ -39,16 +39,16 @@ class DeliveryDirectoryRefreshService:
             force=force,
         )
 
-    async def refresh_points(self, city_ref: str, *, force: bool = False) -> int:
+    async def refresh_points(self, *, force: bool = False) -> int:
         return await self._refresh(
-            f"points:{city_ref}",
+            "points",
             PointSnapshot,
-            partial(self._client.get_points_page, city_ref),
+            partial(self._client.get_points_page, None),
             ttl=self._config.directory_ttl_seconds,
             group="points",
-            capacity=64,
-            require_items=False,
-            max_pages=100,
+            capacity=1,
+            require_items=True,
+            max_pages=1000,
             force=force,
         )
 
@@ -68,7 +68,7 @@ class DeliveryDirectoryRefreshService:
         current = await self._cache.read(key, model, refresh=True)
         if current and current.is_fresh and not force:
             return len(current.items)
-        token = await self._cache.claim(f"refresh:{key}", seconds=600)
+        token = await self._cache.claim(f"refresh:{key}", seconds=900)
         if not token:
             return 0
         try:
@@ -77,7 +77,7 @@ class DeliveryDirectoryRefreshService:
             if current and current.is_fresh and not force:
                 return len(current.items)
             rows: dict[str, T] = {}
-            async with asyncio.timeout(300):
+            async with asyncio.timeout(600):
                 for page in range(1, max_pages + 1):
                     items, more = await fetch(page)
                     previous = len(rows)
@@ -110,15 +110,14 @@ class DeliveryDirectoryRefreshService:
         finally:
             await self._cache.release(f"refresh:{key}", token)
 
-    async def refresh_used(self) -> None:
-        token = await self._cache.claim("refresh:batch", seconds=600)
+    async def refresh_directories(self) -> None:
+        token = await self._cache.claim("refresh:batch", seconds=900)
         if not token:
             return
         try:
-            async with asyncio.timeout(300):
+            async with asyncio.timeout(600):
                 await self.refresh_cities()
-                for city_ref in await self._cache.active_cities():
-                    await self.refresh_points(city_ref)
+                await self.refresh_points()
         except (ServiceUnavailableError, TimeoutError):
             logger.warning(
                 "Delivery directory refresh interrupted; keeping last snapshot"

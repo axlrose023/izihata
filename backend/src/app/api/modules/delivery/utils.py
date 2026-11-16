@@ -3,7 +3,7 @@
 import asyncio
 import re
 from collections import OrderedDict
-from collections.abc import Awaitable
+from collections.abc import Awaitable, Mapping
 
 from app.api.modules.delivery.enums import LOCKER_TYPE_REFS
 from app.clients.nova_poshta import NovaPoshtaCity, NovaPoshtaPoint
@@ -66,6 +66,8 @@ def match_points(
     type_ref: str | None,
     page: int,
     page_size: int,
+    *,
+    normalized: Mapping[str, str] | None = None,
 ) -> list[NovaPoshtaPoint]:
     query = normalized_address(search)
     numeric = search.strip().isascii() and search.strip().isdigit()
@@ -79,9 +81,50 @@ def match_points(
             or (numeric and point.number == search.strip())
             or (
                 not numeric
-                and query in normalized_address(f"{point.name} {point.label}")
+                and query
+                in (
+                    normalized[point.ref]
+                    if normalized is not None
+                    else normalized_address(f"{point.name} {point.label}")
+                )
             )
         )
     ]
     start = (page - 1) * page_size
     return selected[start : start + page_size]
+
+
+class PointSearchIndex:
+    def __init__(self, points: tuple[NovaPoshtaPoint, ...]):
+        cities: dict[str, list[NovaPoshtaPoint]] = {}
+        numbers: dict[tuple[str, str], list[NovaPoshtaPoint]] = {}
+        self._text = {}
+        for point in points:
+            cities.setdefault(point.city_ref, []).append(point)
+            numbers.setdefault((point.city_ref, point.number), []).append(point)
+            self._text[point.ref] = normalized_address(f"{point.name} {point.label}")
+        self._cities = {key: tuple(value) for key, value in cities.items()}
+        self._numbers = {key: tuple(value) for key, value in numbers.items()}
+
+    def search(
+        self,
+        city_ref: str,
+        search: str,
+        type_ref: str | None,
+        page: int,
+        page_size: int,
+    ) -> list[NovaPoshtaPoint] | None:
+        points = self._cities.get(city_ref)
+        if points is None:
+            return None
+        query = search.strip()
+        if query.isascii() and query.isdigit():
+            points = self._numbers.get((city_ref, query), ())
+        return match_points(
+            points,
+            search,
+            type_ref,
+            page,
+            page_size,
+            normalized=self._text,
+        )

@@ -79,9 +79,9 @@ async def test_500_concurrent_http_users_search_without_calling_the_provider(
     namespace = f"integration:http-delivery:{uuid4().hex}"
     cache = DeliveryDirectoryCache(redis, namespace=namespace)
     provider = AsyncMock(spec=NovaPoshtaClient)
-    city_ref = str(uuid4())
+    city_refs = [str(uuid4()) for _ in range(500)]
     await cache.save(
-        f"points:{city_ref}",
+        "points",
         PointSnapshot.create(
             [
                 NovaPoshtaPoint(
@@ -90,6 +90,7 @@ async def test_500_concurrent_http_users_search_without_calling_the_provider(
                     "",
                     str(index),
                     "branch",
+                    city_ref=city_refs[(index - 1) % 500],
                 )
                 for index in range(1, 10001)
             ],
@@ -123,7 +124,7 @@ async def test_500_concurrent_http_users_search_without_calling_the_provider(
             response = await client.get(
                 "/api/v1/delivery/points",
                 params={
-                    "city_ref": city_ref,
+                    "city_ref": city_refs[index],
                     "kind": "branch",
                     "search": str(index + 1),
                     "page": 1,
@@ -143,7 +144,7 @@ async def test_500_concurrent_http_users_search_without_calling_the_provider(
         print(
             json.dumps(
                 {
-                    "scenario": "500 ASGI HTTP requests from 500 IPs, real Redis",
+                    "scenario": "500 ASGI HTTP requests from 500 IPs across 500 cities, real Redis",
                     "status_200": 500,
                     "provider_calls": 0,
                     "p95_ms": round(sorted(durations)[474], 2),

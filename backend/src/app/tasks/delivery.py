@@ -2,8 +2,8 @@ from app.settings import get_config
 from app.tiq import broker
 
 
-@broker.task
-async def refresh_delivery_city(city_ref: str, token: str) -> None:
+@broker.task(schedule=[{"cron": "*/10 * * * *"}])
+async def refresh_delivery_directories(token: str | None = None) -> None:
     from app.api.modules.delivery.cache import DeliveryDirectoryCache
     from app.api.modules.delivery.service import DeliveryDirectoryRefreshService
     from app.ioc import get_async_container
@@ -15,19 +15,7 @@ async def refresh_delivery_city(city_ref: str, token: str) -> None:
         cache = await container.get(DeliveryDirectoryCache)
         try:
             service = await container.get(DeliveryDirectoryRefreshService)
-            await service.refresh_points(city_ref)
+            await service.refresh_directories()
         finally:
-            await cache.release(f"dispatch:{city_ref}", token)
-
-
-@broker.task(schedule=[{"cron": "*/10 * * * *"}])
-async def refresh_delivery_directories() -> None:
-    from app.api.modules.delivery.service import DeliveryDirectoryRefreshService
-    from app.ioc import get_async_container
-
-    config = get_config().nova_poshta
-    if not config.directory_enabled or config.api_key is None:
-        return
-    async with get_async_container() as container:
-        service = await container.get(DeliveryDirectoryRefreshService)
-        await service.refresh_used()
+            if token is not None:
+                await cache.release("dispatch", token)

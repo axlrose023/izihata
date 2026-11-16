@@ -27,6 +27,11 @@ pytestmark = [
 ]
 
 
+def _point(*args, **kwargs):
+    kwargs.setdefault("city_ref", "city")
+    return NovaPoshtaPoint(*args, **kwargs)
+
+
 @pytest_asyncio.fixture(loop_scope="session")
 async def directories():
     redis = Redis.from_url(get_config().redis_url, decode_responses=True)
@@ -64,20 +69,21 @@ async def test_cold_lookup_is_coalesced_across_four_instances(directories):
     assert all(result.items[0].ref == "city" for result in results)
 
 
-async def test_many_different_searches_use_one_city_snapshot(directories):
+async def test_many_different_cities_use_one_network_snapshot(directories):
     _, caches, _ = directories
     points = [
-        NovaPoshtaPoint(
+        _point(
             f"point-{number}",
             f"Відділення №{number}",
             f"вул. Тестова, {number}",
             str(number),
             "branch",
+            city_ref=f"city-{number % 500}",
         )
         for number in range(1, 10001)
     ]
     await caches[0].save(
-        "points:city",
+        "points",
         PointSnapshot.create(points, ttl=3600, stale=86400),
         group="points",
     )
@@ -89,7 +95,9 @@ async def test_many_different_searches_use_one_city_snapshot(directories):
 
     async def search(index):
         started = perf_counter()
-        result = await services[index % 4].search_points("city", str(index + 1))
+        result = await services[index % 4].search_points(
+            f"city-{(index + 1) % 500}", str(index + 1)
+        )
         durations.append((perf_counter() - started) * 1000)
         assert len(result) == 1 and result[0].number == str(index + 1)
 
@@ -99,7 +107,7 @@ async def test_many_different_searches_use_one_city_snapshot(directories):
     print(
         json.dumps(
             {
-                "scenario": "500 concurrent different point searches; 4 instances; 10000 points",
+                "scenario": "500 concurrent searches across 500 cities; 4 instances; 10000 points",
                 "elapsed_ms": round((perf_counter() - started) * 1000, 2),
                 "p50_ms": round(ordered[len(ordered) // 2], 2),
                 "p95_ms": round(ordered[int(len(ordered) * 0.95)], 2),
@@ -151,9 +159,9 @@ async def test_many_city_searches_use_a_precomputed_local_index(directories):
 async def test_stale_directory_remains_usable_and_refresh_is_queued_once(directories):
     _, caches, _ = directories
     await caches[0].save(
-        "points:city",
+        "points",
         PointSnapshot(
-            items=(NovaPoshtaPoint("p", "Відділення №1", "", "1", "branch"),),
+            items=(_point("p", "Відділення №1", "", "1", "branch"),),
             fresh_until=time() - 10,
             expires_at=time() + 300,
         ),
@@ -176,40 +184,36 @@ async def test_stale_directory_remains_usable_and_refresh_is_queued_once(directo
 async def test_refresh_failure_does_not_publish_partial_pages(directories):
     _, caches, _ = directories
     original = PointSnapshot.create(
-        [NovaPoshtaPoint("old", "Старе відділення", "", "1", "branch")],
+        [_point("old", "Старе відділення", "", "1", "branch")],
         ttl=3600,
         stale=86400,
     )
-    await caches[0].save("points:city", original, group="points")
+    await caches[0].save("points", original, group="points")
     client = AsyncMock(spec=NovaPoshtaClient)
     client.get_points_page.side_effect = [
-        ([NovaPoshtaPoint("new", "Нове відділення", "", "2", "branch")], True),
+        ([_point("new", "Нове відділення", "", "2", "branch")], True),
         ServiceUnavailableError("Provider down"),
     ]
     refresh = DeliveryDirectoryRefreshService(client, caches[0], NovaPoshtaConfig())
     with pytest.raises(ServiceUnavailableError):
-        await refresh.refresh_points("city", force=True)
-    snapshot = await caches[1].read("points:city", PointSnapshot)
+        await refresh.refresh_points(force=True)
+    snapshot = await caches[1].read("points", PointSnapshot)
     assert snapshot is not None and snapshot.items[0].ref == "old"
-    assert await caches[0].claim("refresh:points:city", seconds=1)
+    assert await caches[0].claim("refresh:points", seconds=1)
 
 
 async def test_refresh_uses_all_pages_and_keeps_both_locker_types(directories):
     _, caches, _ = directories
     client = AsyncMock(spec=NovaPoshtaClient)
     client.get_points_page.side_effect = [
-        ([NovaPoshtaPoint("branch", "Відділення", "", "1", "branch")], True),
+        ([_point("branch", "Відділення", "", "1", "branch")], True),
         (
-            [
-                NovaPoshtaPoint(
-                    "locker", "Поштомат", "", "1", NOVA_POSHTA_LOCKER_TYPE_REF
-                )
-            ],
+            [_point("locker", "Поштомат", "", "1", NOVA_POSHTA_LOCKER_TYPE_REF)],
             False,
         ),
     ]
     refresh = DeliveryDirectoryRefreshService(client, caches[0], NovaPoshtaConfig())
-    assert await refresh.refresh_points("city") == 2
+    assert await refresh.refresh_points() == 2
     service = DeliveryDirectoryService(client, caches[1], NovaPoshtaConfig())
     assert [item.ref for item in await service.search_points("city", "")] == ["branch"]
     assert [
@@ -321,7 +325,7 @@ async def test_empty_city_refresh_keeps_last_successful_directory(directories):
     assert current is not None and current.items[0].ref == "old"
 
 
-async def test_periodic_refresh_only_loads_stale_active_directories(directories):
+async def test_periodic_refresh_only_loads_stale_directories(directories):
     _, caches, _ = directories
     await caches[0].save(
         "cities",
@@ -333,14 +337,16 @@ async def test_periodic_refresh_only_loads_stale_active_directories(directories)
         group="cities",
         capacity=1,
     )
-    await caches[0].touch_city("city")
     client = AsyncMock(spec=NovaPoshtaClient)
-    client.get_points_page.return_value = ([], False)
+    client.get_points_page.return_value = (
+        [_point("p", "Point", "", "1", "branch")],
+        False,
+    )
     refresh = DeliveryDirectoryRefreshService(client, caches[0], NovaPoshtaConfig())
-    await refresh.refresh_used()
-    await refresh.refresh_used()
+    await refresh.refresh_directories()
+    await refresh.refresh_directories()
     client.get_cities_page.assert_not_awaited()
-    client.get_points_page.assert_awaited_once_with("city", 1)
+    client.get_points_page.assert_awaited_once_with(None, 1)
 
 
 async def test_provider_gate_is_shared_bounded_and_honors_cooldown(directories):

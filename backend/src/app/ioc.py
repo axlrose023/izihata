@@ -133,10 +133,10 @@ class ServicesProvider(Provider):
     def get_delivery_directory_service(
         self, client: NovaPoshtaClient, cache: DeliveryDirectoryCache, config: Config
     ) -> DeliveryDirectoryService:
-        async def enqueue(city_ref: str, token: str) -> None:
-            from app.tasks.delivery import refresh_delivery_city
+        async def enqueue(token: str) -> None:
+            from app.tasks.delivery import refresh_delivery_directories
 
-            await refresh_delivery_city.kiq(city_ref, token)
+            await refresh_delivery_directories.kiq(token)
 
         return DeliveryDirectoryService(
             client,

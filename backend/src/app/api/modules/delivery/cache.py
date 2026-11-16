@@ -70,7 +70,6 @@ class DeliveryDirectoryCache:
         )
         self._locks: WeakValueDictionary[str, asyncio.Lock] = WeakValueDictionary()
         self._read_locks: WeakValueDictionary[str, asyncio.Lock] = WeakValueDictionary()
-        self._touched: OrderedDict[str, float] = OrderedDict()
 
     def _key(self, key: str) -> str:
         return f"{self.namespace}:{key}"
@@ -200,38 +199,3 @@ class DeliveryDirectoryCache:
             latest = await self.read(key, model)
             if latest:
                 return latest
-
-    async def touch_city(self, city_ref: str) -> None:
-        if self._touched.get(city_ref, 0) > monotonic():
-            return
-        lock = self._locks.setdefault(f"touch:{city_ref}", asyncio.Lock())
-        async with lock:
-            await self._touch_city(city_ref)
-
-    async def _touch_city(self, city_ref: str) -> None:
-        if self._touched.get(city_ref, 0) > monotonic():
-            return
-        try:
-            async with self._redis.pipeline(transaction=True) as pipe:
-                key = self._key("active-cities")
-                pipe.zadd(key, {city_ref: time()})
-                pipe.zremrangebyscore(key, "-inf", time() - 7 * 86400)
-                pipe.zremrangebyrank(key, 0, -65)
-                pipe.expire(key, 7 * 86400)
-                await pipe.execute()
-            self._touched[city_ref] = monotonic() + 60
-            self._touched.move_to_end(city_ref)
-            while len(self._touched) > 64:
-                self._touched.popitem(last=False)
-        except RedisError as exc:
-            raise directory_unavailable() from exc
-
-    async def active_cities(self) -> list[str]:
-        try:
-            values = await self._redis.zrevrange(self._key("active-cities"), 0, 63)
-            return [
-                value.decode() if isinstance(value, bytes) else str(value)
-                for value in values
-            ]
-        except RedisError as exc:
-            raise directory_unavailable() from exc

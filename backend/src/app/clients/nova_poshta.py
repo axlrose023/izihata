@@ -30,6 +30,7 @@ class NovaPoshtaPoint:
     number: str
     type_ref: str
     selectable: bool = True
+    city_ref: str = ""
 
 
 class NovaPoshtaClient:
@@ -117,24 +118,28 @@ class NovaPoshtaClient:
                 not in {"1", "true"}
                 and str(item.get("CategoryOfWarehouse", "")).casefold()
                 not in {"dropoff", "fulfillment"},
+                city_ref=str(item.get("CityRef") or ""),
             )
             for item in data
             if item.get("Ref") and item.get("Description")
         ]
 
     async def get_points_page(
-        self, city_ref: str, page: int, page_size: int = 500
+        self, city_ref: str | None, page: int, page_size: int = 500
     ) -> tuple[list[NovaPoshtaPoint], bool]:
         data = await self._call(
             model="Address",
             method="getWarehouses",
             properties={
-                "CityRef": city_ref,
+                **({"CityRef": city_ref} if city_ref else {}),
                 "Page": str(page),
                 "Limit": str(page_size),
             },
         )
-        return self._map_points(data), len(data) == page_size
+        points = self._map_points(data)
+        if city_ref is None and any(not point.city_ref for point in points):
+            raise directory_unavailable()
+        return points, len(data) == page_size
 
     async def get_cities_page(
         self, page: int, page_size: int = 500

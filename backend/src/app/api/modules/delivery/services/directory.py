@@ -2,13 +2,14 @@ import hashlib
 import json
 import logging
 from collections.abc import Awaitable, Callable
+from time import time
 
 from redis.exceptions import RedisError
 from taskiq.exceptions import TaskiqError
 
 from app.api.common.exceptions import ServiceUnavailableError
 from app.api.modules.delivery.cache import DeliveryDirectoryCache, DirectorySnapshot
-from app.api.modules.delivery.utils import CitySearchIndex, match_points
+from app.api.modules.delivery.utils import CitySearchIndex, PointSearchIndex
 from app.clients.nova_poshta import (
     POINTS_PAGE_SIZE,
     NovaPoshtaCity,
@@ -28,7 +29,7 @@ class DeliveryDirectoryService:
         client: NovaPoshtaClient,
         cache: DeliveryDirectoryCache,
         config: NovaPoshtaConfig,
-        enqueue: Callable[[str, str], Awaitable[None]] | None = None,
+        enqueue: Callable[[str], Awaitable[None]] | None = None,
     ):
         self._client = client
         self._cache = cache
@@ -36,11 +37,22 @@ class DeliveryDirectoryService:
         self._enqueue = enqueue
         self._city_source: CitySnapshot | None = None
         self._city_index = CitySearchIndex(())
+        self._point_source: PointSnapshot | None = None
+        self._point_index = PointSearchIndex(())
 
     async def search_cities(self, search: str) -> list[NovaPoshtaCity]:
         if not self._enabled:
             return await self._client.search_cities(search)
         directory = await self._cache.read("cities", CitySnapshot)
+        missing = directory is None
+        if (
+            directory is None
+            and self._city_source
+            and self._city_source.expires_at > time()
+        ):
+            directory = self._city_source
+        if missing or (directory and not directory.is_fresh):
+            await self._schedule_refresh()
         if directory:
             if self._city_source is not directory:
                 self._city_index = CitySearchIndex(directory.items)
@@ -68,14 +80,29 @@ class DeliveryDirectoryService:
             return await self._client.search_points(
                 city_ref, search, type_ref=type_ref, page=page
             )
-        directory = await self._cache.read(f"points:{city_ref}", PointSnapshot)
-        await self._cache.touch_city(city_ref)
-        if directory is None or not directory.is_fresh:
-            await self._schedule_refresh(city_ref)
+        directory = await self._cache.read("points", PointSnapshot)
+        missing = directory is None
+        if (
+            directory is None
+            and self._point_source
+            and self._point_source.expires_at > time()
+        ):
+            directory = self._point_source
+        if missing or (directory and not directory.is_fresh):
+            await self._schedule_refresh()
         if directory:
-            return match_points(
-                directory.items, search, type_ref, page, POINTS_PAGE_SIZE
+            if self._point_source is not directory:
+                self._point_index = PointSearchIndex(directory.items)
+                self._point_source = directory
+            matches = self._point_index.search(
+                city_ref,
+                search,
+                type_ref,
+                page,
+                POINTS_PAGE_SIZE,
             )
+            if matches is not None and (matches or not search.strip() or page > 1):
+                return matches
         key = self._query_key(
             "points", city_ref, " ".join(search.casefold().split()), type_ref, page
         )
@@ -91,15 +118,15 @@ class DeliveryDirectoryService:
 
         return list((await self._cache.remember(key, PointSnapshot, load)).items)
 
-    async def _schedule_refresh(self, city_ref: str) -> None:
+    async def _schedule_refresh(self) -> None:
         if self._enqueue is None:
             return
-        key = f"dispatch:{city_ref}"
-        token = await self._cache.claim(key, seconds=300)
+        key = "dispatch"
+        token = await self._cache.claim(key, seconds=900)
         if token is None:
             return
         try:
-            await self._enqueue(city_ref, token)
+            await self._enqueue(token)
         except (TaskiqError, RedisError, ServiceUnavailableError):
             await self._cache.release(key, token)
             logger.warning("Delivery directory refresh could not be queued")

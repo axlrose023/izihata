@@ -13,7 +13,7 @@ from app.tasks import delivery
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("failure", [False, True])
-async def test_city_task_releases_dispatch_lease_even_when_refresh_fails(
+async def test_directory_task_releases_dispatch_lease_even_when_refresh_fails(
     monkeypatch, failure
 ):
     import app.ioc
@@ -34,13 +34,15 @@ async def test_city_task_releases_dispatch_lease_even_when_refresh_fails(
         ),
     )
     if failure:
-        service.refresh_points.side_effect = ServiceUnavailableError("Provider down")
+        service.refresh_directories.side_effect = ServiceUnavailableError(
+            "Provider down"
+        )
         with pytest.raises(ServiceUnavailableError):
-            await delivery.refresh_delivery_city.original_func("city", "owner")
+            await delivery.refresh_delivery_directories.original_func("owner")
     else:
-        await delivery.refresh_delivery_city.original_func("city", "owner")
-    service.refresh_points.assert_awaited_once_with("city")
-    cache.release.assert_awaited_once_with("dispatch:city", "owner")
+        await delivery.refresh_delivery_directories.original_func("owner")
+    service.refresh_directories.assert_awaited_once_with()
+    cache.release.assert_awaited_once_with("dispatch", "owner")
 
 
 @pytest.mark.asyncio
@@ -60,7 +62,7 @@ async def test_periodic_task_checks_directories(monkeypatch):
         ),
     )
     await delivery.refresh_delivery_directories.original_func()
-    service.refresh_used.assert_awaited_once()
+    service.refresh_directories.assert_awaited_once()
 
 
 @pytest.mark.asyncio
@@ -75,5 +77,5 @@ async def test_background_tasks_do_not_call_np_without_a_key(monkeypatch):
         lambda: SimpleNamespace(nova_poshta=NovaPoshtaConfig()),
     )
     await delivery.refresh_delivery_directories.original_func()
-    await delivery.refresh_delivery_city.original_func("city", "owner")
+    await delivery.refresh_delivery_directories.original_func("owner")
     factory.assert_not_called()

@@ -6,6 +6,7 @@ from app.api.common.exceptions import ServiceUnavailableError
 from app.api.modules.delivery.enums import NOVA_POSHTA_LOCKER_TYPE_REF
 from app.api.modules.delivery.utils import (
     CitySearchIndex,
+    PointSearchIndex,
     bounded_lookup,
     match_points,
     normalized_address,
@@ -59,3 +60,24 @@ def test_point_matching_filters_kind_before_pagination_and_skips_forbidden_point
     assert [item.number for item in match_points(points, "39", None, 1, 50)] == ["39"]
     assert len(match_points(points, "осокорська", None, 1, 50)) == 50
     assert len(match_points(points, "", NOVA_POSHTA_LOCKER_TYPE_REF, 1, 50)) == 1
+
+
+def test_point_index_keeps_cities_separate_and_matches_numbers_and_streets():
+    points = (
+        NovaPoshtaPoint(
+            "a", "Відділення №1", "вул. Миру, 2", "1", "branch", city_ref="a"
+        ),
+        NovaPoshtaPoint(
+            "b", "Відділення №1", "вул. Миру, 3", "1", "branch", city_ref="b"
+        ),
+        NovaPoshtaPoint(
+            "c", "Відділення №11", "вул. Миру, 4", "11", "branch", city_ref="a"
+        ),
+    )
+    index = PointSearchIndex(points)
+    assert [item.ref for item in index.search("a", "1", None, 1, 50)] == ["a"]
+    assert [item.ref for item in index.search("b", " 1 ", None, 1, 50)] == ["b"]
+    assert [item.ref for item in index.search("a", "МИРУ", None, 1, 1)] == ["a"]
+    assert [item.ref for item in index.search("a", "МИРУ", None, 2, 1)] == ["c"]
+    assert index.search("a", "2", None, 1, 50) == []
+    assert index.search("missing", "1", None, 1, 50) is None
