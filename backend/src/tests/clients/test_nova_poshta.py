@@ -78,6 +78,32 @@ async def test_maps_delivery_point_response():
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("failure", ["timeout", "503"])
+async def test_retries_temporary_provider_failures(failure: str):
+    attempts = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal attempts
+        attempts += 1
+        if attempts == 1:
+            if failure == "timeout":
+                raise httpx.ReadTimeout("timed out", request=request)
+            return httpx.Response(503, request=request)
+        return httpx.Response(200, json={"success": True, "data": []}, request=request)
+
+    client = NovaPoshtaClient(NovaPoshtaConfig())
+    await client.close()
+    client._client = httpx.AsyncClient(
+        transport=httpx.MockTransport(handler), base_url="https://example.test/"
+    )
+    try:
+        assert await client.search_cities("Київ") == []
+        assert attempts == 2
+    finally:
+        await client.close()
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("payload", "status_code"),
     [

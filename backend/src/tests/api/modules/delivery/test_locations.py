@@ -89,7 +89,7 @@ class TestDeliveryLocations:
             {
                 "ref": "locker-ref",
                 "name": "Поштомат №2015",
-                "label": "вул. Хрещатик, 12",
+                "label": "Поштомат №2015",
                 "number": "2015",
             }
         ]

@@ -1,3 +1,4 @@
+import asyncio
 from dataclasses import dataclass
 from typing import Any
 
@@ -95,15 +96,23 @@ class NovaPoshtaClient:
         properties: dict[str, str],
     ) -> list[dict[str, Any]]:
         try:
-            response = await self._client.post(
-                "",
-                json={
-                    "apiKey": self._api_key,
-                    "modelName": model,
-                    "calledMethod": method,
-                    "methodProperties": properties,
-                },
-            )
+            request = {
+                "apiKey": self._api_key,
+                "modelName": model,
+                "calledMethod": method,
+                "methodProperties": properties,
+            }
+            for attempt in range(2):
+                try:
+                    response = await self._client.post("", json=request)
+                    if response.status_code in {502, 503, 504} and attempt == 0:
+                        await asyncio.sleep(0.2)
+                        continue
+                    break
+                except httpx.TransportError:
+                    if attempt:
+                        raise
+                    await asyncio.sleep(0.2)
             response.raise_for_status()
             payload: Any = response.json()
             if not isinstance(payload, dict) or payload.get("success") is not True:

@@ -39,7 +39,7 @@ class DeliveryLocationService:
             DeliveryPointResponse(
                 ref=point.ref,
                 name=point.name,
-                label=point.label,
+                label=point.name,
                 number=point.number,
             )
             for point in points
