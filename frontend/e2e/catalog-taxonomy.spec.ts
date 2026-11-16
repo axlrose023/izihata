@@ -62,10 +62,7 @@ test("requested subcategories return exactly their catalog counts", async ({
 test("material and IP option counts agree with filtered products", async ({
   request,
 }) => {
-  for (const [key, expected] of [
-    ["Матеріал", ["Метал", "Пластик", "АБС-пластик"]],
-    ["Ступінь захисту IP", ["IP20", "IP31", "IP40", "IP44", "IP54", "IP65"]],
-  ] as const) {
+  for (const key of ["Матеріал", "Ступінь захисту IP"]) {
     const facets = await request.get("/api/v1/catalog/spec-facets", {
       params: { category: "panels", facet_key: key, page_size: 100 },
     });
@@ -74,13 +71,16 @@ test("material and IP option counts agree with filtered products", async ({
       value: string;
       count: number;
     }>;
-    for (const value of expected) {
-      const option = options.find((option) => option.value === value)!;
-      expect(option).toBeDefined();
+    expect(options.length).toBeGreaterThan(0);
+    expect(new Set(options.map((option) => option.value)).size).toBe(
+      options.length,
+    );
+    for (const option of options) {
+      expect(option.count).toBeGreaterThan(0);
       const products = await request.get("/api/v1/catalog/products", {
         params: {
           category: "panels",
-          spec: JSON.stringify([key, value]),
+          spec: JSON.stringify([key, option.value]),
           page_size: 1,
           include_facets: false,
         },
@@ -104,6 +104,16 @@ test("subcategory preview expands, collapses and keeps selection visible", async
   const avr = category.subcategories.find((item) =>
     item.name.startsWith("АВР"),
   )!;
+  // Exercise the overflow UI even when the small CI seed has fewer than
+  // seven populated subcategories. API counts are tested separately above.
+  category.subcategories = category.subcategories.map((item) => ({
+    ...item,
+    product_count: Math.max(1, item.product_count),
+  }));
+  expect(category.subcategories.length).toBeGreaterThan(6);
+  await page.route("**/api/v1/catalog/categories", (route) =>
+    route.fulfill({ json: categories }),
+  );
   await page.goto(`/catalog/lowvoltage?subcategory=${avr.slug}`);
   const chips = page.getByRole("navigation", { name: "Підкатегорії" });
   await expect(chips.getByRole("link")).toHaveCount(6);
@@ -174,6 +184,10 @@ test("category changes clear dependent filters and all-products navigation reset
     await menu.getByRole("link", { name: "Усі товари", exact: true }).click();
   } else {
     await page.locator(".catalog-nav__primary").click();
+    await page
+      .getByRole("navigation", { name: "Категорії товарів", exact: true })
+      .getByRole("link", { name: /Переглянути всі товари/ })
+      .click();
   }
   await expect(page).toHaveURL(/\/catalog$/);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(

@@ -25,6 +25,11 @@ test("link intent prepares its route without fetching the next page's products",
     const menu = page.getByRole("dialog", { name: "Головне меню" });
     await menu.getByRole("button", { name: "Каталог товарів" }).click();
     link = menu.getByRole("link", { name: "Усі товари", exact: true });
+  } else {
+    await link.click();
+    link = page
+      .getByRole("navigation", { name: "Категорії товарів", exact: true })
+      .getByRole("link", { name: /Переглянути всі товари/ });
   }
   await link.focus();
   await catalogReady;

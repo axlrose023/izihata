@@ -666,8 +666,11 @@ test("the catalog offers two grid densities", async ({ page }) => {
 test("the sidebar opens the catalog one level down", async ({ page }) => {
   await page.goto("/");
   if ((page.viewportSize()?.width ?? 1000) > 820) {
+    await page.getByRole("button", { name: "Усі товари", exact: true }).click();
     await expect(
-      page.getByRole("banner").getByRole("link", { name: "Усі товари" }),
+      page
+        .getByRole("navigation", { name: "Категорії товарів", exact: true })
+        .getByRole("link", { name: /Переглянути всі товари/ }),
     ).toHaveAttribute("href", "/catalog");
     return;
   }
