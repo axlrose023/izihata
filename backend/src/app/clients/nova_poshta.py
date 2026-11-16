@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 from dataclasses import dataclass
+from time import monotonic
 from typing import Any
 
 import httpx
@@ -39,6 +40,8 @@ class NovaPoshtaClient:
         )
         self._cities: LookupCache[NovaPoshtaCity] = LookupCache()
         self._points: LookupCache[NovaPoshtaPoint] = LookupCache()
+        self._request_lock = asyncio.Lock()
+        self._last_request_at = 0.0
 
     async def close(self) -> None:
         await self._client.aclose()
@@ -134,9 +137,26 @@ class NovaPoshtaClient:
             }
             for attempt in range(2):
                 try:
-                    response = await self._client.post("", json=request)
+                    # NP enforces a shared key limit, including HTTP 200
+                    # responses with error code 20000401501. Cached reads
+                    # bypass this gate; distinct remote lookups are spaced.
+                    async with self._request_lock:
+                        delay = 0.5 - (monotonic() - self._last_request_at)
+                        if delay > 0:
+                            await asyncio.sleep(delay)
+                        self._last_request_at = monotonic()
+                        response = await self._client.post("", json=request)
                     response.raise_for_status()
                     payload: Any = response.json()
+                    if (
+                        isinstance(payload, dict)
+                        and payload.get("success") is not True
+                        and isinstance(payload.get("errorCodes"), list)
+                        and "20000401501" in payload["errorCodes"]
+                        and attempt == 0
+                    ):
+                        logger.warning("Nova Poshta key rate limit; pausing lookup")
+                        await asyncio.sleep(1)
                     if (
                         not isinstance(payload, dict)
                         or payload.get("success") is not True

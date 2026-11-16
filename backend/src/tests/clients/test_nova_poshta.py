@@ -81,7 +81,7 @@ async def test_maps_delivery_point_response():
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "failure", ["timeout", "503", "invalid_json", "provider_error"]
+    "failure", ["timeout", "503", "invalid_json", "provider_error", "key_rate_limit"]
 )
 async def test_retries_temporary_provider_failures(failure: str):
     attempts = 0
@@ -92,6 +92,12 @@ async def test_retries_temporary_provider_failures(failure: str):
         if attempts == 1:
             if failure == "timeout":
                 raise httpx.ReadTimeout("timed out", request=request)
+            if failure == "key_rate_limit":
+                return httpx.Response(
+                    200,
+                    json={"success": False, "errorCodes": ["20000401501"], "data": []},
+                    request=request,
+                )
             if failure == "invalid_json":
                 return httpx.Response(
                     200, content=b"temporarily unavailable", request=request
