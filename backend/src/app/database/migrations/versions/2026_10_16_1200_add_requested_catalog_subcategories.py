@@ -81,9 +81,7 @@ def _ensure_subcategory(
         ).scalar_one(),
     )
     connection.execute(
-        sa.text(
-            "INSERT INTO requested_subcategories_created (id) VALUES (:id)"
-        ),
+        sa.text("INSERT INTO requested_subcategories_created (id) VALUES (:id)"),
         {"id": subcategory_id},
     )
     return subcategory_id
@@ -165,8 +163,7 @@ def _move_products(
     connection.execute(
         sa.text(
             "UPDATE products SET category_id = :target_category_id, "
-            "subcategory_id = :target_subcategory_id WHERE "
-            + changed
+            "subcategory_id = :target_subcategory_id WHERE " + changed
         ),
         values,
     )
@@ -245,8 +242,7 @@ def upgrade() -> None:
         (
             "lowvoltage",
             "Теплові реле",
-            "name ILIKE 'Теплове реле%' "
-            "OR name ILIKE 'Реле теплове до контакторів%'",
+            "name ILIKE 'Теплове реле%' OR name ILIKE 'Реле теплове до контакторів%'",
         ),
         (
             "relay",
@@ -312,8 +308,7 @@ def upgrade() -> None:
         (
             "cabletrays",
             "Колодязі кабельні",
-            "name ILIKE '%колодяз%кабель%' "
-            "OR name ILIKE '%кабельн%колодяз%'",
+            "name ILIKE '%колодяз%кабель%' OR name ILIKE '%кабельн%колодяз%'",
         ),
     )
     for category_slug, name, where in product_filters:

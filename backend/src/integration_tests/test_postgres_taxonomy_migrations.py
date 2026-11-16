@@ -275,9 +275,7 @@ def exercise_requested(connection):
         )
         session.flush()
         before = snapshot(connection)
-        module = migration(
-            "2026_10_16_1200_add_requested_catalog_subcategories.py"
-        )
+        module = migration("2026_10_16_1200_add_requested_catalog_subcategories.py")
         with Operations.context(MigrationContext.configure(connection)):
             module.upgrade()
             subcategories = {
@@ -330,9 +328,12 @@ def exercise_requested(connection):
                 "2026_10_16_1330_complete_thermal_relay_assignment.py"
             )
             adjustment.upgrade()
-            assert connection.execute(
-                select(Product.category_id).where(Product.sku == "TEST-THERMAL-ALT")
-            ).scalar_one() == categories["lowvoltage"].id
+            assert (
+                connection.execute(
+                    select(Product.category_id).where(Product.sku == "TEST-THERMAL-ALT")
+                ).scalar_one()
+                == categories["lowvoltage"].id
+            )
             adjustment.downgrade()
             module.downgrade()
             assert snapshot(connection) == before
