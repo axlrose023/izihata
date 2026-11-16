@@ -24,6 +24,8 @@ class PostgresConfig(BaseModel):
 class RedisConfig(BaseModel):
     socket_connect_timeout_seconds: float = Field(default=1, gt=0, le=10)
     socket_timeout_seconds: float = Field(default=1, gt=0, le=10)
+    max_connections: int = Field(default=64, ge=1, le=512)
+    pool_timeout_seconds: float = Field(default=2, gt=0, le=10)
     host: str
     port: int = Field(default=6379, ge=1, le=65535)
     db: int = Field(default=0, ge=0)
@@ -43,6 +45,12 @@ class NovaPoshtaConfig(BaseModel):
     api_url: str = "https://api.novaposhta.ua/v2.0/json/"
     api_key: SecretStr | None = None
     timeout_seconds: float = Field(default=5, gt=0, le=30)
+    request_interval_seconds: float = Field(default=0.5, ge=0.05, le=10)
+    request_wait_seconds: float = Field(default=2, gt=0, le=5)
+    request_deadline_seconds: float = Field(default=8, ge=1, le=10)
+    directory_enabled: bool = True
+    directory_ttl_seconds: int = Field(default=3600, ge=300, le=86400)
+    directory_stale_seconds: int = Field(default=86400, ge=3600, le=172800)
 
 
 class OutboxConfig(BaseModel):

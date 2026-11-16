@@ -1,4 +1,6 @@
+import asyncio
 import json
+from time import monotonic
 
 import httpx
 import pytest
@@ -160,5 +162,101 @@ async def test_searches_by_exact_number_and_forwards_page():
     )
     try:
         assert await client.search_points("city", "390", page=2) == []
+    finally:
+        await client.close()
+
+
+@pytest.mark.asyncio
+async def test_slow_lookup_does_not_serialize_unrelated_network_calls():
+    first_started = asyncio.Event()
+    second_started = asyncio.Event()
+    client = NovaPoshtaClient(
+        NovaPoshtaConfig(request_interval_seconds=0.05, request_deadline_seconds=1)
+    )
+    await client.close()
+
+    async def handler(request):
+        search = json.loads(request.content)["methodProperties"]["CityName"]
+        if search == "first":
+            first_started.set()
+            await second_started.wait()
+        else:
+            second_started.set()
+        return httpx.Response(200, json={"success": True, "data": []})
+
+    client._client = httpx.AsyncClient(
+        transport=httpx.MockTransport(handler), base_url="https://example.test/"
+    )
+    try:
+        first = asyncio.create_task(client.search_cities("first"))
+        await first_started.wait()
+        assert await client.search_cities("second") == []
+        assert await first == []
+    finally:
+        await client.close()
+
+
+@pytest.mark.asyncio
+async def test_provider_request_has_an_overall_deadline():
+    client = NovaPoshtaClient(NovaPoshtaConfig(request_deadline_seconds=1))
+    await client.close()
+
+    async def handler(request):
+        await asyncio.sleep(5)
+        return httpx.Response(200, json={"success": True, "data": []})
+
+    client._client = httpx.AsyncClient(
+        transport=httpx.MockTransport(handler), base_url="https://example.test/"
+    )
+    started = monotonic()
+    try:
+        with pytest.raises(ServiceUnavailableError):
+            await client.search_cities("Київ")
+        assert monotonic() - started < 1.5
+    finally:
+        await client.close()
+
+
+@pytest.mark.asyncio
+async def test_marks_unselectable_points_without_losing_page_metadata():
+    client = await make_client(
+        {
+            "success": True,
+            "data": [
+                {"Ref": "disabled", "Description": "Закрито", "DenyToSelect": "1"},
+                {"Ref": "active", "Description": "Працює"},
+            ],
+        }
+    )
+    try:
+        points, has_next = await client.get_points_page("city", 1, page_size=2)
+        assert has_next is True
+        assert [point.selectable for point in points] == [False, True]
+    finally:
+        await client.close()
+
+
+@pytest.mark.asyncio
+async def test_bulk_city_mapping_keeps_a_plain_name_and_a_distinguishing_label():
+    client = await make_client(
+        {
+            "success": True,
+            "data": [
+                {
+                    "Ref": "city",
+                    "Description": "Абазівка (Полтавський р-н, Полтавська обл)",
+                    "DescriptionRu": "Абазовка (Полтавский р-н, Полтавская обл)",
+                    "AreaDescription": "Полтавська",
+                    "SettlementTypeDescription": "село",
+                }
+            ],
+        }
+    )
+    try:
+        cities, more = await client.get_cities_page(1)
+        assert more is False
+        assert cities[0].name == "Абазівка"
+        assert cities[0].label == "село Абазівка (Полтавський р-н, Полтавська обл)"
+        assert "Абазовка" in cities[0].aliases[1]
     finally:
         await client.close()
