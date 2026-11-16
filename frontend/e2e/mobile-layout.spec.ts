@@ -1,16 +1,46 @@
 import { expect, test, type Page } from "@playwright/test";
 
 async function expectDocumentFits(page: Page) {
-  await expect
-    .poll(
-      () =>
-        page.evaluate(
-          () => document.documentElement.scrollWidth - window.innerWidth,
-        ),
-      { message: `Horizontal overflow at ${page.url()}` },
-    )
-    .toBeLessThanOrEqual(1);
-  expect(await page.evaluate(() => window.scrollX)).toBe(0);
+  const diagnostics = () =>
+    page.evaluate(() => ({
+      viewport: window.innerWidth,
+      documentWidth: document.documentElement.scrollWidth,
+      overflowing: Array.from(document.querySelectorAll<HTMLElement>("body *"))
+        .filter((element) => {
+          const rect = element.getBoundingClientRect();
+          return (
+            rect.width > 0 &&
+            (rect.right > window.innerWidth + 1 || rect.left < -1)
+          );
+        })
+        .slice(0, 40)
+        .map((element) => ({
+          tag: element.tagName,
+          className: element.className,
+          text: element.textContent?.slice(0, 80),
+          right: element.getBoundingClientRect().right,
+          width: element.getBoundingClientRect().width,
+          overflowX: getComputedStyle(element).overflowX,
+        })),
+    }));
+  try {
+    await expect
+      .poll(
+        () =>
+          page.evaluate(
+            () => document.documentElement.scrollWidth - window.innerWidth,
+          ),
+        { message: `Horizontal overflow at ${page.url()}` },
+      )
+      .toBeLessThanOrEqual(1);
+    expect(await page.evaluate(() => window.scrollX)).toBe(0);
+  } catch (error) {
+    await test.info().attach("horizontal-overflow.json", {
+      body: JSON.stringify(await diagnostics(), null, 2),
+      contentType: "application/json",
+    });
+    throw error;
+  }
 }
 
 test("font configuration prevents late replacement of painted text", async ({
