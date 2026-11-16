@@ -30,7 +30,7 @@ class DeliveryDirectoryService:
         client: NovaPoshtaClient,
         cache: DeliveryDirectoryCache,
         config: NovaPoshtaConfig,
-        enqueue: Callable[[str], Awaitable[None]] | None = None,
+        enqueue: Callable[[], Awaitable[None]] | None = None,
     ):
         self._client = client
         self._cache = cache
@@ -131,11 +131,12 @@ class DeliveryDirectoryService:
         if self._enqueue is None:
             return
         key = "dispatch"
-        token = await self._cache.claim(key, seconds=900)
+        # Keep a cooldown after completed/failed jobs, not just while queued.
+        token = await self._cache.claim(key, seconds=300)
         if token is None:
             return
         try:
-            await self._enqueue(token)
+            await self._enqueue()
         except (TaskiqError, RedisError, ServiceUnavailableError):
             await self._cache.release(key, token)
             logger.warning("Delivery directory refresh could not be queued")

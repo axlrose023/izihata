@@ -248,6 +248,40 @@ async def test_refresh_failure_does_not_publish_partial_pages(directories):
     assert await caches[0].claim("refresh:points", seconds=1)
 
 
+async def test_failed_background_refresh_is_not_requeued_on_each_stale_read(
+    directories,
+):
+    redis, caches, namespace = directories
+    await caches[0].save(
+        "cities",
+        CitySnapshot.create(
+            [NovaPoshtaCity("city", "Київ", "м. Київ")], ttl=60, stale=60
+        ),
+        group="cities",
+        capacity=1,
+    )
+    await caches[0].save(
+        "points",
+        PointSnapshot(
+            items=(_point("p", "Point", "", "1", "branch"),),
+            fresh_until=time() - 1,
+            expires_at=time() + 300,
+        ),
+        group="points",
+        capacity=1,
+    )
+    provider = AsyncMock(spec=NovaPoshtaClient)
+    provider.get_points_page.side_effect = ServiceUnavailableError("Provider offline")
+    refresh = DeliveryDirectoryRefreshService(provider, caches[0], NovaPoshtaConfig())
+    enqueue = AsyncMock(side_effect=refresh.refresh_directories)
+    service = DeliveryDirectoryService(provider, caches[1], NovaPoshtaConfig(), enqueue)
+    for _ in range(20):
+        assert (await service.search_points("city", "1"))[0].ref == "p"
+    enqueue.assert_awaited_once_with()
+    provider.get_points_page.assert_awaited_once_with(None, 1)
+    assert await redis.ttl(f"{namespace}:lock:dispatch") > 240
+
+
 async def test_refresh_uses_all_pages_and_keeps_both_locker_types(directories):
     _, caches, _ = directories
     client = AsyncMock(spec=NovaPoshtaClient)
