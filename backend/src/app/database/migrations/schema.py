@@ -15,6 +15,10 @@ MIGRATION_ARCHIVE_TABLES = frozenset(
         "product_categories_before_electrical_taxonomy",
         "subcategories_created_by_electrical_taxonomy",
         "product_categories_before_shrink_tube_sets",
+        "requested_subcategory_rows",
+        "requested_subcategories_created",
+        "requested_product_categories_before",
+        "product_categories_before_thermal_relay_completion",
     }
 )
 
