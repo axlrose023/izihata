@@ -283,3 +283,25 @@ async def test_countrywide_points_require_a_city_reference(city_ref):
             assert points[0].city_ref == city_ref
     finally:
         await client.close()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("directory", ["cities", "points"])
+async def test_malformed_directory_page_is_not_published_as_partial_data(directory):
+    client = await make_client(
+        {
+            "success": True,
+            "data": [
+                {"Ref": "valid", "Description": "Valid", "CityRef": "city"},
+                {"Ref": "incomplete"},
+            ],
+        }
+    )
+    try:
+        with pytest.raises(ServiceUnavailableError):
+            if directory == "cities":
+                await client.get_cities_page(1)
+            else:
+                await client.get_points_page(None, 1)
+    finally:
+        await client.close()

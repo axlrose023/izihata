@@ -32,9 +32,6 @@ class DeliveryDirectoryRefreshService:
             CitySnapshot,
             self._client.get_cities_page,
             ttl=12 * 3600,
-            group="cities",
-            capacity=1,
-            require_items=True,
             max_pages=200,
             force=force,
         )
@@ -45,9 +42,6 @@ class DeliveryDirectoryRefreshService:
             PointSnapshot,
             partial(self._client.get_points_page, None),
             ttl=self._config.directory_ttl_seconds,
-            group="points",
-            capacity=1,
-            require_items=True,
             max_pages=1000,
             force=force,
         )
@@ -59,9 +53,6 @@ class DeliveryDirectoryRefreshService:
         fetch: Callable[[int], Awaitable[tuple[list[T], bool]]],
         *,
         ttl: int,
-        group: str,
-        capacity: int,
-        require_items: bool,
         max_pages: int,
         force: bool,
     ) -> int:
@@ -88,7 +79,7 @@ class DeliveryDirectoryRefreshService:
                         raise directory_unavailable()
                 else:
                     raise directory_unavailable()
-            if require_items and not rows:
+            if not rows:
                 raise directory_unavailable()
             await self._cache.save(
                 key,
@@ -97,8 +88,8 @@ class DeliveryDirectoryRefreshService:
                     ttl=ttl,
                     stale=self._config.directory_stale_seconds,
                 ),
-                group=group,
-                capacity=capacity,
+                group=key,
+                capacity=1,
             )
             logger.info(
                 "Nova Poshta directory refreshed",

@@ -137,7 +137,9 @@ class NovaPoshtaClient:
             },
         )
         points = self._map_points(data)
-        if city_ref is None and any(not point.city_ref for point in points):
+        if len(points) != len(data) or (
+            city_ref is None and any(not point.city_ref for point in points)
+        ):
             raise directory_unavailable()
         return points, len(data) == page_size
 
@@ -170,6 +172,8 @@ class NovaPoshtaClient:
                     aliases=(description, str(item.get("DescriptionRu") or "")),
                 )
             )
+        if len(cities) != len(data):
+            raise directory_unavailable()
         return cities, len(data) == page_size
 
     async def _call(
