@@ -76,9 +76,11 @@ function renderForm(
   pointFails = false,
   pointOptions: unknown[] = [],
   nextPage: number | null = null,
+  payment?: { online_card_enabled: boolean; test_mode: boolean },
 ) {
   vi.mocked(apiClient).mockImplementation(async (path) => {
     if (path === "/checkout/quote") return quote;
+    if (path === "/payments/availability" && payment) return payment;
     if (path.startsWith("/delivery/cities")) {
       if (cityFails) throw unavailable;
       return [{ ref: "city-1", name: "Київ", label: "Київ" }];
@@ -111,6 +113,35 @@ function renderForm(
   });
   return { ...view, client };
 }
+
+it.each([false, true])(
+  "describes online card payment independently of the provider (test mode: %s)",
+  async (testMode) => {
+    renderForm(true, false, [], null, {
+      online_card_enabled: true,
+      test_mode: testMode,
+    });
+    const card = await screen.findByRole("radio", { name: /Карткою онлайн/ });
+    await waitFor(() => expect(card).toBeEnabled());
+    expect(screen.getByText("Платіжне вікно")).toBeInTheDocument();
+    expect(
+      screen.queryByText(/Після підтвердження замовлення відкриється/),
+    ).not.toBeInTheDocument();
+    fireEvent.click(card);
+    expect(
+      screen.getByText(
+        "Після підтвердження замовлення відкриється платіжне вікно.",
+      ),
+    ).toBeInTheDocument();
+    if (testMode) {
+      expect(screen.getByText(/Тестовий режим WayForPay/)).toBeInTheDocument();
+    } else {
+      expect(
+        screen.queryByText(/Тестовий режим WayForPay/),
+      ).not.toBeInTheDocument();
+    }
+  },
+);
 
 it("allows manual delivery when the city directory fails", async () => {
   renderForm();

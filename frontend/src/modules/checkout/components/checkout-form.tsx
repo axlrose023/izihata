@@ -606,13 +606,11 @@ export function CheckoutForm() {
                   {...register("payment_method")}
                 />
                 <span>
-                  Карткою
+                  Карткою онлайн
                   <br />
                   <small>
                     {onlineCardEnabled
-                      ? paymentAvailability.data?.test_mode
-                        ? "Тестовий WayForPay"
-                        : "Онлайн через WayForPay"
+                      ? "Платіжне вікно"
                       : "Тимчасово недоступна"}
                   </small>
                 </span>
@@ -626,6 +624,11 @@ export function CheckoutForm() {
                 <span>Рахунок для ТОВ/ФОП</span>
               </label>
             </div>
+            {paymentMethod === "card" && onlineCardEnabled ? (
+              <p className="checkout-payment-hint">
+                Після підтвердження замовлення відкриється платіжне вікно.
+              </p>
+            ) : null}
             {paymentMethod === "invoice" ? (
               <div className="form-grid">
                 <label className="field">

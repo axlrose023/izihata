@@ -68,7 +68,12 @@ for (const outcome of [
       .fill("payment-test@example.invalid");
     await page.locator('input[name="phone"]').fill("+380501234567");
     await page.getByRole("radio", { name: /Самовивіз/ }).check();
-    await page.getByRole("radio", { name: /Карткою/ }).check();
+    await page.getByRole("radio", { name: /Карткою онлайн/ }).check();
+    await expect(
+      page.getByText(
+        "Після підтвердження замовлення відкриється платіжне вікно.",
+      ),
+    ).toBeVisible();
     await page.getByRole("button", { name: "Підтвердити замовлення" }).click();
     if (outcome === "approved" || outcome === "pending") {
       await expect(page).toHaveURL(/\/order\/success\?/);
@@ -103,6 +108,26 @@ for (const outcome of [
   });
 }
 
+test("online payment is described by method, not by provider", async ({
+  page,
+}) => {
+  await page.route("**/api/v1/payments/availability", (route) =>
+    route.fulfill({ json: { online_card_enabled: true, test_mode: false } }),
+  );
+  await page.goto("/catalog", { waitUntil: "domcontentloaded" });
+  await page.getByRole("button", { name: "Додати в кошик" }).first().click();
+  await page.goto("/checkout", { waitUntil: "domcontentloaded" });
+  const payment = page.locator(".checkout-card--payment");
+  await expect(payment.getByRole("radio")).toHaveCount(3);
+  await expect(payment.getByText("WayForPay")).toHaveCount(0);
+  await payment.getByRole("radio", { name: /Карткою онлайн/ }).check();
+  await expect(
+    payment.getByText(
+      "Після підтвердження замовлення відкриється платіжне вікно.",
+    ),
+  ).toBeVisible();
+});
+
 test("card checkout is unavailable without merchant credentials", async ({
   page,
 }) => {
@@ -112,6 +137,8 @@ test("card checkout is unavailable without merchant credentials", async ({
   await page.goto("/catalog", { waitUntil: "domcontentloaded" });
   await page.getByRole("button", { name: "Додати в кошик" }).first().click();
   await page.goto("/checkout", { waitUntil: "domcontentloaded" });
-  await expect(page.getByRole("radio", { name: /Карткою/ })).toBeDisabled();
+  const card = page.getByRole("radio", { name: /Карткою онлайн/ });
+  await expect(card).toBeDisabled();
+  await expect(card.locator("..")).toHaveCSS("cursor", "not-allowed");
   await expect(page.getByText("Тимчасово недоступна")).toBeVisible();
 });

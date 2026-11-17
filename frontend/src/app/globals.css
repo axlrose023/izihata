@@ -5058,6 +5058,16 @@ h2 {
   background: var(--surface-2);
   box-shadow: inset 0 0 0 1px var(--ink);
 }
+.choice-grid input:focus-visible + span {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+.choice-grid label:has(input:disabled) {
+  cursor: not-allowed;
+}
+.choice-grid input:disabled + span {
+  opacity: 0.6;
+}
 .inline-note {
   padding: 11px 13px;
   color: #5f4b10;
@@ -8734,6 +8744,13 @@ h1 {
   margin: 0 18px 18px;
 }
 
+.checkout-card .checkout-payment-hint {
+  margin: 0 18px 18px;
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
 .checkout-card--payment .form-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   padding-top: 0;
@@ -8909,7 +8926,8 @@ h1 {
     padding: 14px;
   }
   .checkout-card .inline-note,
-  .checkout-card .delivery-fallback-note {
+  .checkout-card .delivery-fallback-note,
+  .checkout-card .checkout-payment-hint {
     margin: 0 14px 14px;
   }
   .order-summary {
