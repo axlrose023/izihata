@@ -58,6 +58,11 @@ export async function toApiError(response: Response): Promise<ApiError> {
 }
 
 const localizedMessages: Record<string, string> = {
+  payment_provider_unavailable:
+    "Онлайн-оплата тимчасово недоступна. Оберіть інший спосіб оплати.",
+  payment_customer_name_required: "Для онлайн-оплати вкажіть ім’я та прізвище.",
+  payment_amount_invalid:
+    "Онлайн-оплата доступна лише для замовлення з додатною сумою.",
   quote_changed:
     "Сума замовлення змінилася. Перегляньте нову суму й підтвердіть ще раз.",
   idempotency_conflict:

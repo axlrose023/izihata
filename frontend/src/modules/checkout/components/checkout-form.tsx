@@ -10,6 +10,7 @@ import { MAX_CART_LINES, useCartStore } from "@/modules/cart/store";
 import { ProductVisual } from "@/modules/catalog/components/product-visual";
 import { DeliveryAutocomplete } from "@/modules/checkout/components/delivery-autocomplete";
 import { getDeliveryPoints } from "@/modules/checkout/api/delivery-api";
+import { paymentAvailabilityQuery } from "@/modules/checkout/api/payment-api";
 import { useCustomerAuth } from "@/modules/customers/customer-auth-context";
 import { storePolicyPages } from "@/shared/config/store-policy-pages";
 import { apiClient } from "@/shared/api/client";
@@ -17,10 +18,20 @@ import {
   clearOrderRetry,
   orderRetryKey,
 } from "@/modules/checkout/lib/order-retry";
+import {
+  openWayForPayWidget,
+  prepareWayForPayWidget,
+} from "@/modules/checkout/lib/wayforpay";
 import { ApiError, getUserErrorMessage } from "@/shared/api/errors";
 import { useDebouncedValue } from "@/shared/lib/use-debounced-value";
 import { formatMoney } from "@/shared/lib/format";
-import type { DeliveryCityOption, Order, Quote } from "@/shared/types/api";
+import type {
+  DeliveryCityOption,
+  OrderCreation,
+  PaymentStatus,
+  PaymentStatusResponse,
+  Quote,
+} from "@/shared/types/api";
 import { EmptyState } from "@/shared/ui/empty-state";
 
 const deliveryOptions = [
@@ -37,7 +48,7 @@ const deliveryOptions = [
   { value: "pickup", label: "Самовивіз", detail: "За погодженням" },
 ] as const;
 
-const checkoutSchema = (requireEmail: boolean) =>
+const checkoutSchema = (requireEmail: boolean, onlineCardEnabled: boolean) =>
   z
     .object({
       customer_name: z.string().trim().min(2, "Вкажіть ім’я").max(120),
@@ -97,6 +108,17 @@ const checkoutSchema = (requireEmail: boolean) =>
           });
         }
       }
+      if (
+        onlineCardEnabled &&
+        values.payment_method === "card" &&
+        values.customer_name.trim().split(/\s+/).length < 2
+      ) {
+        context.addIssue({
+          code: "custom",
+          path: ["customer_name"],
+          message: "Для онлайн-оплати вкажіть ім’я та прізвище",
+        });
+      }
     });
 
 type CheckoutValues = z.infer<ReturnType<typeof checkoutSchema>>;
@@ -120,6 +142,9 @@ export function CheckoutForm() {
   const [sessionNotice, setSessionNotice] = useState<string | null>(null);
   const sessionReady =
     customerStatus === "guest" || customerStatus === "authenticated";
+  const paymentAvailability = useQuery(paymentAvailabilityQuery);
+  const onlineCardEnabled =
+    paymentAvailability.data?.online_card_enabled === true;
 
   useEffect(() => {
     if (customerStatus === "idle") void restore();
@@ -133,7 +158,9 @@ export function CheckoutForm() {
     setValue,
     formState: { errors, isSubmitting },
   } = useForm<CheckoutValues>({
-    resolver: zodResolver(checkoutSchema(customerStatus !== "authenticated")),
+    resolver: zodResolver(
+      checkoutSchema(customerStatus !== "authenticated", onlineCardEnabled),
+    ),
     defaultValues: {
       customer_name: "",
       email: "",
@@ -287,6 +314,9 @@ export function CheckoutForm() {
     };
     setSubmitError(null);
     try {
+      if (values.payment_method === "card" && onlineCardEnabled) {
+        await prepareWayForPayWidget();
+      }
       const retryKey = await orderRetryKey(
         JSON.stringify({
           ...payload,
@@ -295,15 +325,49 @@ export function CheckoutForm() {
       );
       const send =
         customerStatus === "authenticated" ? customerRequest : apiClient;
-      const order = await send<Order>("/orders", {
+      const order = await send<OrderCreation>("/orders", {
         method: "POST",
         headers: { "Idempotency-Key": retryKey },
         body: JSON.stringify({ ...payload, expected_total: quote.data.total }),
       });
+      if (order.payment_widget && order.payment_attempt_id) {
+        const widgetResult = await openWayForPayWidget(order.payment_widget);
+        let paymentStatus: PaymentStatus = "pending";
+        try {
+          const status = await apiClient<PaymentStatusResponse>(
+            `/payments/wayforpay/${order.payment_attempt_id}`,
+          );
+          paymentStatus = status.status;
+        } catch {
+          // Only the backend confirms payment; the result page keeps checking.
+        }
+        if (
+          paymentStatus === "failed" ||
+          (paymentStatus === "pending" && widgetResult === "declined")
+        ) {
+          setSubmitError(
+            "Оплату не підтверджено. Кошик збережено — перевірте дані та спробуйте ще раз.",
+          );
+          return;
+        }
+        if (paymentStatus !== "paid" && widgetResult === "closed") {
+          setSubmitError(
+            "Платіжне вікно закрито. Замовлення збережено й очікує оплати; за потреби зв’яжіться з менеджером.",
+          );
+          return;
+        }
+        clearOrderRetry();
+        clearCart();
+        navigate(
+          `/order/success?number=${encodeURIComponent(order.number)}&total=${encodeURIComponent(order.total)}&payment=${order.payment_method}&delivery=${order.delivery.method}&payment_attempt_id=${encodeURIComponent(order.payment_attempt_id)}`,
+          { state: { accountOrder: customerStatus === "authenticated" } },
+        );
+        return;
+      }
       clearOrderRetry();
       clearCart();
       navigate(
-        `/order/success?number=${encodeURIComponent(order.number)}&total=${encodeURIComponent(order.total)}&payment=${order.payment_method}&delivery=${order.delivery.method}`,
+        `/order/success?number=${encodeURIComponent(order.number)}&total=${encodeURIComponent(order.total)}&payment=${order.payment_method}&delivery=${order.delivery.method}${order.payment_attempt_id ? `&payment_attempt_id=${encodeURIComponent(order.payment_attempt_id)}` : ""}`,
         { state: { accountOrder: customerStatus === "authenticated" } },
       );
     } catch (error) {
@@ -532,12 +596,17 @@ export function CheckoutForm() {
                 <input
                   type="radio"
                   value="card"
+                  disabled={!onlineCardEnabled}
                   {...register("payment_method")}
                 />
                 <span>
                   Карткою
                   <br />
-                  <small>Після підтвердження</small>
+                  <small>
+                    {onlineCardEnabled
+                      ? "Онлайн через WayForPay"
+                      : "Тимчасово недоступна"}
+                  </small>
                 </span>
               </label>
               <label>

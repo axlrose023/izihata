@@ -1,6 +1,8 @@
+import { useQuery } from "@tanstack/react-query";
 import { Check, Truck, UserRound } from "lucide-react";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
 
+import { paymentStatusQuery } from "@/modules/checkout/api/payment-api";
 import { formatMoney } from "@/shared/lib/format";
 import { useDocumentTitle } from "@/shared/lib/use-document-title";
 
@@ -12,6 +14,7 @@ export function OrderSuccessPage() {
   const rawNumber = params.get("number") ?? "";
   const rawTotal = params.get("total") ?? "";
   const rawPayment = params.get("payment") ?? "";
+  const rawPaymentAttemptId = params.get("payment_attempt_id") ?? "";
   const number = /^IZI-\d{8}-[A-F0-9]{10}$/.test(rawNumber) ? rawNumber : null;
   const total =
     Number.isFinite(Number(rawTotal)) && Number(rawTotal) >= 0
@@ -19,6 +22,25 @@ export function OrderSuccessPage() {
       : null;
   const payment = ["cash_on_delivery", "card", "invoice"].includes(rawPayment)
     ? rawPayment
+    : null;
+  const paymentAttemptId =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      rawPaymentAttemptId,
+    )
+      ? rawPaymentAttemptId
+      : null;
+  const onlinePayment = useQuery({
+    ...paymentStatusQuery(paymentAttemptId),
+    enabled: payment === "card" && paymentAttemptId !== null,
+    refetchInterval: (query) =>
+      (!query.state.data || query.state.data.status === "pending") &&
+      query.state.dataUpdateCount + query.state.errorUpdateCount < 80
+        ? 1_500
+        : false,
+    refetchIntervalInBackground: false,
+  });
+  const paymentStatus = paymentAttemptId
+    ? (onlinePayment.data?.status ?? "pending")
     : null;
 
   return (
@@ -36,7 +58,17 @@ export function OrderSuccessPage() {
             </p>
             {payment === "card" ? (
               <p className="inline-note">
-                Спосіб оплати підтвердимо під час дзвінка.
+                {onlinePayment.isError
+                  ? "Не вдалося перевірити оплату. Замовлення збережено; оновіть сторінку або зв’яжіться з менеджером."
+                  : paymentStatus === "paid"
+                    ? "Оплату успішно отримано. Менеджер зв’яжеться з вами для узгодження доставки."
+                    : paymentStatus === "refunded"
+                      ? "Кошти за замовлення повернено. За деталями зверніться до менеджера."
+                      : paymentStatus === "pending"
+                        ? "Платіж обробляється. Оновлення статусу надійде після підтвердження WayForPay."
+                        : paymentStatus === "failed"
+                          ? "Оплату не підтверджено. Зв’яжіться з менеджером, щоб узгодити повторну оплату."
+                          : "Спосіб оплати підтвердимо під час дзвінка."}
               </p>
             ) : null}
             {payment === "invoice" ? (
@@ -105,7 +137,13 @@ export function OrderSuccessPage() {
               <dt>{payment === "card" ? "Статус оплати" : "До сплати"}</dt>
               <dd>
                 {payment === "card"
-                  ? "Очікує підтвердження менеджером"
+                  ? paymentStatus === "paid"
+                    ? "Оплачено"
+                    : paymentStatus === "pending"
+                      ? "Очікує підтвердження WayForPay"
+                      : paymentStatus === "failed"
+                        ? "Не оплачено"
+                        : "Очікує підтвердження менеджером"
                   : total
                     ? formatMoney(total)
                     : "—"}

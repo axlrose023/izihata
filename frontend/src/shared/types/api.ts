@@ -273,6 +273,42 @@ export interface Order {
   created_at: string;
 }
 
+export interface WayForPayWidgetSession {
+  merchantAccount: string;
+  merchantDomainName: string;
+  authorizationType: string;
+  merchantTransactionSecureType: string;
+  merchantSignature: string;
+  orderReference: string;
+  orderDate: number;
+  amount: string;
+  currency: string;
+  productName: string[];
+  productPrice: string[];
+  productCount: number[];
+  clientFirstName: string;
+  clientLastName: string;
+  clientEmail: string;
+  clientPhone: string;
+  language: string;
+  serviceUrl: string;
+  straightWidget: boolean;
+}
+
+export interface OrderCreation extends Order {
+  payment_attempt_id: string | null;
+  payment_widget: WayForPayWidgetSession | null;
+}
+
+export interface PaymentStatusResponse {
+  attempt_id: string;
+  status: PaymentStatus;
+}
+
+export interface PaymentAvailabilityResponse {
+  online_card_enabled: boolean;
+}
+
 export interface OrderSummary {
   id: string;
   number: string;

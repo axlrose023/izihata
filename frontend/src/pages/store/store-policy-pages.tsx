@@ -1,8 +1,10 @@
 import { ArrowUpRight, Phone } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { Link, NavLink } from "react-router-dom";
 
 import { LeadAction } from "@/modules/leads/components/lead-action";
+import { paymentAvailabilityQuery } from "@/modules/checkout/api/payment-api";
 import { storeInfo } from "@/shared/config/store-info";
 import { storePolicyPages } from "@/shared/config/store-policy-pages";
 import { usePageMeta } from "@/shared/lib/use-page-meta";
@@ -86,6 +88,8 @@ function PolicySection({
 }
 
 export function DeliveryPaymentPage() {
+  const paymentAvailability = useQuery(paymentAvailabilityQuery);
+
   return (
     <PolicyLayout page={storePolicyPages.delivery}>
       <PolicySection id="delivery" title="Доставка">
@@ -117,8 +121,9 @@ export function DeliveryPaymentPage() {
         </p>
         <h3>Оплата онлайн</h3>
         <p>
-          Через LiqPay: Visa, Mastercard, Google Pay та Apple Pay. Оплата
-          здійснюється після підтвердження замовлення.
+          {paymentAvailability.data?.online_card_enabled
+            ? "Через платіжний віджет WayForPay. Доступні способи оплати залежать від налаштувань платіжного акаунта."
+            : "Онлайн-оплата WayForPay наразі недоступна. Менеджер узгодить доступний спосіб оплати під час підтвердження замовлення."}
         </p>
       </PolicySection>
     </PolicyLayout>
