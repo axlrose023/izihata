@@ -85,6 +85,9 @@ function OrderRow({ order }: { order: OrderSummary }) {
             <strong>{order.number}</strong>
           </button>
           <small>{formatDate(order.created_at)}</small>
+          {order.payment_is_test ? (
+            <small>Тестова оплата · не бойова</small>
+          ) : null}
         </td>
         <td>
           <span>{order.customer_name}</span>

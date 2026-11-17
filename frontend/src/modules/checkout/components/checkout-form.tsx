@@ -384,6 +384,12 @@ export function CheckoutForm() {
   return (
     <div className="checkout-layout">
       <form className="checkout-form" id="checkout-form" onSubmit={submit}>
+        {paymentAvailability.data?.test_mode ? (
+          <p className="delivery-fallback-note" role="status">
+            Тестовий режим WayForPay. Використовуйте лише вигадані контактні
+            дані й тестову картку. Це не справжня покупка.
+          </p>
+        ) : null}
         {sessionNotice ? <p role="alert">{sessionNotice}</p> : null}
         {customerStatus === "unavailable" ? (
           <p role="alert">
@@ -604,7 +610,9 @@ export function CheckoutForm() {
                   <br />
                   <small>
                     {onlineCardEnabled
-                      ? "Онлайн через WayForPay"
+                      ? paymentAvailability.data?.test_mode
+                        ? "Тестовий WayForPay"
+                        : "Онлайн через WayForPay"
                       : "Тимчасово недоступна"}
                   </small>
                 </span>

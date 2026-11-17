@@ -11,7 +11,7 @@ for (const outcome of [
   test(`WayForPay checkout handles ${outcome}`, async ({ page }) => {
     let orders = 0;
     await page.route("**/api/v1/payments/availability", (route) =>
-      route.fulfill({ json: { online_card_enabled: true } }),
+      route.fulfill({ json: { online_card_enabled: true, test_mode: true } }),
     );
     await page.route(
       "https://secure.wayforpay.com/server/pay-widget.js",
@@ -54,12 +54,14 @@ for (const outcome of [
               : outcome === "declined"
                 ? "failed"
                 : "pending",
+          is_test: true,
         },
       }),
     );
     await page.goto("/catalog", { waitUntil: "domcontentloaded" });
     await page.getByRole("button", { name: "Додати в кошик" }).first().click();
     await page.goto("/checkout", { waitUntil: "domcontentloaded" });
+    await expect(page.getByText(/Тестовий режим WayForPay/)).toBeVisible();
     await page.locator('input[name="customer_name"]').fill("Тест Оплати");
     await page
       .locator('input[name="email"]')
@@ -70,6 +72,7 @@ for (const outcome of [
     await page.getByRole("button", { name: "Підтвердити замовлення" }).click();
     if (outcome === "approved" || outcome === "pending") {
       await expect(page).toHaveURL(/\/order\/success\?/);
+      await expect(page.getByText(/Тестова оплата WayForPay/)).toBeVisible();
       await expect(
         page
           .getByText(

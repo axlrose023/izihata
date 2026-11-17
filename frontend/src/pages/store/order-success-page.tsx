@@ -52,6 +52,12 @@ export function OrderSuccessPage() {
           </span>
           <div>
             <h1>Замовлення прийнято</h1>
+            {onlinePayment.data?.is_test ? (
+              <p className="inline-note" role="status">
+                Тестова оплата WayForPay. Це не підтвердження справжньої
+                покупки.
+              </p>
+            ) : null}
             <p>
               Ми отримали замовлення. Менеджер зателефонує протягом робочого
               дня, щоб узгодити деталі та час відправлення.

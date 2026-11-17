@@ -200,6 +200,9 @@ export function CustomerAccountPage() {
                 <ReceiptText aria-hidden="true" />
                 <div>
                   <strong>{order.number}</strong>
+                  {order.payment_is_test ? (
+                    <small>Тестова оплата WayForPay</small>
+                  ) : null}
                   <span>{formatDate(order.created_at)}</span>
                 </div>
                 <StatusBadge status={order.status} />

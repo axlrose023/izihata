@@ -257,6 +257,7 @@ export interface Order {
   delivery: Delivery;
   payment_method: PaymentMethod;
   payment_status: PaymentStatus;
+  payment_is_test: boolean;
   status: OrderStatus;
   promo_code: string | null;
   subtotal: string;
@@ -303,10 +304,12 @@ export interface OrderCreation extends Order {
 export interface PaymentStatusResponse {
   attempt_id: string;
   status: PaymentStatus;
+  is_test: boolean;
 }
 
 export interface PaymentAvailabilityResponse {
   online_card_enabled: boolean;
+  test_mode: boolean;
 }
 
 export interface OrderSummary {
@@ -318,6 +321,7 @@ export interface OrderSummary {
   delivery: Delivery;
   payment_method: PaymentMethod;
   payment_status: PaymentStatus;
+  payment_is_test: boolean;
   status: OrderStatus;
   total: string;
   created_at: string;
