@@ -19,7 +19,10 @@ for (const outcome of [
         if (outcome === "script-error") return route.abort();
         return route.fulfill({
           contentType: "application/javascript",
-          body: `window.Wayforpay = class { run(parameters, approved, declined, pending) {
+          body: `window.Wayforpay = class {
+          closeit() { document.getElementById('wfp-container')?.remove(); document.body.classList.remove('wfp-widget-open'); }
+          run(parameters, approved, declined, pending) {
+          const container = document.createElement('div'); container.id = 'wfp-container'; document.body.append(container); document.body.classList.add('wfp-widget-open');
         ${outcome === "closed" ? 'window.dispatchEvent(new MessageEvent("message", {origin:"https://secure.wayforpay.com", data:"WfpWidgetEventClose"}));' : `${outcome}({});`}
       }};`,
         });
@@ -92,6 +95,8 @@ for (const outcome of [
       await expect(page.locator(".order-summary__line").first()).toBeVisible();
     }
     expect(orders).toBe(outcome === "script-error" ? 0 : 1);
+    await expect(page.locator("#wfp-container")).toHaveCount(0);
+    await expect(page.locator("body")).not.toHaveClass(/wfp-widget-open/);
   });
 }
 

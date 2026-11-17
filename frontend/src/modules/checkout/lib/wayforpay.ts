@@ -1,6 +1,7 @@
 import type { WayForPayWidgetSession } from "@/shared/types/api";
 
 interface WayForPayInstance {
+  closeit(): void;
   run(
     parameters: WayForPayWidgetSession,
     onApproved: (response: unknown) => void,
@@ -65,6 +66,7 @@ export async function openWayForPayWidget(
       if (settled) return;
       settled = true;
       window.removeEventListener("message", onMessage);
+      widget.closeit();
       resolve(result);
     };
     const onMessage = (event: MessageEvent<unknown>) => {
@@ -85,6 +87,7 @@ export async function openWayForPayWidget(
       );
     } catch {
       window.removeEventListener("message", onMessage);
+      widget.closeit();
       reject(
         new Error("Не вдалося відкрити платіжне вікно. Спробуйте ще раз."),
       );

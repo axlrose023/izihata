@@ -3,6 +3,10 @@ import { afterEach, expect, it, vi } from "vitest";
 import type { WayForPayWidgetSession } from "@/shared/types/api";
 import { openWayForPayWidget, prepareWayForPayWidget } from "./wayforpay";
 
+class Widget {
+  closeit() {}
+}
+
 afterEach(() => {
   delete window.Wayforpay;
   document.getElementById("widget-wfp-script")?.remove();
@@ -12,7 +16,8 @@ afterEach(() => {
 it.each(["approved", "declined", "pending"])(
   "returns widget %s without confirming backend payment",
   async (result) => {
-    window.Wayforpay = class {
+    const close = vi.spyOn(Widget.prototype, "closeit");
+    window.Wayforpay = class extends Widget {
       run(
         _parameters: unknown,
         approved: (response: unknown) => void,
@@ -27,11 +32,12 @@ it.each(["approved", "declined", "pending"])(
     await expect(
       openWayForPayWidget({} as WayForPayWidgetSession),
     ).resolves.toBe(result);
+    expect(close).toHaveBeenCalledOnce();
   },
 );
 
 it("accepts close events only from WayForPay and removes the listener", async () => {
-  window.Wayforpay = class {
+  window.Wayforpay = class extends Widget {
     run() {}
   };
   const remove = vi.spyOn(window, "removeEventListener");
@@ -58,7 +64,7 @@ it("accepts close events only from WayForPay and removes the listener", async ()
 });
 
 it("cleans up when the widget throws", async () => {
-  window.Wayforpay = class {
+  window.Wayforpay = class extends Widget {
     run() {
       throw new Error("broken");
     }
@@ -79,7 +85,7 @@ it("loads one script for concurrent callers and allows retry after failure", asy
     .dispatchEvent(new Event("error"));
   await error;
   const retry = prepareWayForPayWidget();
-  window.Wayforpay = class {
+  window.Wayforpay = class extends Widget {
     run() {}
   };
   document
