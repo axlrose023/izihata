@@ -35,17 +35,20 @@ class DashboardGateway:
             .where(
                 Order.created_at >= week_ago,
                 Order.status != OrderStatus.CANCELLED,
+                Order.payment_is_test.is_(False),
             )
             .scalar_subquery()
         )
         orders_today = (
             select(func.count(Order.id))
-            .where(Order.created_at >= today)
+            .where(Order.created_at >= today, Order.payment_is_test.is_(False))
             .scalar_subquery()
         )
         average_total = (
             select(func.coalesce(func.avg(Order.total), 0))
-            .where(Order.status != OrderStatus.CANCELLED)
+            .where(
+                Order.status != OrderStatus.CANCELLED, Order.payment_is_test.is_(False)
+            )
             .scalar_subquery()
         )
         active_products = (

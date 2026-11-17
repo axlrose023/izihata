@@ -297,8 +297,13 @@ async def test_mode_rejects_misleading_configuration(account, test_mode):
 
 
 async def test_sandbox_order_is_marked_and_contacts_are_anonymous(
-    client, merchant, monkeypatch, product, order_payload, idempotency_key
+    client, merchant, monkeypatch, product, order_payload, idempotency_key, uow
 ):
+    from datetime import UTC, datetime, timedelta
+
+    today = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
+    week_ago = today - timedelta(days=7)
+    before = await uow.dashboard.get_stats(today, week_ago)
     monkeypatch.setattr(
         merchant,
         "_config",
@@ -317,6 +322,7 @@ async def test_sandbox_order_is_marked_and_contacts_are_anonymous(
     assert response.status_code == 201, response.text
     order = response.json()
     assert order["payment_is_test"] is True
+    assert await uow.dashboard.get_stats(today, week_ago) == before
     widget = order["payment_widget"]
     assert widget["clientEmail"] == "test@example.invalid"
     assert widget["clientPhone"] != request["phone"].lstrip("+")
