@@ -3,7 +3,7 @@ from typing import Annotated
 
 from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
-from fastapi import APIRouter, Depends, Header, Request
+from fastapi import APIRouter, Depends, Header, Request, Response
 
 from app.api.common.exceptions import UnprocessableError
 from app.api.common.rate_limit import ORDER_RATE_LIMIT, RateLimit
@@ -31,6 +31,7 @@ logger = logging.getLogger(__name__)
 async def create_order(
     request: CreateOrderRequest,
     http_request: Request,
+    http_response: Response,
     service: FromDishka[OrderCreationService],
     tracking: FromDishka[VisitorTrackingService],
     idempotency_key: Annotated[
@@ -44,6 +45,7 @@ async def create_order(
     ],
     customer: Customer | None = Depends(OptionalAuthenticateCustomer()),
 ) -> OrderCreationResponse:
+    http_response.headers["Cache-Control"] = "no-store"
     contact_email = customer.email if customer is not None else request.email
     if contact_email is None:
         raise UnprocessableError(

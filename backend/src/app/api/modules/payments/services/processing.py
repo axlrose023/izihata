@@ -14,6 +14,7 @@ from app.api.modules.payments.schema import (
     WayForPayCallback,
 )
 from app.api.modules.payments.services.wayforpay import WayForPayProvider
+from app.api.modules.payments.utils import has_active_invoice
 from app.database.uow import UnitOfWork
 
 
@@ -83,8 +84,19 @@ class WayForPayPaymentService:
         attempt = await self._uow.payment_attempts.get_by_id(attempt_id)
         if attempt is None:
             raise NotFoundError("Payment attempt not found")
+        latest = await self._uow.payment_attempts.get_by_order_id(attempt.order_id)
+        can_retry = (
+            latest is not None
+            and latest.id == attempt.id
+            and attempt.order.payment_status
+            in {PaymentStatus.PENDING, PaymentStatus.FAILED}
+            and self._provider.enabled
+            and attempt.order.payment_is_test == self._provider.test_mode
+            and has_active_invoice(attempt)
+        )
         return PaymentStatusResponse(
             attempt_id=attempt.id,
             status=attempt.order.payment_status,
             is_test=attempt.order.payment_is_test,
+            invoice_url=attempt.invoice_url if can_retry else None,
         )

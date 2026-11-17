@@ -2,6 +2,7 @@ import asyncio
 import hashlib
 import hmac
 import uuid
+from unittest.mock import AsyncMock
 
 import pytest
 from sqlalchemy import delete, select
@@ -56,7 +57,7 @@ async def create_test_order(
 
 
 @pytest.mark.asyncio(loop_scope="session")
-async def test_payment_callbacks_lock_the_order_across_attempts():
+async def test_payment_callbacks_lock_the_order_across_attempts(monkeypatch):
     secret = uuid.uuid4().hex
     config = get_config().model_copy(
         update={
@@ -68,6 +69,11 @@ async def test_payment_callbacks_lock_the_order_across_attempts():
         }
     )
     provider = WayForPayProvider(config)
+    monkeypatch.setattr(
+        provider,
+        "create_invoice",
+        AsyncMock(return_value="https://secure.wayforpay.com/invoice/test"),
+    )
     order = await create_test_order(f"integration-payment-{uuid.uuid4()}", provider)
     async with SessionFactory() as session, UnitOfWork(session) as uow:
         first = await uow.payment_attempts.get_by_order_id(order.id)
@@ -186,6 +192,45 @@ async def test_concurrent_idempotent_order_creation_returns_one_order():
             .all()
         )
         assert order_count == 1
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_concurrent_card_checkout_creates_one_invoice(monkeypatch):
+    config = get_config().model_copy(
+        update={
+            "wayforpay": WayForPayConfig(
+                merchant_account="integration",
+                merchant_domain_name="example.com",
+                secret_key=uuid.uuid4().hex,
+            )
+        }
+    )
+    provider = WayForPayProvider(config)
+
+    async def create_invoice(_session):
+        await asyncio.sleep(0.1)
+        return "https://secure.wayforpay.com/invoice/test"
+
+    invoice = AsyncMock(side_effect=create_invoice)
+    monkeypatch.setattr(provider, "create_invoice", invoice)
+    key = f"integration-card-{uuid.uuid4()}"
+    first, second = await asyncio.gather(
+        create_test_order(key, provider), create_test_order(key, provider)
+    )
+    assert first.id == second.id
+    invoice.assert_awaited_once()
+    async with SessionFactory() as session:
+        attempts = (
+            (
+                await session.execute(
+                    select(PaymentAttempt).where(PaymentAttempt.order_id == first.id)
+                )
+            )
+            .scalars()
+            .all()
+        )
+        assert len(attempts) == 1
+        assert attempts[0].invoice_url == "https://secure.wayforpay.com/invoice/test"
 
 
 @pytest.mark.asyncio(loop_scope="session")

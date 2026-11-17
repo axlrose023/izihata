@@ -1,4 +1,15 @@
+from datetime import UTC, datetime, timedelta
+
+from app.api.modules.payments.models import PaymentAttempt
 from app.api.modules.payments.schema import WayForPayCallback
+
+INVOICE_LIFETIME = timedelta(days=1)
+
+
+def has_active_invoice(attempt: PaymentAttempt) -> bool:
+    return bool(attempt.invoice_url) and datetime.now(UTC) < (
+        attempt.created_at.replace(tzinfo=UTC) + INVOICE_LIFETIME
+    )
 
 
 def callback_signature_values(callback: WayForPayCallback) -> tuple[str, ...]:

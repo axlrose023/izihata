@@ -1,11 +1,17 @@
 import hashlib
 import hmac
+import json
+from unittest.mock import AsyncMock
 from uuid import UUID, uuid4
 
+import httpx
 import pytest
 from sqlalchemy import select
 
+from app.api.common.exceptions import ServiceUnavailableError
 from app.api.modules.orders.models import Order
+from app.api.modules.payments.models import PaymentAttempt
+from app.api.modules.payments.schema import WayForPayWidgetSession
 from app.api.modules.payments.service import WayForPayProvider
 from app.settings import WayForPayConfig
 
@@ -58,6 +64,11 @@ async def merchant(app, monkeypatch):
             merchant_domain_name="example.com",
             secret_key=SECRET,
         ),
+    )
+    monkeypatch.setattr(
+        provider,
+        "create_invoice",
+        AsyncMock(return_value="https://secure.wayforpay.com/invoice/test"),
     )
     return provider
 
@@ -122,7 +133,81 @@ async def test_widget_is_signed_and_order_retry_reuses_session(client, payment):
     retry = (await client.post("/api/v1/orders", json=payload, headers=headers)).json()
     assert retry["id"] == order["id"]
     assert retry["payment_widget"] == widget
+    status = await client.get(
+        f"/api/v1/payments/wayforpay/{order['payment_attempt_id']}"
+    )
+    assert status.headers["cache-control"] == "no-store"
+    assert status.json()["invoice_url"] == widget["invoiceUrl"]
     assert SECRET not in str(order)
+
+
+async def test_invoice_request_is_signed_and_rejects_unsafe_urls(
+    monkeypatch, merchant, payment
+):
+    widget = WayForPayWidgetSession.model_validate(payment[0]["payment_widget"])
+    responses = [
+        "https://secure.wayforpay.com/invoice/valid",
+        "https://evil.example/invoice/bad",
+    ]
+    original_client = httpx.AsyncClient
+
+    def handler(request):
+        payload = json.loads(request.content)
+        assert payload["transactionType"] == "CREATE_INVOICE"
+        assert payload["merchantSignature"] == widget.merchant_signature
+        assert "clientEmail" not in payload and "clientPhone" not in payload
+        return httpx.Response(
+            200, json={"reasonCode": 1100, "invoiceUrl": responses.pop(0)}
+        )
+
+    monkeypatch.setattr(
+        httpx,
+        "AsyncClient",
+        lambda **kwargs: original_client(
+            transport=httpx.MockTransport(handler), **kwargs
+        ),
+    )
+    assert (
+        await WayForPayProvider.create_invoice(merchant, widget)
+        == "https://secure.wayforpay.com/invoice/valid"
+    )
+    with pytest.raises(ServiceUnavailableError):
+        await WayForPayProvider.create_invoice(merchant, widget)
+
+
+async def test_provider_failure_does_not_persist_order(
+    client, merchant, product, order_payload, idempotency_key, uow
+):
+    merchant.create_invoice.side_effect = ServiceUnavailableError("Unavailable")
+    headers = {"Idempotency-Key": idempotency_key}
+    payload = order_payload(product.id, payment_method="card")
+    response = await client.post("/api/v1/orders", json=payload, headers=headers)
+    assert response.status_code == 503
+    assert await uow.orders.get_by_idempotency_key(idempotency_key) is None
+    merchant.create_invoice.side_effect = None
+    assert (
+        await client.post("/api/v1/orders", json=payload, headers=headers)
+    ).status_code == 201
+
+
+@pytest.mark.parametrize("legacy", [True, False])
+async def test_unusable_old_invoice_is_not_reissued(client, payment, uow, legacy):
+    from datetime import UTC, datetime, timedelta
+
+    order, payload, headers = payment
+    attempt = await uow.session.get(PaymentAttempt, UUID(order["payment_attempt_id"]))
+    if legacy:
+        attempt.invoice_url = None
+    else:
+        attempt.created_at = datetime.now(UTC) - timedelta(days=2)
+    await uow.commit()
+    status = await client.get(f"/api/v1/payments/wayforpay/{attempt.id}")
+    assert status.json()["invoice_url"] is None
+    retry = await client.post("/api/v1/orders", json=payload, headers=headers)
+    assert retry.status_code == 409
+    assert retry.json()["code"] == (
+        "payment_status_unconfirmed" if legacy else "payment_invoice_expired"
+    )
 
 
 @pytest.mark.parametrize(
@@ -203,14 +288,19 @@ async def test_duplicate_and_late_callbacks_preserve_paid_order(client, payment)
     assert retry["payment_widget"] is None
 
 
-async def test_old_approval_and_new_decline_cannot_unpay_order(client, payment):
+async def test_failed_invoice_can_be_reopened_without_duplicate_reference(
+    client, payment
+):
     order, payload, headers = payment
     await client.post(
         "/api/v1/payments/wayforpay/callback",
         json=callback(order["payment_widget"], "Declined"),
     )
     retry = (await client.post("/api/v1/orders", json=payload, headers=headers)).json()
-    assert retry["payment_attempt_id"] != order["payment_attempt_id"]
+    assert retry["payment_attempt_id"] == order["payment_attempt_id"]
+    assert (
+        retry["payment_widget"]["invoiceUrl"] == order["payment_widget"]["invoiceUrl"]
+    )
     assert retry["payment_status"] == "pending"
     latest_attempt_id = retry["payment_attempt_id"]
     for widget, status in [

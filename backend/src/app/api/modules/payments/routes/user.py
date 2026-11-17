@@ -5,7 +5,7 @@ from uuid import UUID
 
 from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
 from app.api.common.rate_limit import PAYMENT_STATUS_RATE_LIMIT, RateLimit
 from app.api.modules.payments.schema import (
@@ -56,5 +56,7 @@ async def wayforpay_callback(
 async def get_wayforpay_status(
     attempt_id: UUID,
     service: FromDishka[WayForPayPaymentService],
+    response: Response,
 ) -> PaymentStatusResponse:
+    response.headers["Cache-Control"] = "no-store"
     return await service.get_status(attempt_id)

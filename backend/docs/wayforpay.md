@@ -11,16 +11,21 @@ Cash on delivery and company invoices remain independent of WayForPay.
 - `POST /api/v1/payments/wayforpay/callback`: signed server notification, no session
   or browser CSRF requirement. The signed acknowledgment follows the DB commit.
 - `GET /api/v1/payments/wayforpay/{attempt_id}`: rate-limited order payment status;
-  the unpredictable UUID acts as a guest capability. No contact/card data is returned.
+  the unpredictable UUID acts as a guest capability for the current invoice link.
+  No contact/card data is returned, and the response is not cacheable.
 
 Callbacks check merchant, HMAC, reference, amount and currency. All attempts for
 one order share its DB row lock; duplicates and late failures cannot undo payment.
-Retries reuse a pending reference; only failed attempts receive a new reference.
+Checkout creates a provider invoice and saves its URL with the payment attempt;
+closing and reopening the widget reuses that invoice without placing another order.
+The invoice expires after 24 hours. Older attempts without an invoice and expired
+invoices require manager assistance instead of silently creating another payment.
 Full-refund notifications are reflected, but refund initiation is not exposed.
 Paid/refunded orders never issue another payment session on retry.
 
 Widget callbacks are UI hints, not proof of payment. Closing/failing the widget
-keeps the basket; pending results use bounded polling on the result page. The
+opens the saved order page, where the invoice can be reopened. Pending results
+use bounded polling on the result page. The
 provider retries notifications, so no additional Taskiq polling job is introduced.
 
 Before enabling production, apply migrations, configure an activated merchant,

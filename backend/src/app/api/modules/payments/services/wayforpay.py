@@ -3,6 +3,9 @@ import hmac
 import re
 from datetime import UTC, datetime
 from decimal import Decimal
+from urllib.parse import urlsplit
+
+import httpx
 
 from app.api.common.exceptions import (
     ConflictError,
@@ -16,7 +19,7 @@ from app.api.modules.payments.schema import (
     WayForPayCallback,
     WayForPayWidgetSession,
 )
-from app.api.modules.payments.utils import callback_signature_values
+from app.api.modules.payments.utils import INVOICE_LIFETIME, callback_signature_values
 from app.settings import Config, WayForPayConfig
 
 
@@ -93,7 +96,54 @@ class WayForPayProvider:
                 f"{self._api_prefix}/payments/wayforpay/callback"
             ),
             straight_widget=True,
+            invoice_url=attempt.invoice_url,
         )
+
+    async def create_invoice(self, session: WayForPayWidgetSession) -> str:
+        fields = session.model_dump(by_alias=True, exclude={"invoice_url"})
+        fields.update(
+            transactionType="CREATE_INVOICE",
+            merchantAuthType="SimpleSignature",
+            apiVersion=1,
+            orderTimeout=int(INVOICE_LIFETIME.total_seconds()),
+        )
+        # Do not notify the customer before the order transaction is committed.
+        for field in (
+            "authorizationType",
+            "merchantTransactionSecureType",
+            "straightWidget",
+            "clientEmail",
+            "clientPhone",
+        ):
+            fields.pop(field, None)
+        try:
+            async with httpx.AsyncClient(
+                timeout=httpx.Timeout(10, connect=3)
+            ) as client:
+                response = await client.post(
+                    "https://api.wayforpay.com/api", json=fields
+                )
+                response.raise_for_status()
+                data = response.json()
+            url = data.get("invoiceUrl") if isinstance(data, dict) else None
+            parsed = urlsplit(url) if isinstance(url, str) else None
+            if (
+                not isinstance(data, dict)
+                or str(data.get("reasonCode")) != "1100"
+                or not isinstance(url, str)
+                or parsed is None
+                or parsed.scheme != "https"
+                or parsed.netloc != "secure.wayforpay.com"
+                or not parsed.path.startswith("/invoice/")
+                or len(url) > 512
+            ):
+                raise ValueError("Invalid WayForPay invoice response")
+            return url
+        except (httpx.HTTPError, ValueError, TypeError) as exc:
+            raise ServiceUnavailableError(
+                "Could not prepare online payment",
+                code="payment_provider_unavailable",
+            ) from exc
 
     def verify_callback(self, callback: WayForPayCallback) -> bool:
         config = self._require_config()

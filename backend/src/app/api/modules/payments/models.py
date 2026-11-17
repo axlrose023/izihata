@@ -17,6 +17,7 @@ class PaymentAttempt(Base, UUIDIDMixin, DateTimeMixin):
     )
     provider: Mapped[str] = mapped_column(String(32), default="wayforpay")
     order_reference: Mapped[str] = mapped_column(String(64), unique=True)
+    invoice_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
     amount: Mapped[Decimal] = mapped_column(Numeric(12, 2))
     currency: Mapped[str] = mapped_column(String(3), default="UAH")
     status: Mapped[PaymentAttemptStatus] = mapped_column(

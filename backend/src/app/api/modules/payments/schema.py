@@ -31,6 +31,7 @@ class WayForPayWidgetSession(StrictSchema):
     language: str
     service_url: str = Field(alias="serviceUrl")
     straight_widget: bool = Field(default=True, alias="straightWidget")
+    invoice_url: str | None = Field(default=None, alias="invoiceUrl")
 
 
 class WayForPayCallback(BaseModel):
@@ -66,6 +67,7 @@ class PaymentStatusResponse(StrictSchema):
     attempt_id: UUID
     status: PaymentStatus
     is_test: bool = False
+    invoice_url: str | None = None
 
 
 class PaymentAvailabilityResponse(StrictSchema):

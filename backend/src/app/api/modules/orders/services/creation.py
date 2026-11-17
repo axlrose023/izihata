@@ -13,6 +13,7 @@ from app.api.modules.payments.enums import PaymentAttemptStatus
 from app.api.modules.payments.models import PaymentAttempt
 from app.api.modules.payments.schema import WayForPayWidgetSession
 from app.api.modules.payments.service import WayForPayProvider
+from app.api.modules.payments.utils import has_active_invoice
 from app.database.uow import UnitOfWork
 
 
@@ -113,10 +114,7 @@ class OrderCreationService:
             attempt = None
             widget = None
             if request.payment_method == PaymentMethod.CARD and self._wayforpay.enabled:
-                attempt = await self._uow.payment_attempts.create(
-                    self._new_payment_attempt(order)
-                )
-                widget = self._wayforpay.create_widget_session(order, attempt)
+                attempt, widget = await self._create_payment_session(order)
             await self._uow.outbox.add(
                 topic="order.created",
                 payload={"order_id": str(order.id), "order_number": order.number},
@@ -150,13 +148,36 @@ class OrderCreationService:
                 code="payment_amount_invalid",
             )
         self._wayforpay.split_customer_name(order.customer_name)
-        if attempt is None or attempt.status == PaymentAttemptStatus.FAILED:
-            attempt = await self._uow.payment_attempts.create(
-                self._new_payment_attempt(order)
+        if attempt is None:
+            attempt, _ = await self._create_payment_session(order)
+            order.payment_status = PaymentStatus.PENDING
+            await self._uow.commit()
+        elif not attempt.invoice_url:
+            raise ConflictError(
+                "Previous payment is unconfirmed; contact the manager",
+                code="payment_status_unconfirmed",
             )
+        elif not has_active_invoice(attempt):
+            raise ConflictError(
+                "The payment invoice expired; contact the manager",
+                code="payment_invoice_expired",
+            )
+        elif attempt.status == PaymentAttemptStatus.FAILED:
+            attempt.status = PaymentAttemptStatus.PENDING
             order.payment_status = PaymentStatus.PENDING
             await self._uow.commit()
         return attempt.id, self._wayforpay.create_widget_session(order, attempt)
+
+    async def _create_payment_session(
+        self, order: Order
+    ) -> tuple[PaymentAttempt, WayForPayWidgetSession]:
+        attempt = await self._uow.payment_attempts.create(
+            self._new_payment_attempt(order)
+        )
+        widget = self._wayforpay.create_widget_session(order, attempt)
+        attempt.invoice_url = await self._wayforpay.create_invoice(widget)
+        widget.invoice_url = attempt.invoice_url
+        return attempt, widget
 
     @staticmethod
     def _new_payment_attempt(order: Order) -> PaymentAttempt:
