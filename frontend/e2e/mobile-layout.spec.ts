@@ -629,7 +629,7 @@ for (const width of [320, 360, 390, 414, 768, 820, 821, 1024]) {
       "/admin/login",
       "/not-a-real-page",
     ]) {
-      await page.goto(path);
+      await page.goto(path, { waitUntil: "domcontentloaded" });
       if (path !== "/admin/login") {
         await expect(page.locator(".site-header")).toBeVisible();
       } else {
