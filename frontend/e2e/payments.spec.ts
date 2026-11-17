@@ -57,9 +57,9 @@ for (const outcome of [
         },
       }),
     );
-    await page.goto("/catalog");
+    await page.goto("/catalog", { waitUntil: "domcontentloaded" });
     await page.getByRole("button", { name: "Додати в кошик" }).first().click();
-    await page.goto("/checkout");
+    await page.goto("/checkout", { waitUntil: "domcontentloaded" });
     await page.locator('input[name="customer_name"]').fill("Тест Оплати");
     await page
       .locator('input[name="email"]')
@@ -106,9 +106,9 @@ test("card checkout is unavailable without merchant credentials", async ({
   await page.route("**/api/v1/payments/availability", (route) =>
     route.fulfill({ json: { online_card_enabled: false } }),
   );
-  await page.goto("/catalog");
+  await page.goto("/catalog", { waitUntil: "domcontentloaded" });
   await page.getByRole("button", { name: "Додати в кошик" }).first().click();
-  await page.goto("/checkout");
+  await page.goto("/checkout", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("radio", { name: /Карткою/ })).toBeDisabled();
   await expect(page.getByText("Тимчасово недоступна")).toBeVisible();
 });
