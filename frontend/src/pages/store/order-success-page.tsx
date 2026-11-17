@@ -1,15 +1,50 @@
 import { useQuery } from "@tanstack/react-query";
 import { Check, Truck, UserRound } from "lucide-react";
-import { Link, useLocation, useSearchParams } from "react-router-dom";
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  Link,
+  useLocation,
+  useNavigate,
+  useSearchParams,
+} from "react-router-dom";
 
 import { paymentStatusQuery } from "@/modules/checkout/api/payment-api";
+import { openWayForPayInvoice } from "@/modules/checkout/lib/wayforpay";
 import { formatMoney } from "@/shared/lib/format";
 import { useDocumentTitle } from "@/shared/lib/use-document-title";
+import type { PaymentStatus } from "@/shared/types/api";
+
+function paymentMessage(
+  hasError: boolean,
+  status: PaymentStatus | null,
+  canResume: boolean,
+): string {
+  if (hasError)
+    return "Не вдалося перевірити оплату. Замовлення збережено; оновіть сторінку або зв’яжіться з менеджером.";
+  if (status === "paid")
+    return "Оплату успішно отримано. Менеджер зв’яжеться з вами для узгодження доставки.";
+  if (status === "refunded")
+    return "Кошти за замовлення повернено. За деталями зверніться до менеджера.";
+  if (status === "pending")
+    return canResume
+      ? "Оплату ще не підтверджено. Якщо ви закрили вікно, його можна відкрити знову."
+      : "Оплату ще не підтверджено. Для повторної оплати зверніться до менеджера.";
+  if (status === "failed")
+    return canResume
+      ? "Оплату не підтверджено. Ви можете повторити спробу або зв’язатися з менеджером."
+      : "Оплату не підтверджено. Зверніться до менеджера щодо повторної оплати.";
+  return "Спосіб оплати підтвердимо під час дзвінка.";
+}
 
 export function OrderSuccessPage() {
   useDocumentTitle("Замовлення прийняте");
   const [params] = useSearchParams();
-  const accountOrder = useLocation().state?.accountOrder === true;
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [isPaying, setIsPaying] = useState(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
+  const openedAutomatically = useRef(false);
+  const accountOrder = location.state?.accountOrder === true;
   const deliveryMethod = params.get("delivery");
   const rawNumber = params.get("number") ?? "";
   const rawTotal = params.get("total") ?? "";
@@ -42,6 +77,43 @@ export function OrderSuccessPage() {
   const paymentStatus = paymentAttemptId
     ? (onlinePayment.data?.status ?? "pending")
     : null;
+  const invoiceUrl = onlinePayment.data?.invoice_url;
+  const refetchPayment = onlinePayment.refetch;
+
+  const resumePayment = useCallback(async () => {
+    if (!invoiceUrl || isPaying) return;
+    setIsPaying(true);
+    setPaymentError(null);
+    try {
+      await openWayForPayInvoice(invoiceUrl);
+      await refetchPayment();
+    } catch {
+      setPaymentError("Не вдалося відкрити платіжне вікно. Спробуйте ще раз.");
+    } finally {
+      setIsPaying(false);
+    }
+  }, [invoiceUrl, isPaying, refetchPayment]);
+
+  useEffect(() => {
+    if (
+      location.state?.openPayment !== true ||
+      openedAutomatically.current ||
+      !onlinePayment.data?.invoice_url
+    )
+      return;
+    openedAutomatically.current = true;
+    navigate(`${location.pathname}${location.search}${location.hash}`, {
+      replace: true,
+      state: { accountOrder },
+    });
+    void resumePayment();
+  }, [
+    accountOrder,
+    location,
+    navigate,
+    onlinePayment.data?.invoice_url,
+    resumePayment,
+  ]);
 
   return (
     <div className="container success-page">
@@ -64,17 +136,13 @@ export function OrderSuccessPage() {
             </p>
             {payment === "card" ? (
               <p className="inline-note">
-                {onlinePayment.isError
-                  ? "Не вдалося перевірити оплату. Замовлення збережено; оновіть сторінку або зв’яжіться з менеджером."
-                  : paymentStatus === "paid"
-                    ? "Оплату успішно отримано. Менеджер зв’яжеться з вами для узгодження доставки."
-                    : paymentStatus === "refunded"
-                      ? "Кошти за замовлення повернено. За деталями зверніться до менеджера."
-                      : paymentStatus === "pending"
-                        ? "Платіж обробляється. Оновлення статусу надійде після підтвердження WayForPay."
-                        : paymentStatus === "failed"
-                          ? "Оплату не підтверджено. Зв’яжіться з менеджером, щоб узгодити повторну оплату."
-                          : "Спосіб оплати підтвердимо під час дзвінка."}
+                {onlinePayment.isLoading
+                  ? "Перевіряємо статус оплати…"
+                  : paymentMessage(
+                      onlinePayment.isError,
+                      paymentStatus,
+                      Boolean(invoiceUrl),
+                    )}
               </p>
             ) : null}
             {payment === "invoice" ? (
@@ -89,6 +157,16 @@ export function OrderSuccessPage() {
               </p>
             ) : null}
             <div className="success-page__actions">
+              {payment === "card" && onlinePayment.data?.invoice_url ? (
+                <button
+                  className="button button--dark"
+                  disabled={isPaying}
+                  onClick={() => void resumePayment()}
+                  type="button"
+                >
+                  {isPaying ? "Відкриваємо оплату…" : "Перейти до оплати"}
+                </button>
+              ) : null}
               {accountOrder ? (
                 <Link className="button button--dark" to="/account">
                   Переглянути замовлення в кабінеті
@@ -98,6 +176,7 @@ export function OrderSuccessPage() {
                 Повернутися в каталог
               </Link>
             </div>
+            {paymentError ? <p role="alert">{paymentError}</p> : null}
           </div>
         </section>
 

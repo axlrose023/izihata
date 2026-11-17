@@ -18,18 +18,13 @@ import {
   clearOrderRetry,
   orderRetryKey,
 } from "@/modules/checkout/lib/order-retry";
-import {
-  openWayForPayWidget,
-  prepareWayForPayWidget,
-} from "@/modules/checkout/lib/wayforpay";
+import { prepareWayForPayWidget } from "@/modules/checkout/lib/wayforpay";
 import { ApiError, getUserErrorMessage } from "@/shared/api/errors";
 import { useDebouncedValue } from "@/shared/lib/use-debounced-value";
 import { formatMoney } from "@/shared/lib/format";
 import type {
   DeliveryCityOption,
   OrderCreation,
-  PaymentStatus,
-  PaymentStatusResponse,
   Quote,
 } from "@/shared/types/api";
 import { EmptyState } from "@/shared/ui/empty-state";
@@ -330,45 +325,16 @@ export function CheckoutForm() {
         headers: { "Idempotency-Key": retryKey },
         body: JSON.stringify({ ...payload, expected_total: quote.data.total }),
       });
-      if (order.payment_widget && order.payment_attempt_id) {
-        const widgetResult = await openWayForPayWidget(order.payment_widget);
-        let paymentStatus: PaymentStatus = "pending";
-        try {
-          const status = await apiClient<PaymentStatusResponse>(
-            `/payments/wayforpay/${order.payment_attempt_id}`,
-          );
-          paymentStatus = status.status;
-        } catch {
-          // Only the backend confirms payment; the result page keeps checking.
-        }
-        if (
-          paymentStatus === "failed" ||
-          (paymentStatus === "pending" && widgetResult === "declined")
-        ) {
-          setSubmitError(
-            "Оплату не підтверджено. Кошик збережено — перевірте дані та спробуйте ще раз.",
-          );
-          return;
-        }
-        if (paymentStatus !== "paid" && widgetResult === "closed") {
-          setSubmitError(
-            "Платіжне вікно закрито. Замовлення збережено й очікує оплати; за потреби зв’яжіться з менеджером.",
-          );
-          return;
-        }
-        clearOrderRetry();
-        clearCart();
-        navigate(
-          `/order/success?number=${encodeURIComponent(order.number)}&total=${encodeURIComponent(order.total)}&payment=${order.payment_method}&delivery=${order.delivery.method}&payment_attempt_id=${encodeURIComponent(order.payment_attempt_id)}`,
-          { state: { accountOrder: customerStatus === "authenticated" } },
-        );
-        return;
-      }
       clearOrderRetry();
       clearCart();
       navigate(
         `/order/success?number=${encodeURIComponent(order.number)}&total=${encodeURIComponent(order.total)}&payment=${order.payment_method}&delivery=${order.delivery.method}${order.payment_attempt_id ? `&payment_attempt_id=${encodeURIComponent(order.payment_attempt_id)}` : ""}`,
-        { state: { accountOrder: customerStatus === "authenticated" } },
+        {
+          state: {
+            accountOrder: customerStatus === "authenticated",
+            openPayment: Boolean(order.payment_widget?.invoiceUrl),
+          },
+        },
       );
     } catch (error) {
       if (error instanceof ApiError && error.code === "quote_changed")

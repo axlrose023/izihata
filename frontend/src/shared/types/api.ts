@@ -294,6 +294,7 @@ export interface WayForPayWidgetSession {
   language: string;
   serviceUrl: string;
   straightWidget: boolean;
+  invoiceUrl: string | null;
 }
 
 export interface OrderCreation extends Order {
@@ -305,6 +306,7 @@ export interface PaymentStatusResponse {
   attempt_id: string;
   status: PaymentStatus;
   is_test: boolean;
+  invoice_url: string | null;
 }
 
 export interface PaymentAvailabilityResponse {
