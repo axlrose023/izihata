@@ -1,4 +1,6 @@
 import asyncio
+import hashlib
+import hmac
 import uuid
 
 import pytest
@@ -13,19 +15,26 @@ from app.api.modules.auth.service import (
 )
 from app.api.modules.catalog.models import Product
 from app.api.modules.checkout.service import PricingService
+from app.api.modules.orders.enums import PaymentStatus
 from app.api.modules.orders.models import Order
 from app.api.modules.orders.schema import CreateOrderRequest, OrderResponse
 from app.api.modules.orders.service import OrderCreationService
 from app.api.modules.outbox.models import OutboxEvent
+from app.api.modules.payments.models import PaymentAttempt
+from app.api.modules.payments.schema import WayForPayCallback
+from app.api.modules.payments.service import WayForPayPaymentService, WayForPayProvider
+from app.api.modules.payments.utils import callback_signature_values
 from app.api.modules.users.models import User
 from app.database.engine import SessionFactory
 from app.database.uow import UnitOfWork
-from app.settings import get_config
+from app.settings import WayForPayConfig, get_config
 
 pytestmark = pytest.mark.integration
 
 
-async def create_test_order(idempotency_key: str) -> OrderResponse:
+async def create_test_order(
+    idempotency_key: str, provider: WayForPayProvider | None = None
+) -> OrderResponse:
     async with SessionFactory() as session, UnitOfWork(session) as uow:
         product_id = (
             await session.execute(select(Product.id).where(Product.sku == "AX-10001"))
@@ -37,11 +46,87 @@ async def create_test_order(idempotency_key: str) -> OrderResponse:
                 "email": "postgres@example.com",
                 "phone": "+380671234567",
                 "delivery": {"method": "pickup"},
-                "payment_method": "cash_on_delivery",
+                "payment_method": "card" if provider else "cash_on_delivery",
             }
         )
-        service = OrderCreationService(uow, PricingService(uow))
+        service = OrderCreationService(
+            uow, PricingService(uow), provider or WayForPayProvider(get_config())
+        )
         return (await service.create_order(request, idempotency_key)).order
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_payment_callbacks_lock_the_order_across_attempts():
+    secret = uuid.uuid4().hex
+    config = get_config().model_copy(
+        update={
+            "wayforpay": WayForPayConfig(
+                merchant_account="integration",
+                merchant_domain_name="example.com",
+                secret_key=secret,
+            )
+        }
+    )
+    provider = WayForPayProvider(config)
+    order = await create_test_order(f"integration-payment-{uuid.uuid4()}", provider)
+    async with SessionFactory() as session, UnitOfWork(session) as uow:
+        first = await uow.payment_attempts.get_by_order_id(order.id)
+        assert first is not None
+        second = await uow.payment_attempts.create(
+            PaymentAttempt(
+                order_id=order.id,
+                order_reference=f"integration-{uuid.uuid4()}",
+                amount=first.amount,
+                currency="UAH",
+            )
+        )
+        first_reference, second_reference = (
+            first.order_reference,
+            second.order_reference,
+        )
+        await uow.commit()
+
+    async def notify(reference, status):
+        callback = WayForPayCallback.model_validate(
+            {
+                "merchantAccount": "integration",
+                "orderReference": reference,
+                "amount": str(order.total),
+                "currency": "UAH",
+                "transactionStatus": status,
+                "reasonCode": 1100,
+                "merchantSignature": "0" * 32,
+            }
+        )
+        callback.merchant_signature = hmac.new(
+            secret.encode(),
+            ";".join(callback_signature_values(callback)).encode(),
+            hashlib.md5,
+        ).hexdigest()
+        async with SessionFactory() as session, UnitOfWork(session) as uow:
+            await WayForPayPaymentService(uow, provider).receive_callback(callback)
+
+    async with SessionFactory() as session, UnitOfWork(session) as uow:
+        await uow.orders.get_by_id_for_update(order.id)
+        waiting = asyncio.create_task(notify(first_reference, "Approved"))
+        await asyncio.sleep(0.1)
+        assert not waiting.done()
+        await uow.rollback()
+    await asyncio.wait_for(waiting, 3)
+    await asyncio.gather(
+        *(
+            notify(reference, status)
+            for reference, status in [
+                (second_reference, "Declined"),
+                (first_reference, "Approved"),
+                (second_reference, "Pending"),
+                (first_reference, "Declined"),
+            ]
+        )
+    )
+    async with SessionFactory() as session, UnitOfWork(session) as uow:
+        result = await uow.orders.get_by_id(order.id)
+        assert result is not None and result.payment_status == PaymentStatus.PAID
 
 
 @pytest.mark.asyncio(loop_scope="session")

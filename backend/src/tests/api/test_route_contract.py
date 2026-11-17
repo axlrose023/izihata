@@ -48,6 +48,8 @@ def test_openapi_contains_only_confirmed_business_routes(app: FastAPI):
         ("POST", "/api/v1/customer/company"),
         ("GET", "/api/v1/customer/orders"),
         ("POST", "/api/v1/orders"),
+        ("GET", "/api/v1/payments/availability"),
+        ("GET", "/api/v1/payments/wayforpay/{attempt_id}"),
         ("POST", "/api/v1/leads"),
         ("GET", "/api/v1/admin/dashboard"),
         ("GET", "/api/v1/admin/custom-boards/requests"),

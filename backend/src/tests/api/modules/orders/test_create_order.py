@@ -116,9 +116,9 @@ class TestCreateOrder:
             ),
             (
                 {"method": "nova_poshta_locker", "city": "Київ", "point": "2"},
-                "card",
+                "cash_on_delivery",
                 None,
-                "pending",
+                "not_required",
             ),
             (
                 {"method": "pickup"},
