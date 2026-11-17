@@ -89,7 +89,7 @@ for (const outcome of [
           .first(),
       ).toBeVisible();
       await expect(page).toHaveURL(/\/checkout$/);
-      await expect(page.locator(".checkout-summary")).toBeVisible();
+      await expect(page.locator(".order-summary__line").first()).toBeVisible();
     }
     expect(orders).toBe(outcome === "script-error" ? 0 : 1);
   });
