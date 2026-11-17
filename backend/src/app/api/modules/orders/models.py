@@ -2,6 +2,7 @@ from decimal import Decimal
 from uuid import UUID
 
 from sqlalchemy import (
+    Boolean,
     CheckConstraint,
     Enum,
     ForeignKey,
@@ -49,6 +50,9 @@ class Order(Base, UUIDIDMixin, DateTimeMixin):
     delivery_point: Mapped[str | None] = mapped_column(String(200))
     payment_method: Mapped[PaymentMethod] = mapped_column(
         Enum(PaymentMethod, native_enum=False, length=32)
+    )
+    payment_is_test: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default="false"
     )
     payment_status: Mapped[PaymentStatus] = mapped_column(
         Enum(PaymentStatus, native_enum=False, length=24),

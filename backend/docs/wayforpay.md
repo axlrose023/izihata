@@ -25,7 +25,12 @@ provider retries notifications, so no additional Taskiq polling job is introduce
 
 Before enabling production, apply migrations, configure an activated merchant,
 verify the public HTTPS callback URL and test provider delivery to it. Never put
-the public test merchant credentials into production: their secret is public.
+the public test merchant credentials into a live shop: their secret is public.
+Development demos can explicitly enable `APP__WAYFORPAY__TEST_MODE=true` with
+the official `test_merch_n1` account. This marks orders persistently, anonymizes
+contacts sent to WayForPay and prevents test callbacks from changing live orders.
+Switching back to live credentials requires `TEST_MODE=false`; existing test
+orders retain their label and cannot be reissued under live credentials.
 
 References: https://wiki.wayforpay.com/view/852091 and
 https://wiki.wayforpay.com/view/852102.

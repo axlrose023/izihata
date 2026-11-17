@@ -75,7 +75,8 @@ async def test_disabled_provider_is_explicit(
     client, product, order_payload, idempotency_key
 ):
     assert (await client.get("/api/v1/payments/availability")).json() == {
-        "online_card_enabled": False
+        "online_card_enabled": False,
+        "test_mode": False,
     }
     response = await client.post(
         "/api/v1/orders",
@@ -278,3 +279,76 @@ async def test_card_requires_first_and_last_name(
     )
     assert response.status_code == 422
     assert response.json()["code"] == "payment_customer_name_required"
+
+
+@pytest.mark.parametrize(
+    "account, test_mode", [("test_merch_n1", False), ("live-store", True), (None, True)]
+)
+async def test_mode_rejects_misleading_configuration(account, test_mode):
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        WayForPayConfig(
+            merchant_account=account,
+            merchant_domain_name="example.com" if account else None,
+            secret_key=SECRET if account else None,
+            test_mode=test_mode,
+        )
+
+
+async def test_sandbox_order_is_marked_and_contacts_are_anonymous(
+    client, merchant, monkeypatch, product, order_payload, idempotency_key
+):
+    monkeypatch.setattr(
+        merchant,
+        "_config",
+        WayForPayConfig(
+            merchant_account="test_merch_n1",
+            merchant_domain_name="example.com",
+            secret_key=SECRET,
+            test_mode=True,
+        ),
+    )
+    availability = (await client.get("/api/v1/payments/availability")).json()
+    assert availability == {"online_card_enabled": True, "test_mode": True}
+    request = order_payload(product.id, payment_method="card")
+    headers = {"Idempotency-Key": idempotency_key}
+    response = await client.post("/api/v1/orders", json=request, headers=headers)
+    assert response.status_code == 201, response.text
+    order = response.json()
+    assert order["payment_is_test"] is True
+    widget = order["payment_widget"]
+    assert widget["clientEmail"] == "test@example.invalid"
+    assert widget["clientPhone"] != request["phone"].lstrip("+")
+    assert (
+        await client.post("/api/v1/payments/wayforpay/callback", json=callback(widget))
+    ).status_code == 200
+    result = (
+        await client.get(f"/api/v1/payments/wayforpay/{order['payment_attempt_id']}")
+    ).json()
+    assert result["status"] == "paid" and result["is_test"] is True
+    retry = (await client.post("/api/v1/orders", json=request, headers=headers)).json()
+    assert retry["payment_is_test"] is True and retry["payment_widget"] is None
+
+
+async def test_test_credentials_cannot_change_live_order(
+    client, payment, merchant, monkeypatch
+):
+    order, request, headers = payment
+    monkeypatch.setattr(
+        merchant,
+        "_config",
+        WayForPayConfig(
+            merchant_account="test_merch_n1",
+            merchant_domain_name="example.com",
+            secret_key=SECRET,
+            test_mode=True,
+        ),
+    )
+    payload = callback(order["payment_widget"], merchantAccount="test_merch_n1")
+    assert (
+        await client.post("/api/v1/payments/wayforpay/callback", json=payload)
+    ).status_code == 409
+    result = await client.post("/api/v1/orders", json=request, headers=headers)
+    assert result.status_code == 409
+    assert result.json()["code"] == "payment_mode_changed"

@@ -39,6 +39,7 @@ class WayForPayPaymentService:
         if (
             attempt.provider != "wayforpay"
             or attempt.order.payment_method != PaymentMethod.CARD
+            or attempt.order.payment_is_test != self._provider.test_mode
         ):
             raise ConflictError("Payment attempt does not match this provider")
         if callback.amount != attempt.amount or callback.currency != attempt.currency:
@@ -85,4 +86,5 @@ class WayForPayPaymentService:
         return PaymentStatusResponse(
             attempt_id=attempt.id,
             status=attempt.order.payment_status,
+            is_test=attempt.order.payment_is_test,
         )

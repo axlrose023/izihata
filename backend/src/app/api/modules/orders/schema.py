@@ -102,6 +102,7 @@ class OrderResponse(StrictSchema):
     delivery: DeliveryRequest
     payment_method: PaymentMethod
     payment_status: PaymentStatus
+    payment_is_test: bool = False
     status: OrderStatus
     promo_code: str | None
     subtotal: Decimal
@@ -129,6 +130,7 @@ class OrderResponse(StrictSchema):
             ),
             payment_method=order.payment_method,
             payment_status=order.payment_status,
+            payment_is_test=order.payment_is_test,
             status=order.status,
             promo_code=order.promo_code,
             subtotal=order.subtotal,
@@ -167,6 +169,7 @@ class OrderSummaryResponse(StrictSchema):
     delivery: DeliveryRequest
     payment_method: PaymentMethod
     payment_status: PaymentStatus
+    payment_is_test: bool = False
     status: OrderStatus
     total: Decimal
     created_at: datetime.datetime
@@ -186,6 +189,7 @@ class OrderSummaryResponse(StrictSchema):
             ),
             payment_method=order.payment_method,
             payment_status=order.payment_status,
+            payment_is_test=order.payment_is_test,
             status=order.status,
             total=order.total,
             created_at=order.created_at,

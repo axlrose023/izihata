@@ -4,7 +4,11 @@ import re
 from datetime import UTC, datetime
 from decimal import Decimal
 
-from app.api.common.exceptions import ServiceUnavailableError, UnprocessableError
+from app.api.common.exceptions import (
+    ConflictError,
+    ServiceUnavailableError,
+    UnprocessableError,
+)
 from app.api.modules.orders.models import Order
 from app.api.modules.payments.models import PaymentAttempt
 from app.api.modules.payments.schema import (
@@ -25,12 +29,24 @@ class WayForPayProvider:
     def enabled(self) -> bool:
         return self._config.enabled
 
+    @property
+    def test_mode(self) -> bool:
+        return self._config.test_mode
+
+    def validate_order_mode(self, order: Order) -> None:
+        if order.payment_is_test != self.test_mode:
+            raise ConflictError(
+                "Payment mode has changed; contact the manager",
+                code="payment_mode_changed",
+            )
+
     def create_widget_session(
         self,
         order: Order,
         attempt: PaymentAttempt,
     ) -> WayForPayWidgetSession:
         config = self._require_config()
+        self.validate_order_mode(order)
         if not config.merchant_account or not config.merchant_domain_name:
             raise ServiceUnavailableError(
                 "WayForPay is not configured", code="payment_provider_unavailable"
@@ -63,10 +79,14 @@ class WayForPayProvider:
             product_name=names,
             product_price=prices,
             product_count=counts,
-            client_first_name=first_name,
-            client_last_name=last_name,
-            client_email=order.email or "",
-            client_phone=re.sub(r"\D", "", order.phone),
+            client_first_name="Test" if config.test_mode else first_name,
+            client_last_name="Payment" if config.test_mode else last_name,
+            client_email="test@example.invalid"
+            if config.test_mode
+            else order.email or "",
+            client_phone="380500000000"
+            if config.test_mode
+            else re.sub(r"\D", "", order.phone),
             language="UA",
             service_url=(
                 f"https://{config.merchant_domain_name}"

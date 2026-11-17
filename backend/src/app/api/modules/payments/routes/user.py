@@ -23,7 +23,9 @@ router = APIRouter(route_class=DishkaRoute)
 async def payment_availability(
     provider: FromDishka[WayForPayProvider],
 ) -> PaymentAvailabilityResponse:
-    return PaymentAvailabilityResponse(online_card_enabled=provider.enabled)
+    return PaymentAvailabilityResponse(
+        online_card_enabled=provider.enabled, test_mode=provider.test_mode
+    )
 
 
 @router.post(

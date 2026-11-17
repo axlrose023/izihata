@@ -55,6 +55,7 @@ class NovaPoshtaConfig(BaseModel):
 
 
 class WayForPayConfig(BaseModel):
+    test_mode: bool = False
     merchant_account: str | None = None
     merchant_domain_name: str | None = None
     secret_key: SecretStr | None = None
@@ -81,6 +82,10 @@ class WayForPayConfig(BaseModel):
             raise ValueError("WayForPay merchant_domain_name must be a hostname")
         if self.secret_key is not None and not self.secret_key.get_secret_value():
             raise ValueError("WayForPay secret_key cannot be blank")
+        if self.test_mode != (self.merchant_account == "test_merch_n1"):
+            raise ValueError(
+                "WayForPay test merchant requires explicit test_mode; live credentials cannot be used in this mode"
+            )
         return self
 
     @property

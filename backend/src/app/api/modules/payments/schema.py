@@ -65,7 +65,9 @@ class WayForPayAcknowledgement(StrictSchema):
 class PaymentStatusResponse(StrictSchema):
     attempt_id: UUID
     status: PaymentStatus
+    is_test: bool = False
 
 
 class PaymentAvailabilityResponse(StrictSchema):
     online_card_enabled: bool
+    test_mode: bool = False

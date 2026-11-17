@@ -88,6 +88,8 @@ class OrderCreationService:
             delivery_city=request.delivery.city,
             delivery_point=request.delivery.point,
             payment_method=request.payment_method,
+            payment_is_test=request.payment_method == PaymentMethod.CARD
+            and self._wayforpay.test_mode,
             payment_status=payment_status,
             status=OrderStatus.NEW,
             promo_code=quote.promotion.code if quote.promotion else None,
@@ -141,6 +143,7 @@ class OrderCreationService:
         attempt = await self._uow.payment_attempts.get_by_order_id(order.id)
         if order.payment_status in {PaymentStatus.PAID, PaymentStatus.REFUNDED}:
             return (attempt.id if attempt else None), None
+        self._wayforpay.validate_order_mode(order)
         if order.total <= 0:
             raise UnprocessableError(
                 "Online card payment requires a positive order total",
