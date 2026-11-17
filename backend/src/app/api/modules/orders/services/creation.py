@@ -48,14 +48,7 @@ class OrderCreationService:
         digest = request_digest(request.model_copy(update={"email": email}))
         existing = await self._uow.orders.get_by_idempotency_key(idempotency_key)
         if existing:
-            response = self._resolve_existing(existing, digest)
-            attempt_id, widget = await self._existing_payment_session(existing)
-            return OrderCreationOutcome(
-                response,
-                created=False,
-                payment_attempt_id=attempt_id,
-                payment_widget=widget,
-            )
+            return await self._existing_outcome(existing, digest)
 
         quote = await self._pricing.quote(request, customer_id=customer_id)
         if request.expected_total is not None and request.expected_total != quote.total:
@@ -131,14 +124,7 @@ class OrderCreationService:
             await self._uow.rollback()
             concurrent = await self._uow.orders.get_by_idempotency_key(idempotency_key)
             if concurrent:
-                response = self._resolve_existing(concurrent, digest)
-                attempt_id, widget = await self._existing_payment_session(concurrent)
-                return OrderCreationOutcome(
-                    response,
-                    created=False,
-                    payment_attempt_id=attempt_id,
-                    payment_widget=widget,
-                )
+                return await self._existing_outcome(concurrent, digest)
             raise ConflictError("Order could not be created") from exc
         return OrderCreationOutcome(
             OrderResponse.from_order(order),
@@ -161,9 +147,7 @@ class OrderCreationService:
                 code="payment_amount_invalid",
             )
         self._wayforpay.split_customer_name(order.customer_name)
-        if attempt is None or attempt.status in {
-            PaymentAttemptStatus.FAILED,
-        }:
+        if attempt is None or attempt.status == PaymentAttemptStatus.FAILED:
             attempt = await self._uow.payment_attempts.create(
                 self._new_payment_attempt(order)
             )
@@ -182,10 +166,18 @@ class OrderCreationService:
             status=PaymentAttemptStatus.PENDING,
         )
 
-    def _resolve_existing(self, order: Order, digest: str) -> OrderResponse:
+    async def _existing_outcome(
+        self, order: Order, digest: str
+    ) -> OrderCreationOutcome:
         if order.request_hash != digest:
             raise ConflictError(
                 "Idempotency key was already used for another request",
                 code="idempotency_conflict",
             )
-        return OrderResponse.from_order(order)
+        attempt_id, widget = await self._existing_payment_session(order)
+        return OrderCreationOutcome(
+            OrderResponse.from_order(order),
+            created=False,
+            payment_attempt_id=attempt_id,
+            payment_widget=widget,
+        )

@@ -210,6 +210,7 @@ async def test_old_approval_and_new_decline_cannot_unpay_order(client, payment):
     )
     retry = (await client.post("/api/v1/orders", json=payload, headers=headers)).json()
     assert retry["payment_attempt_id"] != order["payment_attempt_id"]
+    assert retry["payment_status"] == "pending"
     latest_attempt_id = retry["payment_attempt_id"]
     for widget, status in [
         (order["payment_widget"], "Approved"),
