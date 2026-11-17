@@ -139,11 +139,13 @@ export function OrderSuccessPage() {
                 {payment === "card"
                   ? paymentStatus === "paid"
                     ? "Оплачено"
-                    : paymentStatus === "pending"
-                      ? "Очікує підтвердження WayForPay"
-                      : paymentStatus === "failed"
-                        ? "Не оплачено"
-                        : "Очікує підтвердження менеджером"
+                    : paymentStatus === "refunded"
+                      ? "Кошти повернено"
+                      : paymentStatus === "pending"
+                        ? "Очікує підтвердження WayForPay"
+                        : paymentStatus === "failed"
+                          ? "Не оплачено"
+                          : "Очікує підтвердження менеджером"
                   : total
                     ? formatMoney(total)
                     : "—"}
