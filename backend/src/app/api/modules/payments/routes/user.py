@@ -6,7 +6,6 @@ from uuid import UUID
 from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
 from fastapi import APIRouter, Depends, HTTPException, Request
-from pydantic import ValidationError
 
 from app.api.common.rate_limit import PAYMENT_STATUS_RATE_LIMIT, RateLimit
 from app.api.modules.payments.schema import (
@@ -42,7 +41,7 @@ async def wayforpay_callback(
             parse_float=Decimal,
         )
         callback = WayForPayCallback.model_validate(payload)
-    except (ValueError, UnicodeDecodeError, ValidationError, TypeError) as exc:
+    except (ValueError, TypeError) as exc:
         raise HTTPException(status_code=422, detail="Invalid payment callback") from exc
     return await service.receive_callback(callback)
 

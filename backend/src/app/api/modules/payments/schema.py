@@ -4,7 +4,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.api.common.schema import StrictSchema
-from app.api.modules.payments.enums import PaymentAttemptStatus
+from app.api.modules.orders.enums import PaymentStatus
 
 
 class WayForPayWidgetSession(StrictSchema):
@@ -64,7 +64,7 @@ class WayForPayAcknowledgement(StrictSchema):
 
 class PaymentStatusResponse(StrictSchema):
     attempt_id: UUID
-    status: PaymentAttemptStatus
+    status: PaymentStatus
 
 
 class PaymentAvailabilityResponse(StrictSchema):

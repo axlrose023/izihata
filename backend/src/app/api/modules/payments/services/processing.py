@@ -84,5 +84,5 @@ class WayForPayPaymentService:
             raise NotFoundError("Payment attempt not found")
         return PaymentStatusResponse(
             attempt_id=attempt.id,
-            status=PaymentAttemptStatus(attempt.order.payment_status.value),
+            status=attempt.order.payment_status,
         )
