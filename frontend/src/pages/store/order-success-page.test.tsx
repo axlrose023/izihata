@@ -1,12 +1,20 @@
 import { cleanup, render, screen } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, expect, it } from "vitest";
 import { OrderSuccessPage } from "./order-success-page";
+function Result() {
+  return (
+    <QueryClientProvider client={new QueryClient()}>
+      <OrderSuccessPage />
+    </QueryClientProvider>
+  );
+}
 afterEach(cleanup);
 it("gives guests useful order instructions and preserves pickup delivery", () => {
   render(
     <MemoryRouter initialEntries={["/order/success?delivery=pickup"]}>
-      <OrderSuccessPage />
+      <Result />
     </MemoryRouter>,
   );
   expect(screen.getByText(/Збережіть номер замовлення/)).toBeInTheDocument();
@@ -22,7 +30,7 @@ it("links orders created in the authenticated account to its history", () => {
         { pathname: "/order/success", state: { accountOrder: true } },
       ]}
     >
-      <OrderSuccessPage />
+      <Result />
     </MemoryRouter>,
   );
   expect(

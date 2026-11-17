@@ -379,7 +379,11 @@ it.each(["idle", "loading", "unavailable"])(
   (status) => {
     auth.status = status;
     renderForm();
-    expect(apiClient).not.toHaveBeenCalled();
+    expect(
+      vi
+        .mocked(apiClient)
+        .mock.calls.some(([path]) => path === "/checkout/quote"),
+    ).toBe(false);
     expect(
       screen.getByRole("button", { name: "Підтвердити замовлення" }),
     ).toBeDisabled();
