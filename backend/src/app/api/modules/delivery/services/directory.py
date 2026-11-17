@@ -46,19 +46,13 @@ class DeliveryDirectoryService:
     async def search_cities(self, search: str) -> list[NovaPoshtaCity]:
         if not self._enabled:
             return await self._client.search_cities(search)
-        directory = await self._cache.read("cities", CitySnapshot)
-        missing = directory is None
-        if (
-            directory is None
-            and self._city_source
-            and self._city_source.expires_at > time()
-        ):
-            directory = self._city_source
-        if missing or (directory and not directory.is_fresh):
-            await self._schedule_refresh()
+        directory = await self._read("cities", CitySnapshot, self._city_source)
         if directory:
             async with self._city_index_lock:
-                if self._city_source is not directory:
+                if (
+                    self._city_source is None
+                    or self._city_source.version != directory.version
+                ):
                     self._city_index = await asyncio.to_thread(
                         CitySearchIndex, directory.items
                     )
@@ -86,19 +80,13 @@ class DeliveryDirectoryService:
             return await self._client.search_points(
                 city_ref, search, type_ref=type_ref, page=page
             )
-        directory = await self._cache.read("points", PointSnapshot)
-        missing = directory is None
-        if (
-            directory is None
-            and self._point_source
-            and self._point_source.expires_at > time()
-        ):
-            directory = self._point_source
-        if missing or (directory and not directory.is_fresh):
-            await self._schedule_refresh()
+        directory = await self._read("points", PointSnapshot, self._point_source)
         if directory:
             async with self._point_index_lock:
-                if self._point_source is not directory:
+                if (
+                    self._point_source is None
+                    or self._point_source.version != directory.version
+                ):
                     self._point_index = await asyncio.to_thread(
                         PointSearchIndex, directory.items
                     )
@@ -126,6 +114,16 @@ class DeliveryDirectoryService:
             )
 
         return list((await self._cache.remember(key, PointSnapshot, load)).items)
+
+    async def _read[T: DirectorySnapshot](
+        self, key: str, model: type[T], previous: T | None
+    ) -> T | None:
+        snapshot = await self._cache.read(key, model)
+        if snapshot is None or not snapshot.is_fresh:
+            await self._schedule_refresh()
+        return snapshot or (
+            previous if previous and previous.expires_at > time() else None
+        )
 
     async def _schedule_refresh(self) -> None:
         if self._enqueue is None:

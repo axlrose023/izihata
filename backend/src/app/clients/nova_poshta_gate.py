@@ -33,29 +33,21 @@ def directory_unavailable() -> ServiceUnavailableError:
 class NovaPoshtaRequestGate:
     def __init__(
         self,
-        redis: Redis | None,
+        redis: Redis,
         identity: str,
         *,
-        interval: float = 1,
-        max_wait: float = 2,
+        interval: float,
+        max_wait: float,
     ):
         digest = hashlib.sha256(identity.encode()).hexdigest()[:24]
         self._prefix = f"izihata:nova-poshta:gate:{digest}"
         self._redis = redis
         self._interval = interval
         self._max_wait = max_wait
-        self._next_local = 0.0
-        self._local_lock = asyncio.Lock()
 
     async def acquire(self) -> None:
         deadline = monotonic() + self._max_wait
         try:
-            if self._redis is None:
-                # Standalone clients/tests still have a bounded local budget.
-                async with asyncio.timeout(self._max_wait), self._local_lock:
-                    await asyncio.sleep(max(0, self._next_local - monotonic()))
-                    self._next_local = monotonic() + self._interval
-                return
             while True:
                 delay_ms = int(
                     await self._redis.eval(
@@ -77,9 +69,6 @@ class NovaPoshtaRequestGate:
             raise directory_unavailable() from exc
 
     async def block(self, seconds: float) -> None:
-        if self._redis is None:
-            self._next_local = max(self._next_local, monotonic() + seconds)
-            return
         with suppress(RedisError):
             await self._redis.eval(
                 _BLOCK, 1, f"{self._prefix}:cooldown", max(1, int(seconds * 1000))

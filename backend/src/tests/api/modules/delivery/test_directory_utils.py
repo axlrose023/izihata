@@ -8,7 +8,6 @@ from app.api.modules.delivery.utils import (
     CitySearchIndex,
     PointSearchIndex,
     bounded_lookup,
-    match_points,
     normalized_address,
 )
 from app.clients.nova_poshta import NovaPoshtaCity, NovaPoshtaPoint
@@ -44,22 +43,29 @@ def test_point_matching_filters_kind_before_pagination_and_skips_forbidden_point
             f"Осокорська, {number}",
             str(number),
             "branch",
+            city_ref="city",
             **kwargs,
         )
 
     points = (
         NovaPoshtaPoint(
-            "locker", "Поштомат №390", "", "390", NOVA_POSHTA_LOCKER_TYPE_REF
+            "locker",
+            "Поштомат №390",
+            "",
+            "390",
+            NOVA_POSHTA_LOCKER_TYPE_REF,
+            city_ref="city",
         ),
         branch(0, selectable=False),
         *(branch(number) for number in range(1, 101)),
     )
-    assert [item.number for item in match_points(points, "", None, 2, 50)] == [
+    index = PointSearchIndex(points)
+    assert [item.number for item in index.search("city", "", None, 2, 50)] == [
         str(number) for number in range(51, 101)
     ]
-    assert [item.number for item in match_points(points, "39", None, 1, 50)] == ["39"]
-    assert len(match_points(points, "осокорська", None, 1, 50)) == 50
-    assert len(match_points(points, "", NOVA_POSHTA_LOCKER_TYPE_REF, 1, 50)) == 1
+    assert [item.number for item in index.search("city", "39", None, 1, 50)] == ["39"]
+    assert len(index.search("city", "осокорська", None, 1, 50)) == 50
+    assert len(index.search("city", "", NOVA_POSHTA_LOCKER_TYPE_REF, 1, 50)) == 1
 
 
 def test_point_index_keeps_cities_separate_and_matches_numbers_and_streets():

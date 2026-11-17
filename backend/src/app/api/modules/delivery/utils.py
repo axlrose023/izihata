@@ -3,7 +3,7 @@
 import asyncio
 import re
 from collections import OrderedDict
-from collections.abc import Awaitable, Mapping
+from collections.abc import Awaitable
 
 from app.api.modules.delivery.enums import LOCKER_TYPE_REFS
 from app.clients.nova_poshta import NovaPoshtaCity, NovaPoshtaPoint
@@ -60,40 +60,6 @@ class CitySearchIndex:
         return list(result)
 
 
-def match_points(
-    points: tuple[NovaPoshtaPoint, ...],
-    search: str,
-    type_ref: str | None,
-    page: int,
-    page_size: int,
-    *,
-    normalized: Mapping[str, str] | None = None,
-) -> list[NovaPoshtaPoint]:
-    query = normalized_address(search)
-    numeric = search.strip().isascii() and search.strip().isdigit()
-    selected = [
-        point
-        for point in points
-        if point.selectable
-        and (point.type_ref in LOCKER_TYPE_REFS) == (type_ref in LOCKER_TYPE_REFS)
-        and (
-            not query
-            or (numeric and point.number == search.strip())
-            or (
-                not numeric
-                and query
-                in (
-                    normalized[point.ref]
-                    if normalized is not None
-                    else normalized_address(f"{point.name} {point.label}")
-                )
-            )
-        )
-    ]
-    start = (page - 1) * page_size
-    return selected[start : start + page_size]
-
-
 class PointSearchIndex:
     def __init__(self, points: tuple[NovaPoshtaPoint, ...]):
         cities: dict[str, list[NovaPoshtaPoint]] = {}
@@ -129,13 +95,17 @@ class PointSearchIndex:
         if points is None:
             return None
         query = search.strip()
-        if query.isascii() and query.isdigit():
+        numeric = query.isascii() and query.isdigit()
+        if numeric:
             points = self._numbers.get((city_ref, query), ())
-        return match_points(
-            points,
-            search,
-            type_ref,
-            page,
-            page_size,
-            normalized=self._text,
-        )
+        text = normalized_address(query)
+        needs_locker = type_ref in LOCKER_TYPE_REFS
+        matches = [
+            point
+            for point in points
+            if point.selectable
+            and (point.type_ref in LOCKER_TYPE_REFS) == needs_locker
+            and (not text or numeric or text in self._text[point.ref])
+        ]
+        start = (page - 1) * page_size
+        return matches[start : start + page_size]

@@ -1,17 +1,25 @@
 import asyncio
 import json
 from time import monotonic
+from unittest.mock import AsyncMock
 
 import httpx
 import pytest
 
 from app.api.common.exceptions import ServiceUnavailableError
 from app.clients.nova_poshta import NovaPoshtaClient
+from app.clients.nova_poshta_gate import NovaPoshtaRequestGate
 from app.settings import NovaPoshtaConfig
 
 
+def _new_client(config: NovaPoshtaConfig | None = None) -> NovaPoshtaClient:
+    client = NovaPoshtaClient(config or NovaPoshtaConfig(), AsyncMock())
+    client._gate = AsyncMock(spec=NovaPoshtaRequestGate)
+    return client
+
+
 async def make_client(payload: object, status_code: int = 200) -> NovaPoshtaClient:
-    client = NovaPoshtaClient(NovaPoshtaConfig())
+    client = _new_client(NovaPoshtaConfig())
     await client.close()
     client._client = httpx.AsyncClient(
         transport=httpx.MockTransport(
@@ -111,7 +119,7 @@ async def test_retries_temporary_provider_failures(failure: str):
             return httpx.Response(503, request=request)
         return httpx.Response(200, json={"success": True, "data": []}, request=request)
 
-    client = NovaPoshtaClient(NovaPoshtaConfig())
+    client = _new_client(NovaPoshtaConfig())
     await client.close()
     client._client = httpx.AsyncClient(
         transport=httpx.MockTransport(handler), base_url="https://example.test/"
@@ -155,7 +163,7 @@ async def test_searches_by_exact_number_and_forwards_page():
         assert "FindByString" not in properties
         return httpx.Response(200, json={"success": True, "data": []})
 
-    client = NovaPoshtaClient(NovaPoshtaConfig())
+    client = _new_client(NovaPoshtaConfig())
     await client.close()
     client._client = httpx.AsyncClient(
         transport=httpx.MockTransport(handler), base_url="https://example.test/"
@@ -170,7 +178,7 @@ async def test_searches_by_exact_number_and_forwards_page():
 async def test_slow_lookup_does_not_serialize_unrelated_network_calls():
     first_started = asyncio.Event()
     second_started = asyncio.Event()
-    client = NovaPoshtaClient(
+    client = _new_client(
         NovaPoshtaConfig(request_interval_seconds=0.05, request_deadline_seconds=1)
     )
     await client.close()
@@ -198,7 +206,7 @@ async def test_slow_lookup_does_not_serialize_unrelated_network_calls():
 
 @pytest.mark.asyncio
 async def test_provider_request_has_an_overall_deadline():
-    client = NovaPoshtaClient(NovaPoshtaConfig(request_deadline_seconds=1))
+    client = _new_client(NovaPoshtaConfig(request_deadline_seconds=1))
     await client.close()
 
     async def handler(request):
@@ -223,13 +231,18 @@ async def test_marks_unselectable_points_without_losing_page_metadata():
         {
             "success": True,
             "data": [
-                {"Ref": "disabled", "Description": "Закрито", "DenyToSelect": "1"},
-                {"Ref": "active", "Description": "Працює"},
+                {
+                    "Ref": "disabled",
+                    "Description": "Закрито",
+                    "DenyToSelect": "1",
+                    "CityRef": "city",
+                },
+                {"Ref": "active", "Description": "Працює", "CityRef": "city"},
             ],
         }
     )
     try:
-        points, has_next = await client.get_points_page("city", 1, page_size=2)
+        points, has_next = await client.get_points_page(1, page_size=2)
         assert has_next is True
         assert [point.selectable for point in points] == [False, True]
     finally:
@@ -276,9 +289,9 @@ async def test_countrywide_points_require_a_city_reference(city_ref):
     try:
         if city_ref is None:
             with pytest.raises(ServiceUnavailableError):
-                await client.get_points_page(None, 1)
+                await client.get_points_page(1)
         else:
-            points, more = await client.get_points_page(None, 1)
+            points, more = await client.get_points_page(1)
             assert not more
             assert points[0].city_ref == city_ref
     finally:
@@ -302,6 +315,6 @@ async def test_malformed_directory_page_is_not_published_as_partial_data(directo
             if directory == "cities":
                 await client.get_cities_page(1)
             else:
-                await client.get_points_page(None, 1)
+                await client.get_points_page(1)
     finally:
         await client.close()

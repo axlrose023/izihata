@@ -33,7 +33,7 @@ class NovaPoshtaPoint:
 
 
 class NovaPoshtaClient:
-    def __init__(self, config: NovaPoshtaConfig, redis: Redis | None = None):
+    def __init__(self, config: NovaPoshtaConfig, redis: Redis):
         self._api_key = config.api_key.get_secret_value() if config.api_key else ""
         self._client = httpx.AsyncClient(
             base_url=config.api_url,
@@ -121,21 +121,18 @@ class NovaPoshtaClient:
         ]
 
     async def get_points_page(
-        self, city_ref: str | None, page: int, page_size: int = 500
+        self, page: int, page_size: int = 500
     ) -> tuple[list[NovaPoshtaPoint], bool]:
         data = await self._call(
             model="Address",
             method="getWarehouses",
             properties={
-                **({"CityRef": city_ref} if city_ref else {}),
                 "Page": str(page),
                 "Limit": str(page_size),
             },
         )
         points = self._map_points(data)
-        if len(points) != len(data) or (
-            city_ref is None and any(not point.city_ref for point in points)
-        ):
+        if len(points) != len(data) or any(not point.city_ref for point in points):
             raise directory_unavailable()
         return points, len(data) == page_size
 

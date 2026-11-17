@@ -98,7 +98,6 @@ async def test_500_concurrent_http_users_search_without_calling_the_provider(
             ttl=300,
             stale=300,
         ),
-        group="points",
     )
 
     class Overrides(Provider):

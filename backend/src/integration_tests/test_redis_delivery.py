@@ -33,6 +33,15 @@ def _point(*args, **kwargs):
     return NovaPoshtaPoint(*args, **kwargs)
 
 
+def _client():
+    client = AsyncMock(spec=NovaPoshtaClient)
+    client.get_cities_page.return_value = (
+        [NovaPoshtaCity("city", "Київ", "м. Київ")],
+        False,
+    )
+    return client
+
+
 @pytest_asyncio.fixture(loop_scope="session")
 async def directories():
     redis = Redis.from_url(get_config().redis_url, decode_responses=True)
@@ -84,8 +93,8 @@ async def test_cold_index_build_yields_to_io_and_runs_once(
         if kind == "cities"
         else PointSnapshot.create([point], ttl=60, stale=60)
     )
-    await caches[0].save(kind, snapshot, group=kind, capacity=1)
-    client = AsyncMock(spec=NovaPoshtaClient)
+    await caches[0].save(kind, snapshot)
+    client = _client()
     service = DeliveryDirectoryService(client, caches[0], NovaPoshtaConfig())
     index_name = "CitySearchIndex" if kind == "cities" else "PointSearchIndex"
     index_factory = getattr(directory_module, index_name)
@@ -131,9 +140,8 @@ async def test_many_different_cities_use_one_network_snapshot(directories):
     await caches[0].save(
         "points",
         PointSnapshot.create(points, ttl=3600, stale=86400),
-        group="points",
     )
-    client = AsyncMock(spec=NovaPoshtaClient)
+    client = _client()
     services = [
         DeliveryDirectoryService(client, cache, NovaPoshtaConfig()) for cache in caches
     ]
@@ -173,10 +181,8 @@ async def test_many_city_searches_use_a_precomputed_local_index(directories):
     await caches[0].save(
         "cities",
         CitySnapshot.create(cities, ttl=43200, stale=86400),
-        group="cities",
-        capacity=1,
     )
-    client = AsyncMock(spec=NovaPoshtaClient)
+    client = _client()
     services = [
         DeliveryDirectoryService(client, cache, NovaPoshtaConfig()) for cache in caches
     ]
@@ -211,13 +217,10 @@ async def test_stale_directory_remains_usable_and_refresh_is_queued_once(directo
             fresh_until=time() - 10,
             expires_at=time() + 300,
         ),
-        group="points",
     )
     enqueue = AsyncMock()
     services = [
-        DeliveryDirectoryService(
-            AsyncMock(spec=NovaPoshtaClient), cache, NovaPoshtaConfig(), enqueue
-        )
+        DeliveryDirectoryService(_client(), cache, NovaPoshtaConfig(), enqueue)
         for cache in caches
     ]
     results = await asyncio.gather(
@@ -231,21 +234,20 @@ async def test_refresh_failure_does_not_publish_partial_pages(directories):
     _, caches, _ = directories
     original = PointSnapshot.create(
         [_point("old", "Старе відділення", "", "1", "branch")],
-        ttl=3600,
+        ttl=-1,
         stale=86400,
     )
-    await caches[0].save("points", original, group="points")
-    client = AsyncMock(spec=NovaPoshtaClient)
+    await caches[0].save("points", original)
+    client = _client()
     client.get_points_page.side_effect = [
         ([_point("new", "Нове відділення", "", "2", "branch")], True),
         ServiceUnavailableError("Provider down"),
     ]
     refresh = DeliveryDirectoryRefreshService(client, caches[0], NovaPoshtaConfig())
-    with pytest.raises(ServiceUnavailableError):
-        await refresh.refresh_points(force=True)
+    await refresh.refresh_directories()
     snapshot = await caches[1].read("points", PointSnapshot)
     assert snapshot is not None and snapshot.items[0].ref == "old"
-    assert await caches[0].claim("refresh:points", seconds=1)
+    assert await caches[0].claim("refresh:batch", seconds=1)
 
 
 async def test_failed_background_refresh_is_not_requeued_on_each_stale_read(
@@ -257,8 +259,6 @@ async def test_failed_background_refresh_is_not_requeued_on_each_stale_read(
         CitySnapshot.create(
             [NovaPoshtaCity("city", "Київ", "м. Київ")], ttl=60, stale=60
         ),
-        group="cities",
-        capacity=1,
     )
     await caches[0].save(
         "points",
@@ -267,10 +267,8 @@ async def test_failed_background_refresh_is_not_requeued_on_each_stale_read(
             fresh_until=time() - 1,
             expires_at=time() + 300,
         ),
-        group="points",
-        capacity=1,
     )
-    provider = AsyncMock(spec=NovaPoshtaClient)
+    provider = _client()
     provider.get_points_page.side_effect = ServiceUnavailableError("Provider offline")
     refresh = DeliveryDirectoryRefreshService(provider, caches[0], NovaPoshtaConfig())
     enqueue = AsyncMock(side_effect=refresh.refresh_directories)
@@ -278,13 +276,13 @@ async def test_failed_background_refresh_is_not_requeued_on_each_stale_read(
     for _ in range(20):
         assert (await service.search_points("city", "1"))[0].ref == "p"
     enqueue.assert_awaited_once_with()
-    provider.get_points_page.assert_awaited_once_with(None, 1)
+    provider.get_points_page.assert_awaited_once_with(1)
     assert await redis.ttl(f"{namespace}:lock:dispatch") > 240
 
 
 async def test_refresh_uses_all_pages_and_keeps_both_locker_types(directories):
     _, caches, _ = directories
-    client = AsyncMock(spec=NovaPoshtaClient)
+    client = _client()
     client.get_points_page.side_effect = [
         ([_point("branch", "Відділення", "", "1", "branch")], True),
         (
@@ -293,7 +291,8 @@ async def test_refresh_uses_all_pages_and_keeps_both_locker_types(directories):
         ),
     ]
     refresh = DeliveryDirectoryRefreshService(client, caches[0], NovaPoshtaConfig())
-    assert await refresh.refresh_points() == 2
+    await refresh.refresh_directories()
+    assert len((await caches[1].read("points", PointSnapshot)).items) == 2
     service = DeliveryDirectoryService(client, caches[1], NovaPoshtaConfig())
     assert [item.ref for item in await service.search_points("city", "")] == ["branch"]
     assert [
@@ -309,15 +308,13 @@ async def test_refresh_uses_all_pages_and_keeps_both_locker_types(directories):
 
 async def test_snapshot_storage_is_bounded_and_leases_are_owner_checked(directories):
     redis, caches, namespace = directories
-    for index in range(4):
+    for index in range(513):
         await caches[0].save(
-            f"points:{index}",
+            f"query:{index}",
             PointSnapshot.create([], ttl=60, stale=60),
-            group="points",
-            capacity=2,
         )
-    keys = [key async for key in redis.scan_iter(match=f"{namespace}:points:*")]
-    assert len(keys) == 2
+    keys = [key async for key in redis.scan_iter(match=f"{namespace}:query:*")]
+    assert len(keys) == 512
     token = await caches[0].claim("test", seconds=30)
     assert token is not None
     await caches[1].release("test", "wrong-owner")
@@ -329,14 +326,12 @@ async def test_snapshot_storage_is_bounded_and_leases_are_owner_checked(director
 async def test_short_lived_write_does_not_expire_the_storage_index_early(directories):
     redis, caches, namespace = directories
     await caches[0].save(
-        "long",
+        "query:long",
         PointSnapshot.create([], ttl=300, stale=300),
-        group="queries",
     )
     await caches[0].save(
-        "short",
+        "query:short",
         PointSnapshot.create([], ttl=1, stale=1),
-        group="queries",
     )
     assert await redis.ttl(f"{namespace}:index:queries") > 590
 
@@ -375,7 +370,7 @@ async def test_query_failure_uses_recent_snapshot(directories):
         fresh_until=time() - 1,
         expires_at=time() + 300,
     )
-    await caches[0].save("query:city", old, group="queries")
+    await caches[0].save("query:city", old)
 
     async def fail():
         raise ServiceUnavailableError("Provider offline")
@@ -390,17 +385,14 @@ async def test_empty_city_refresh_keeps_last_successful_directory(directories):
         "cities",
         CitySnapshot.create(
             [NovaPoshtaCity("old", "Київ", "м. Київ")],
-            ttl=60,
+            ttl=-1,
             stale=60,
         ),
-        group="cities",
-        capacity=1,
     )
-    client = AsyncMock(spec=NovaPoshtaClient)
+    client = _client()
     client.get_cities_page.return_value = ([], False)
     refresh = DeliveryDirectoryRefreshService(client, caches[0], NovaPoshtaConfig())
-    with pytest.raises(ServiceUnavailableError):
-        await refresh.refresh_cities(force=True)
+    await refresh.refresh_directories()
     current = await caches[1].read("cities", CitySnapshot)
     assert current is not None and current.items[0].ref == "old"
 
@@ -414,10 +406,8 @@ async def test_periodic_refresh_only_loads_stale_directories(directories):
             ttl=43200,
             stale=86400,
         ),
-        group="cities",
-        capacity=1,
     )
-    client = AsyncMock(spec=NovaPoshtaClient)
+    client = _client()
     client.get_points_page.return_value = (
         [_point("p", "Point", "", "1", "branch")],
         False,
@@ -426,7 +416,95 @@ async def test_periodic_refresh_only_loads_stale_directories(directories):
     await refresh.refresh_directories()
     await refresh.refresh_directories()
     client.get_cities_page.assert_not_awaited()
-    client.get_points_page.assert_awaited_once_with(None, 1)
+    client.get_points_page.assert_awaited_once_with(1)
+
+
+@pytest.mark.parametrize("kind", ["cities", "points"])
+async def test_unchanged_snapshot_reuses_index_and_new_snapshot_replaces_it(
+    directories, monkeypatch, kind
+):
+    import app.api.modules.delivery.services.directory as module
+
+    _, caches, _ = directories
+    model = CitySnapshot if kind == "cities" else PointSnapshot
+    item = (
+        NovaPoshtaCity("city", "Київ", "м. Київ")
+        if kind == "cities"
+        else _point("p", "Point", "", "1", "branch")
+    )
+    snapshot = model.create([item], ttl=60, stale=60)
+    await caches[0].save(kind, snapshot)
+    service = DeliveryDirectoryService(_client(), caches[1], NovaPoshtaConfig())
+    index_name = "CitySearchIndex" if kind == "cities" else "PointSearchIndex"
+    factory = getattr(module, index_name)
+    builds = []
+
+    def build(items):
+        builds.append(items)
+        return factory(items)
+
+    monkeypatch.setattr(module, index_name, build)
+
+    async def search():
+        return (
+            await service.search_cities("Київ")
+            if kind == "cities"
+            else await service.search_points("city", "1")
+        )
+
+    await search()
+    original = await caches[1].read(kind, model)
+    for _ in range(3):
+        assert await caches[1].read(kind, model, refresh=True) is original
+        await search()
+    assert len(builds) == 1
+    caches[1]._local.clear()
+    await search()
+    assert len(builds) == 1
+    replacement = model.create([item], ttl=120, stale=60)
+    await caches[0].save(kind, replacement)
+    assert (
+        await caches[1].read(kind, model, refresh=True)
+    ).version == replacement.version
+    await search()
+    assert len(builds) == 2
+
+
+async def test_background_refresh_has_one_owner_across_workers(directories):
+    _, caches, _ = directories
+    client = _client()
+
+    async def points(page):
+        await asyncio.sleep(0.02)
+        return [_point("p", "Point", "", "1", "branch")], False
+
+    client.get_points_page.side_effect = points
+    workers = [
+        DeliveryDirectoryRefreshService(client, cache, NovaPoshtaConfig())
+        for cache in caches
+    ]
+    await asyncio.gather(*(worker.refresh_directories() for worker in workers))
+    client.get_cities_page.assert_awaited_once_with(1)
+    client.get_points_page.assert_awaited_once_with(1)
+    assert await caches[0].claim("refresh:batch", seconds=1)
+
+
+async def test_non_progressing_refresh_keeps_previous_snapshot(directories):
+    _, caches, _ = directories
+    original = PointSnapshot.create(
+        [_point("old", "Old", "", "1", "branch")], ttl=-1, stale=60
+    )
+    await caches[0].save("points", original)
+    client = _client()
+    client.get_points_page.return_value = (
+        [_point("new", "New", "", "2", "branch")],
+        True,
+    )
+    await DeliveryDirectoryRefreshService(
+        client, caches[0], NovaPoshtaConfig()
+    ).refresh_directories()
+    assert (await caches[1].read("points", PointSnapshot)).items == original.items
+    assert client.get_points_page.await_count == 2
 
 
 async def test_provider_gate_is_shared_bounded_and_honors_cooldown(directories):
