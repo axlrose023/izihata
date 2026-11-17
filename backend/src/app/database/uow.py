@@ -17,6 +17,7 @@ from app.api.modules.customers.gateway import CustomerGateway
 from app.api.modules.leads.gateway import LeadGateway
 from app.api.modules.orders.gateway import OrderGateway
 from app.api.modules.outbox.gateway import OutboxGateway
+from app.api.modules.payments.gateway import PaymentAttemptGateway
 from app.api.modules.users.gateway import UserGateway
 
 
@@ -30,6 +31,7 @@ class UnitOfWork:
     products: ProductGateway
     promotions: PromotionGateway
     orders: OrderGateway
+    payment_attempts: PaymentAttemptGateway
     leads: LeadGateway
     outbox: OutboxGateway
     custom_boards: CustomBoardGateway
@@ -46,6 +48,7 @@ class UnitOfWork:
         self.products = ProductGateway(session)
         self.promotions = PromotionGateway(session)
         self.orders = OrderGateway(session)
+        self.payment_attempts = PaymentAttemptGateway(session)
         self.leads = LeadGateway(session)
         self.outbox = OutboxGateway(session)
         self.custom_boards = CustomBoardGateway(session)

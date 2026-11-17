@@ -1,14 +1,18 @@
 from dataclasses import dataclass
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from sqlalchemy.exc import IntegrityError
 
-from app.api.common.exceptions import ConflictError
+from app.api.common.exceptions import ConflictError, UnprocessableError
 from app.api.modules.checkout.service import PricingService
 from app.api.modules.orders.enums import OrderStatus, PaymentMethod, PaymentStatus
 from app.api.modules.orders.models import Order, OrderItem
 from app.api.modules.orders.schema import CreateOrderRequest, OrderResponse
 from app.api.modules.orders.utils import new_order_number, request_digest
+from app.api.modules.payments.enums import PaymentAttemptStatus
+from app.api.modules.payments.models import PaymentAttempt
+from app.api.modules.payments.schema import WayForPayWidgetSession
+from app.api.modules.payments.service import WayForPayProvider
 from app.database.uow import UnitOfWork
 
 
@@ -16,12 +20,20 @@ from app.database.uow import UnitOfWork
 class OrderCreationOutcome:
     order: OrderResponse
     created: bool
+    payment_attempt_id: UUID | None = None
+    payment_widget: WayForPayWidgetSession | None = None
 
 
 class OrderCreationService:
-    def __init__(self, uow: UnitOfWork, pricing: PricingService):
+    def __init__(
+        self,
+        uow: UnitOfWork,
+        pricing: PricingService,
+        wayforpay: WayForPayProvider,
+    ):
         self._uow = uow
         self._pricing = pricing
+        self._wayforpay = wayforpay
 
     async def create_order(
         self,
@@ -36,8 +48,13 @@ class OrderCreationService:
         digest = request_digest(request.model_copy(update={"email": email}))
         existing = await self._uow.orders.get_by_idempotency_key(idempotency_key)
         if existing:
+            response = self._resolve_existing(existing, digest)
+            attempt_id, widget = await self._existing_payment_session(existing)
             return OrderCreationOutcome(
-                self._resolve_existing(existing, digest), created=False
+                response,
+                created=False,
+                payment_attempt_id=attempt_id,
+                payment_widget=widget,
             )
 
         quote = await self._pricing.quote(request, customer_id=customer_id)
@@ -45,6 +62,18 @@ class OrderCreationService:
             raise ConflictError(
                 "Order total has changed; review the new quote", code="quote_changed"
             )
+        if request.payment_method == PaymentMethod.CARD:
+            if not self._wayforpay.enabled:
+                raise UnprocessableError(
+                    "Online card payment is temporarily unavailable",
+                    code="payment_provider_unavailable",
+                )
+            self._wayforpay.split_customer_name(request.customer_name)
+            if quote.total <= 0:
+                raise UnprocessableError(
+                    "Online card payment requires a positive order total",
+                    code="payment_amount_invalid",
+                )
         payment_status = (
             PaymentStatus.NOT_REQUIRED
             if request.payment_method == PaymentMethod.CASH_ON_DELIVERY
@@ -86,6 +115,13 @@ class OrderCreationService:
         )
         try:
             await self._uow.orders.create(order)
+            attempt = None
+            widget = None
+            if request.payment_method == PaymentMethod.CARD and self._wayforpay.enabled:
+                attempt = await self._uow.payment_attempts.create(
+                    self._new_payment_attempt(order)
+                )
+                widget = self._wayforpay.create_widget_session(order, attempt)
             await self._uow.outbox.add(
                 topic="order.created",
                 payload={"order_id": str(order.id), "order_number": order.number},
@@ -95,11 +131,56 @@ class OrderCreationService:
             await self._uow.rollback()
             concurrent = await self._uow.orders.get_by_idempotency_key(idempotency_key)
             if concurrent:
+                response = self._resolve_existing(concurrent, digest)
+                attempt_id, widget = await self._existing_payment_session(concurrent)
                 return OrderCreationOutcome(
-                    self._resolve_existing(concurrent, digest), created=False
+                    response,
+                    created=False,
+                    payment_attempt_id=attempt_id,
+                    payment_widget=widget,
                 )
             raise ConflictError("Order could not be created") from exc
-        return OrderCreationOutcome(OrderResponse.from_order(order), created=True)
+        return OrderCreationOutcome(
+            OrderResponse.from_order(order),
+            created=True,
+            payment_attempt_id=attempt.id if attempt else None,
+            payment_widget=widget,
+        )
+
+    async def _existing_payment_session(
+        self, order: Order
+    ) -> tuple[UUID | None, WayForPayWidgetSession | None]:
+        if order.payment_method != PaymentMethod.CARD or not self._wayforpay.enabled:
+            return None, None
+        attempt = await self._uow.payment_attempts.get_by_order_id(order.id)
+        if order.payment_status in {PaymentStatus.PAID, PaymentStatus.REFUNDED}:
+            return (attempt.id if attempt else None), None
+        if order.total <= 0:
+            raise UnprocessableError(
+                "Online card payment requires a positive order total",
+                code="payment_amount_invalid",
+            )
+        self._wayforpay.split_customer_name(order.customer_name)
+        if attempt is None or attempt.status in {
+            PaymentAttemptStatus.FAILED,
+        }:
+            attempt = await self._uow.payment_attempts.create(
+                self._new_payment_attempt(order)
+            )
+            order.payment_status = PaymentStatus.PENDING
+            await self._uow.commit()
+        return attempt.id, self._wayforpay.create_widget_session(order, attempt)
+
+    @staticmethod
+    def _new_payment_attempt(order: Order) -> PaymentAttempt:
+        return PaymentAttempt(
+            order_id=order.id,
+            provider="wayforpay",
+            order_reference=f"{order.number}-{uuid4().hex[:12]}",
+            amount=order.total,
+            currency="UAH",
+            status=PaymentAttemptStatus.PENDING,
+        )
 
     def _resolve_existing(self, order: Order, digest: str) -> OrderResponse:
         if order.request_hash != digest:

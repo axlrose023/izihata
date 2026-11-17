@@ -1,3 +1,4 @@
+import re
 from functools import lru_cache
 from pathlib import Path
 from typing import ClassVar, Literal, final
@@ -51,6 +52,42 @@ class NovaPoshtaConfig(BaseModel):
     directory_enabled: bool = True
     directory_ttl_seconds: int = Field(default=21600, ge=300, le=86400)
     directory_stale_seconds: int = Field(default=86400, ge=3600, le=172800)
+
+
+class WayForPayConfig(BaseModel):
+    merchant_account: str | None = None
+    merchant_domain_name: str | None = None
+    secret_key: SecretStr | None = None
+
+    @model_validator(mode="after")
+    def validate_credentials(self) -> "WayForPayConfig":
+        credentials = (
+            self.merchant_account,
+            self.merchant_domain_name,
+            self.secret_key,
+        )
+        if any(credentials) and not all(credentials):
+            raise ValueError(
+                "WayForPay merchant_account, merchant_domain_name, and secret_key "
+                "must be configured together"
+            )
+        if self.merchant_account is not None and not self.merchant_account.strip():
+            raise ValueError("WayForPay merchant_account cannot be blank")
+        hostname_label = r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?"
+        if self.merchant_domain_name and not re.fullmatch(
+            rf"{hostname_label}(?:\.{hostname_label})*",
+            self.merchant_domain_name,
+        ):
+            raise ValueError("WayForPay merchant_domain_name must be a hostname")
+        if self.secret_key is not None and not self.secret_key.get_secret_value():
+            raise ValueError("WayForPay secret_key cannot be blank")
+        return self
+
+    @property
+    def enabled(self) -> bool:
+        return bool(
+            self.merchant_account and self.merchant_domain_name and self.secret_key
+        )
 
 
 class OutboxConfig(BaseModel):
@@ -136,6 +173,7 @@ class Config(BaseSettings):
     rate_limit: RateLimitConfig = RateLimitConfig()
     public_catalog_cache: PublicCatalogCacheConfig = PublicCatalogCacheConfig()
     nova_poshta: NovaPoshtaConfig = NovaPoshtaConfig()
+    wayforpay: WayForPayConfig = WayForPayConfig()
     outbox: OutboxConfig = OutboxConfig()
 
     paths: PathsConfig = PathsConfig()

@@ -24,6 +24,8 @@ class OrderGateway:
             select(Order)
             .where(Order.idempotency_key == key)
             .options(selectinload(Order.items))
+            .with_for_update()
+            .execution_options(populate_existing=True)
         )
         return (await self._session.execute(stmt)).scalar_one_or_none()
 

@@ -20,6 +20,7 @@ from app.api.modules.orders.enums import (
     PaymentStatus,
 )
 from app.api.modules.orders.models import Order
+from app.api.modules.payments.schema import WayForPayWidgetSession
 
 
 class DeliveryRequest(StrictSchema):
@@ -146,6 +147,11 @@ class OrderResponse(StrictSchema):
             ],
             created_at=order.created_at,
         )
+
+
+class OrderCreationResponse(OrderResponse):
+    payment_attempt_id: UUID | None = None
+    payment_widget: WayForPayWidgetSession | None = None
 
 
 class OrderListParams(PaginationParams):

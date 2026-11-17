@@ -11,7 +11,10 @@ from app.api.common.visitor import visitor_key_from
 from app.api.modules.activity.service import VisitorTrackingService
 from app.api.modules.customers.models import Customer
 from app.api.modules.customers.service import OptionalAuthenticateCustomer
-from app.api.modules.orders.schema import CreateOrderRequest, OrderResponse
+from app.api.modules.orders.schema import (
+    CreateOrderRequest,
+    OrderCreationResponse,
+)
 from app.api.modules.orders.service import OrderCreationService
 
 router = APIRouter(route_class=DishkaRoute)
@@ -21,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 @router.post(
     "",
-    response_model=OrderResponse,
+    response_model=OrderCreationResponse,
     status_code=201,
     dependencies=[Depends(RateLimit(ORDER_RATE_LIMIT))],
 )
@@ -40,7 +43,7 @@ async def create_order(
         ),
     ],
     customer: Customer | None = Depends(OptionalAuthenticateCustomer()),
-) -> OrderResponse:
+) -> OrderCreationResponse:
     contact_email = customer.email if customer is not None else request.email
     if contact_email is None:
         raise UnprocessableError(
@@ -66,4 +69,8 @@ async def create_order(
                 "The persisted order could not be added to visitor tracking",
                 exc_info=True,
             )
-    return outcome.order
+    return OrderCreationResponse(
+        **outcome.order.model_dump(),
+        payment_attempt_id=outcome.payment_attempt_id,
+        payment_widget=outcome.payment_widget,
+    )

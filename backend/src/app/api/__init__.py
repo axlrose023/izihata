@@ -36,6 +36,7 @@ def register_routers(router: APIRouter) -> None:
     from app.api.modules.orders.routes import (
         user_router as orders_router,
     )
+    from app.api.modules.payments.routes import router as payments_router
 
     router.include_router(auth_router, prefix="/auth", tags=["Auth"])
     router.include_router(
@@ -55,6 +56,7 @@ def register_routers(router: APIRouter) -> None:
     )
     router.include_router(customers_router, prefix="/customer", tags=["Customer"])
     router.include_router(orders_router, prefix="/orders", tags=["Orders"])
+    router.include_router(payments_router, prefix="/payments", tags=["Payments"])
     router.include_router(leads_router, prefix="/leads", tags=["Leads"])
     router.include_router(admin_router, prefix="/admin", tags=["Admin"])
     router.include_router(

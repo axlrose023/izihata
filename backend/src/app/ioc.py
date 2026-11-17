@@ -58,6 +58,7 @@ from app.api.modules.orders.service import (
     OrderStatusTransitionService,
 )
 from app.api.modules.outbox.service import OutboxRecoveryService
+from app.api.modules.payments.service import WayForPayPaymentService, WayForPayProvider
 from app.clients.nova_poshta import NovaPoshtaClient
 from app.database.engine import SessionFactory
 from app.database.uow import UnitOfWork
@@ -341,13 +342,26 @@ class ServicesProvider(Provider):
     def get_pricing_service(self, uow: UnitOfWork) -> PricingService:
         return PricingService(uow)
 
+    @provide(scope=Scope.APP)
+    def get_wayforpay_provider(self, config: Config) -> WayForPayProvider:
+        return WayForPayProvider(config)
+
+    @provide(scope=Scope.REQUEST)
+    def get_wayforpay_payment_service(
+        self,
+        uow: UnitOfWork,
+        provider: WayForPayProvider,
+    ) -> WayForPayPaymentService:
+        return WayForPayPaymentService(uow, provider)
+
     @provide(scope=Scope.REQUEST)
     def get_order_creation_service(
         self,
         uow: UnitOfWork,
         pricing_service: PricingService,
+        wayforpay: WayForPayProvider,
     ) -> OrderCreationService:
-        return OrderCreationService(uow, pricing_service)
+        return OrderCreationService(uow, pricing_service, wayforpay)
 
     @provide(scope=Scope.REQUEST)
     def get_order_status_transition_service(self) -> OrderStatusTransitionService:

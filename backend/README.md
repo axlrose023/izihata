@@ -211,8 +211,10 @@ production Docker build with an idle-worker liveness smoke-test.
 - Anonymous cart, favourite, and comparison state can restore current product
   data through repeated product IDs, for example `?id=<uuid>&id=<uuid>`. The
   list is deduplicated and limited to 100 IDs.
-- Card and invoice orders are created with `payment_status=pending`. No fake
-  payment URL is returned until a real provider adapter and webhook are added.
+- Card and invoice orders are created with `payment_status=pending`. When the
+  WayForPay merchant credentials are configured, card checkout returns a
+  server-signed widget session and only a verified provider callback marks it
+  paid. Without credentials, the existing manager-confirmed card flow remains.
 - Product detail links use the public `slug`; UUIDs remain internal identifiers
   for checkout lines and protected management operations.
 - Access tokens belong to a server-side staff session. Refresh tokens rotate on

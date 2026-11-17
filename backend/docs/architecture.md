@@ -183,12 +183,11 @@ old processed outbox rows are removed by scheduled Taskiq maintenance tasks.
 The following should be implemented only when provider and product requirements
 are known:
 
-1. payment provider adapter, signed webhook, and payment-attempt table;
-2. Nova Poshta city/branch cache and delivery quote adapter;
-3. real CRM/SMS/email notification adapters behind `NotificationDispatcher`;
-4. customer accounts, then persisted carts/favourites/comparison;
-5. media/object-storage model when product images become managed content;
-6. inventory reservation if stock quantity replaces the current binary
+1. Nova Poshta city/branch cache and delivery quote adapter;
+2. real CRM/SMS/email notification adapters behind `NotificationDispatcher`;
+3. customer accounts, then persisted carts/favourites/comparison;
+4. media/object-storage model when product images become managed content;
+5. inventory reservation if stock quantity replaces the current binary
    in-stock/preorder status.
 
 These extensions fit the existing client/service/gateway/outbox seams without
